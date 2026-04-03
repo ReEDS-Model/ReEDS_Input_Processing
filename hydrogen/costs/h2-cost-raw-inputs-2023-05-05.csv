@@ -1,0 +1,821 @@
+year,tech,metric,units,value,dollar_year
+2010,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2011,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2012,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2013,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2014,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2015,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2016,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2017,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2018,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2019,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2020,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2021,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2022,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2023,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2024,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2025,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2026,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2027,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2028,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2029,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2030,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2031,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2032,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2033,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2034,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2035,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2036,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2037,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2038,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2039,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2040,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2041,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2042,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2043,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2044,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2045,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2046,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2047,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2048,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2049,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2050,Gaseous H2 Pipeline,cost_cap,$/(kg/day)-km,1.20726022,2020
+2010,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2011,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2012,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2013,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2014,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2015,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2016,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2017,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2018,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2019,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2020,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2021,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2022,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2023,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2024,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2025,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2026,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2027,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2028,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2029,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2030,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2031,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2032,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2033,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2034,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2035,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2036,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2037,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2038,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2039,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2040,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2041,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2042,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2043,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2044,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2045,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2046,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2047,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2048,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2049,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2050,Gaseous H2 Pipeline,fom,$/(kg/day)-km-yr,0.034137927,2020
+2010,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2011,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2012,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2013,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2014,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2015,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2016,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2017,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2018,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2019,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2020,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2021,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2022,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2023,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2024,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2025,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2026,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2027,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2028,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2029,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2030,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2031,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2032,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2033,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2034,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2035,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2036,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2037,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2038,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2039,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2040,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2041,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2042,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2043,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2044,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2045,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2046,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2047,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2048,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2049,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2050,Gaseous H2 Pipeline,lifetime,yr,50,2020
+2010,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2011,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2012,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2013,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2014,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2015,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2016,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2017,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2018,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2019,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2020,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2021,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2022,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2023,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2024,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2025,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2026,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2027,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2028,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2029,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2030,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2031,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2032,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2033,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2034,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2035,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2036,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2037,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2038,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2039,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2040,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2041,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2042,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2043,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2044,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2045,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2046,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2047,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2048,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2049,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2050,Gaseous H2 Pipeline,elec_efficiency,kwh/kg,0,2020
+2010,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2011,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2012,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2013,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2014,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2015,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2016,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2017,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2018,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2019,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2020,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2021,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2022,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2023,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2024,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2025,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2026,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2027,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2028,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2029,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2030,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2031,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2032,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2033,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2034,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2035,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2036,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2037,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2038,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2039,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2040,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2041,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2042,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2043,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2044,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2045,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2046,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2047,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2048,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2049,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2050,Gaseous H2 Pipeline Compressor,cost_cap,$/(kg/day),24.5936569,2020
+2010,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2011,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2012,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2013,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2014,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2015,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2016,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2017,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2018,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2019,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2020,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2021,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2022,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2023,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2024,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2025,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2026,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2027,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2028,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2029,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2030,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2031,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2032,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2033,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2034,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2035,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2036,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2037,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2038,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2039,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2040,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2041,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2042,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2043,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2044,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2045,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2046,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2047,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2048,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2049,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2050,Gaseous H2 Pipeline Compressor,fom,$/(kg/day)-yr,2.02182489,2020
+2010,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2011,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2012,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2013,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2014,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2015,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2016,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2017,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2018,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2019,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2020,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2021,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2022,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2023,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2024,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2025,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2026,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2027,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2028,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2029,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2030,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2031,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2032,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2033,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2034,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2035,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2036,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2037,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2038,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2039,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2040,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2041,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2042,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2043,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2044,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2045,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2046,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2047,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2048,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2049,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2050,Gaseous H2 Pipeline Compressor,lifetime,yr,15,2020
+2010,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2011,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2012,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2013,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2014,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2015,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2016,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2017,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2018,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2019,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2020,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2021,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2022,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2023,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2024,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2025,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2026,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2027,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2028,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2029,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2030,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2031,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2032,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2033,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2034,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2035,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2036,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2037,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2038,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2039,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2040,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2041,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2042,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2043,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2044,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2045,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2046,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2047,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2048,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2049,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2050,Gaseous H2 Pipeline Compressor,elec_efficiency,kwh/kg,0.589211131,2020
+2010,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2011,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2012,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2013,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2014,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2015,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2016,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2017,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2018,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2019,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2020,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2021,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2022,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2023,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2024,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2025,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2026,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2027,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2028,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2029,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2030,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2031,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2032,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2033,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2034,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2035,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2036,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2037,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2038,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2039,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2040,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2041,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2042,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2043,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2044,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2045,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2046,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2047,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2048,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2049,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2050,Gaseous H2 Salt Cavern Storage,cost_cap,$/kg,35.6,2019
+2010,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2011,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2012,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2013,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2014,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2015,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2016,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2017,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2018,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2019,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2020,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2021,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2022,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2023,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2024,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2025,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2026,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2027,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2028,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2029,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2030,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2031,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2032,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2033,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2034,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2035,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2036,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2037,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2038,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2039,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2040,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2041,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2042,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2043,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2044,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2045,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2046,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2047,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2048,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2049,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2050,Gaseous H2 Salt Cavern Storage,fom,$/(tonne-year),1033.3,2019
+2010,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2011,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2012,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2013,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2014,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2015,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2016,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2017,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2018,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2019,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2020,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2021,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2022,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2023,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2024,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2025,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2026,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2027,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2028,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2029,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2030,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2031,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2032,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2033,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2034,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2035,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2036,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2037,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2038,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2039,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2040,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2041,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2042,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2043,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2044,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2045,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2046,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2047,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2048,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2049,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2050,Gaseous H2 Salt Cavern Storage,lifetime,yr,30,2019
+2010,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2011,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2012,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2013,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2014,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2015,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2016,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2017,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2018,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2019,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2020,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2021,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2022,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2023,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2024,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2025,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2026,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2027,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2028,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2029,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2030,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2031,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2032,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2033,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2034,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2035,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2036,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2037,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2038,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2039,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2040,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2041,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2042,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2043,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2044,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2045,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2046,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2047,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2048,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2049,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2050,Gaseous H2 Salt Cavern Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2010,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2011,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2012,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2013,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2014,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2015,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2016,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2017,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2018,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2019,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2020,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2021,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2022,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2023,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2024,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2025,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2026,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2027,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2028,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2029,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2030,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2031,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2032,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2033,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2034,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2035,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2036,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2037,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2038,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2039,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2040,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2041,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2042,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2043,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2044,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2045,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2046,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2047,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2048,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2049,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2050,Gaseous H2 Hard Rock Storage,cost_cap,$/kg,55.5,2019
+2010,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2011,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2012,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2013,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2014,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2015,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2016,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2017,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2018,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2019,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2020,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2021,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2022,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2023,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2024,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2025,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2026,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2027,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2028,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2029,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2030,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2031,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2032,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2033,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2034,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2035,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2036,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2037,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2038,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2039,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2040,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2041,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2042,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2043,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2044,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2045,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2046,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2047,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2048,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2049,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2050,Gaseous H2 Hard Rock Storage,fom,$/(tonne-year),1033.3,2019
+2010,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2011,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2012,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2013,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2014,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2015,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2016,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2017,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2018,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2019,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2020,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2021,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2022,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2023,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2024,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2025,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2026,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2027,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2028,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2029,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2030,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2031,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2032,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2033,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2034,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2035,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2036,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2037,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2038,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2039,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2040,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2041,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2042,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2043,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2044,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2045,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2046,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2047,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2048,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2049,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2050,Gaseous H2 Hard Rock Storage,lifetime,yr,30,2019
+2010,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2011,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2012,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2013,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2014,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2015,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2016,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2017,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2018,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2019,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2020,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2021,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2022,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2023,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2024,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2025,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2026,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2027,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2028,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2029,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2030,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2031,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2032,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2033,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2034,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2035,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2036,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2037,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2038,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2039,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2040,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2041,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2042,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2043,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2044,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2045,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2046,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2047,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2048,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2049,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2050,Gaseous H2 Hard Rock Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2010,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2011,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2012,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2013,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2014,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2015,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2016,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2017,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2018,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2019,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2020,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2021,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2022,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2023,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2024,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2025,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2026,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2027,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2028,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2029,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2030,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2031,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2032,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2033,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2034,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2035,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2036,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2037,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2038,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2039,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2040,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2041,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2042,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2043,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2044,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2045,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2046,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2047,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2048,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2049,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2050,Gaseous H2 Underground Pipe Storage,cost_cap,$/kg,516,2019
+2010,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2011,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2012,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2013,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2014,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2015,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2016,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2017,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2018,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2019,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2020,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2021,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2022,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2023,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2024,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2025,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2026,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2027,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2028,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2029,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2030,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2031,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2032,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2033,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2034,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2035,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2036,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2037,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2038,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2039,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2040,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2041,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2042,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2043,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2044,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2045,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2046,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2047,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2048,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2049,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2050,Gaseous H2 Underground Pipe Storage,fom,$/(tonne-year),1154.6,2019
+2010,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2011,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2012,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2013,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2014,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2015,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2016,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2017,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2018,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2019,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2020,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2021,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2022,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2023,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2024,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2025,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2026,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2027,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2028,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2029,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2030,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2031,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2032,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2033,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2034,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2035,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2036,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2037,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2038,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2039,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2040,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2041,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2042,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2043,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2044,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2045,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2046,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2047,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2048,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2049,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2050,Gaseous H2 Underground Pipe Storage,lifetime,yr,30,2019
+2010,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2011,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2012,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2013,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2014,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2015,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2016,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2017,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2018,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2019,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2020,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2021,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2022,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2023,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2024,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2025,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2026,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2027,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2028,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2029,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2030,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2031,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2032,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2033,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2034,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2035,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2036,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2037,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2038,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2039,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2040,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2041,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2042,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2043,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2044,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2045,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2046,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2047,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2048,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2049,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019
+2050,Gaseous H2 Underground Pipe Storage,elec_efficiency,kwh/kg,0.008426499,2019

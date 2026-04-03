@@ -1,0 +1,192 @@
+PLANT_NAME,NukeRetireBin,tech,reeds_ba,resource_region,PLANT_ID,UNIT_ID,UID
+Browns Ferry        ,2,nuclear,p89,265,46,1,99
+Browns Ferry        ,2,nuclear,p89,265,46,2,101
+Browns Ferry        ,2,nuclear,p89,265,46,3,102
+Clinton Power Statio,1,nuclear,p83,208,204,1,382
+Wolf Creek Generatin,1,nuclear,p53,143,210,1,386
+Wolf Creek Generatin,1,nuclear,p53,143,210,1,387
+Wolf Creek Generatin,1,nuclear,p53,143,210,1,388
+San Onofre Nuclear G,2,nuclear,p10,31,360,2,669
+San Onofre Nuclear G,2,nuclear,p10,31,360,2,670
+San Onofre Nuclear G,2,nuclear,p10,31,360,2,671
+San Onofre Nuclear G,2,nuclear,p10,31,360,3,672
+San Onofre Nuclear G,2,nuclear,p10,31,360,3,673
+San Onofre Nuclear G,2,nuclear,p10,31,360,3,674
+Columbia Generating ,1,nuclear,p2,9,371,2,682
+Millstone           ,1,nuclear,p132,344,566,2,1110
+Millstone           ,1,nuclear,p132,344,566,3,1111
+Millstone           ,1,nuclear,p132,344,566,3,1112
+Millstone           ,1,nuclear,p132,344,566,3,1113
+Turkey Point        ,2,nuclear,p102,313,621,3,1285
+Turkey Point        ,2,nuclear,p102,313,621,4,1286
+Crystal River       ,1,nuclear,p101,309,628,3,1315
+Crystal River       ,1,nuclear,p101,309,628,3,1316
+Crystal River       ,1,nuclear,p101,309,628,3,1317
+Crystal River       ,1,nuclear,p101,309,628,3,1318
+Vogtle              ,2,nuclear,p94,275,649,1,1391
+Vogtle              ,2,nuclear,p94,275,649,1,1392
+Vogtle              ,2,nuclear,p94,275,649,1,1393
+Vogtle              ,2,nuclear,p94,275,649,1,1394
+Vogtle              ,2,nuclear,p94,275,649,2,1395
+Vogtle              ,2,nuclear,p94,275,649,2,1396
+Vogtle              ,2,nuclear,p94,275,649,2,1397
+Vogtle              ,2,nuclear,p94,275,649,2,1398
+Vogtle              ,2,nuclear,p94,275,649,3,1399
+Vogtle              ,2,nuclear,p94,275,649,3,1400
+Vogtle              ,2,nuclear,p94,275,649,3,1401
+Vogtle              ,2,nuclear,p94,275,649,3,1402
+Vogtle              ,2,nuclear,p94,275,649,4,1403
+Vogtle              ,2,nuclear,p94,275,649,4,1404
+Vogtle              ,2,nuclear,p94,275,649,4,1405
+Vogtle              ,2,nuclear,p94,275,649,4,1406
+Dresden Generating S,1,nuclear,p80,207,869,2,1816
+Dresden Generating S,1,nuclear,p80,207,869,3,1817
+Quad Cities Generati,1,nuclear,p81,200,880,1,1825
+Quad Cities Generati,1,nuclear,p81,200,880,1,1826
+Quad Cities Generati,1,nuclear,p81,200,880,2,1827
+Quad Cities Generati,1,nuclear,p81,200,880,2,1828
+Duane Arnold Energy ,1,nuclear,p70,182,1060,1,2327
+Duane Arnold Energy ,1,nuclear,p70,182,1060,1,2328
+Duane Arnold Energy ,1,nuclear,p70,182,1060,1,2329
+Pilgrim Nuclear Powe,1,nuclear,p131,348,1590,1,3565
+Palisades           ,1,nuclear,p104,213,1715,1,3775
+Fermi               ,1,nuclear,p103,217,1729,2,3815
+Monticello Nuclear F,1,nuclear,p43,126,1922,1,4274
+Prairie Island      ,2,nuclear,p43,128,1925,1,4275
+Prairie Island      ,2,nuclear,p43,128,1925,2,4276
+Fort Calhoun        ,1,nuclear,p41,119,2289,1,5093
+Oyster Creek        ,1,nuclear,p126,330,2388,1,5307
+PSEG Salem Generatin,1,nuclear,p126,331,2410,1,5400
+PSEG Salem Generatin,1,nuclear,p126,331,2410,1,5401
+PSEG Salem Generatin,1,nuclear,p126,331,2410,2,5402
+PSEG Salem Generatin,1,nuclear,p126,331,2410,2,5403
+Indian Point 2      ,1,nuclear,p127,341,2497,2,5542
+Nine Mile Point Nucl,1,nuclear,p127,336,2589,1,5756
+Nine Mile Point Nucl,1,nuclear,p127,336,2589,1,5757
+Nine Mile Point Nucl,1,nuclear,p127,336,2589,2,5758
+Nine Mile Point Nucl,1,nuclear,p127,336,2589,2,5759
+Nine Mile Point Nucl,1,nuclear,p127,336,2589,2,5760
+Peach Bottom        ,1,nuclear,p122,326,3166,2,6898
+Peach Bottom        ,1,nuclear,p122,326,3166,2,6899
+Peach Bottom        ,1,nuclear,p122,326,3166,3,6900
+Peach Bottom        ,1,nuclear,p122,326,3166,3,6901
+H B Robinson        ,1,nuclear,p96,298,3251,2,6956
+H B Robinson        ,1,nuclear,p96,298,3251,2,6957
+Oconee              ,2,nuclear,p95,295,3265,1,7003
+Oconee              ,2,nuclear,p95,295,3265,2,7004
+Oconee              ,2,nuclear,p95,295,3265,3,7005
+Vermont Yankee      ,1,nuclear,p129,352,3751,1,7750
+Surry               ,2,nuclear,p99,307,3806,1,7862
+Surry               ,2,nuclear,p99,307,3806,2,7863
+Point Beach Nuclear ,1,nuclear,p75,197,4046,1,8297
+Point Beach Nuclear ,1,nuclear,p75,197,4046,2,8298
+Waterford 3         ,1,nuclear,p58,261,4270,3,8558
+Donald C Cook       ,2,nuclear,p104,213,6000,1,8597
+Donald C Cook       ,2,nuclear,p104,213,6000,2,8598
+Joseph M Farley     ,2,nuclear,p90,267,6001,1,8599
+Joseph M Farley     ,2,nuclear,p90,267,6001,2,8600
+Palo Verde          ,2,nuclear,p28,57,6008,1,8623
+Palo Verde          ,2,nuclear,p28,57,6008,1,8624
+Palo Verde          ,2,nuclear,p28,57,6008,1,8625
+Palo Verde          ,2,nuclear,p28,57,6008,1,8626
+Palo Verde          ,2,nuclear,p28,57,6008,1,8627
+Palo Verde          ,2,nuclear,p28,57,6008,1,8628
+Palo Verde          ,2,nuclear,p28,57,6008,1,8629
+Palo Verde          ,2,nuclear,p28,57,6008,2,8630
+Palo Verde          ,2,nuclear,p28,57,6008,2,8631
+Palo Verde          ,2,nuclear,p28,57,6008,2,8632
+Palo Verde          ,2,nuclear,p28,57,6008,2,8633
+Palo Verde          ,2,nuclear,p28,57,6008,2,8634
+Palo Verde          ,2,nuclear,p28,57,6008,2,8635
+Palo Verde          ,2,nuclear,p28,57,6008,2,8636
+Palo Verde          ,2,nuclear,p28,57,6008,3,8637
+Palo Verde          ,2,nuclear,p28,57,6008,3,8638
+Palo Verde          ,2,nuclear,p28,57,6008,3,8639
+Palo Verde          ,2,nuclear,p28,57,6008,3,8640
+Palo Verde          ,2,nuclear,p28,57,6008,3,8641
+Palo Verde          ,2,nuclear,p28,57,6008,3,8642
+Palo Verde          ,2,nuclear,p28,57,6008,3,8643
+Calvert Cliffs Nucle,1,nuclear,p123,317,6011,1,8654
+Calvert Cliffs Nucle,1,nuclear,p123,317,6011,1,8655
+Calvert Cliffs Nucle,1,nuclear,p123,317,6011,2,8656
+Calvert Cliffs Nucle,1,nuclear,p123,317,6011,2,8657
+Brunswick Nuclear   ,2,nuclear,p98,292,6014,1,8661
+Brunswick Nuclear   ,2,nuclear,p98,292,6014,2,8662
+Brunswick Nuclear   ,2,nuclear,p98,292,6014,2,8663
+Harris              ,1,nuclear,p98,291,6015,1,8664
+Perry               ,1,nuclear,p111,234,6020,1,8671
+Braidwood Generation,1,nuclear,p80,206,6022,1,8683
+Braidwood Generation,1,nuclear,p80,206,6022,2,8684
+Byron Generating Sta,1,nuclear,p80,199,6023,1,8685
+Byron Generating Sta,1,nuclear,p80,199,6023,2,8686
+LaSalle Generating S,1,nuclear,p80,207,6026,1,8687
+LaSalle Generating S,1,nuclear,p80,207,6026,2,8688
+Catawba             ,2,nuclear,p95,295,6036,1,8712
+Catawba             ,2,nuclear,p95,295,6036,1,8713
+Catawba             ,2,nuclear,p95,295,6036,1,8714
+Catawba             ,2,nuclear,p95,295,6036,1,8715
+Catawba             ,2,nuclear,p95,295,6036,2,8716
+Catawba             ,2,nuclear,p95,295,6036,2,8717
+Catawba             ,2,nuclear,p95,295,6036,2,8718
+Catawba             ,2,nuclear,p95,295,6036,2,8719
+McGuire             ,2,nuclear,p97,290,6038,1,8720
+McGuire             ,2,nuclear,p97,290,6038,2,8721
+Beaver Valley       ,1,nuclear,p115,251,6040,1,8722
+Beaver Valley       ,1,nuclear,p115,251,6040,2,8723
+St Lucie            ,2,nuclear,p102,313,6045,1,8751
+St Lucie            ,2,nuclear,p102,313,6045,2,8752
+St Lucie            ,2,nuclear,p102,313,6045,2,8753
+St Lucie            ,2,nuclear,p102,313,6045,2,8754
+Edwin I Hatch       ,1,nuclear,p94,275,6051,1,8770
+Edwin I Hatch       ,1,nuclear,p94,275,6051,1,8771
+Edwin I Hatch       ,1,nuclear,p94,275,6051,1,8772
+Edwin I Hatch       ,1,nuclear,p94,275,6051,1,8773
+Edwin I Hatch       ,1,nuclear,p94,275,6051,2,8774
+Edwin I Hatch       ,1,nuclear,p94,275,6051,2,8775
+Edwin I Hatch       ,1,nuclear,p94,275,6051,2,8776
+Edwin I Hatch       ,1,nuclear,p94,275,6051,2,8777
+Grand Gulf          ,1,nuclear,p87,262,6072,1,8883
+Grand Gulf          ,1,nuclear,p87,262,6072,1,8884
+Diablo Canyon       ,2,nuclear,p9,29,6099,1,9008
+Diablo Canyon       ,2,nuclear,p9,29,6099,2,9009
+TalenEnergy Susqueha,2,nuclear,p122,324,6103,1,9017
+TalenEnergy Susqueha,2,nuclear,p122,324,6103,1,9018
+TalenEnergy Susqueha,2,nuclear,p122,324,6103,2,9019
+TalenEnergy Susqueha,2,nuclear,p122,324,6103,2,9020
+Limerick            ,1,nuclear,p122,327,6105,1,9021
+Limerick            ,1,nuclear,p122,327,6105,2,9022
+James A Fitzpatrick ,1,nuclear,p127,336,6110,1,9027
+Seabrook            ,2,nuclear,p130,354,6115,1,9045
+Seabrook            ,2,nuclear,p130,354,6115,1,9046
+Seabrook            ,2,nuclear,p130,354,6115,1,9047
+Seabrook            ,2,nuclear,p130,354,6115,1,9048
+PSEG Hope Creek Gene,1,nuclear,p126,331,6118,1,9049
+R E Ginna Nuclear Po,1,nuclear,p127,334,6122,1,9055
+R E Ginna Nuclear Po,1,nuclear,p127,334,6122,1,9056
+V C Summer          ,1,nuclear,p96,296,6127,1,9081
+V C Summer          ,1,nuclear,p96,296,6127,1,9082
+Comanche Peak       ,1,nuclear,p63,168,6145,1,9131
+Comanche Peak       ,1,nuclear,p63,168,6145,2,9132
+Davis Besse         ,1,nuclear,p111,227,6149,1,9139
+Sequoyah            ,2,nuclear,p92,280,6152,1,9146
+Sequoyah            ,2,nuclear,p92,280,6152,2,9147
+Callaway            ,1,nuclear,p72,185,6153,1,9148
+North Anna          ,2,nuclear,p99,304,6168,1,9221
+North Anna          ,2,nuclear,p99,304,6168,1,9222
+North Anna          ,2,nuclear,p99,304,6168,2,9223
+North Anna          ,2,nuclear,p99,304,6168,2,9224
+South Texas Project ,2,nuclear,p65,174,6251,1,9373
+South Texas Project ,2,nuclear,p65,174,6251,1,9374
+South Texas Project ,2,nuclear,p65,174,6251,1,9375
+South Texas Project ,2,nuclear,p65,174,6251,2,9376
+South Texas Project ,2,nuclear,p65,174,6251,2,9377
+South Texas Project ,2,nuclear,p65,174,6251,2,9378
+River Bend          ,1,nuclear,p58,261,6462,1,9585
+Watts Bar Nuclear Pl,1,nuclear,p92,279,7722,1,10584
+Watts Bar Nuclear Pl,1,nuclear,p92,279,7722,2,10585
+Three Mile Island   ,1,nuclear,p122,326,8011,1,11459
+Kewaunee            ,1,nuclear,p75,197,8024,1,11495
+Cooper Nuclear Stati,1,nuclear,p41,119,8036,1,11522
+Arkansas Nuclear One,2,nuclear,p85,257,8055,1,11551
+Arkansas Nuclear One,2,nuclear,p85,257,8055,2,11552
+Indian Point 3      ,1,nuclear,p127,341,8907,3,11669

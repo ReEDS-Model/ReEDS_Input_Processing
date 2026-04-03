@@ -1,0 +1,1153 @@
+Plant Code,Plant Name,State,County,Generator ID,Technology,Prime Mover,Utility Name,Sector,Operating Month,Operating Year,Retirement Month,Retirement Year,EC Operating Year,EC Retirement Year,EC Retirement Year 30,EC Retirement Year 55,EC Retirement Year 70,Nameplate Capacity (MW),Summer Capacity (MW),Winter Capacity (MW),Latitude,Longitude,MAT Exemptions
+6288,Healy,AK,Denali,1,Conventional Steam Coal,ST,Golden Valley Elec Assn Inc,Electric Utility,11,1967,,,1968,,2030,2030,2038,28,25,25,63.8542,-148.95,1
+6288,Healy,AK,Denali,2,Conventional Steam Coal,ST,Golden Valley Elec Assn Inc,Electric Utility,1,1998,,,1998,,2030,2053,2068,62,50,50,63.8542,-148.95,1
+79,Aurora Energy LLC Chena,AK,Fairbanks North Star,1,Conventional Steam Coal,ST,Aurora Energy LLC,IPP CHP,6,1952,,,1953,,2030,2030,2030,5,4.7,4.3,64.847743,-147.7351,0
+79,Aurora Energy LLC Chena,AK,Fairbanks North Star,2,Conventional Steam Coal,ST,Aurora Energy LLC,IPP CHP,6,1952,,,1953,,2030,2030,2030,2.5,2,2,64.847743,-147.7351,0
+79,Aurora Energy LLC Chena,AK,Fairbanks North Star,3,Conventional Steam Coal,ST,Aurora Energy LLC,IPP CHP,6,1952,8,2009,1953,2010,,,,1.5,1.5,1.5,64.847743,-147.7351,0
+79,Aurora Energy LLC Chena,AK,Fairbanks North Star,5,Conventional Steam Coal,ST,Aurora Energy LLC,IPP CHP,6,1975,,,1976,,2030,2031,2046,20,19,18.8,64.847743,-147.7351,0
+50308,Utility Plants Section,AK,Fairbanks North Star,GEN1,Conventional Steam Coal,ST,Doyon Utilities - Ft. Wainwright,Electric Utility,1,1955,,,1955,,2030,2030,2030,5,3.5,4.3,64.825601,-147.6486,0
+50308,Utility Plants Section,AK,Fairbanks North Star,GEN2,Conventional Steam Coal,ST,Doyon Utilities - Ft. Wainwright,Electric Utility,1,1945,12,2009,1945,2010,,,,2.5,,,64.825601,-147.6486,0
+50308,Utility Plants Section,AK,Fairbanks North Star,GEN3,Conventional Steam Coal,ST,Doyon Utilities - Ft. Wainwright,Electric Utility,1,1955,,,1955,,2030,2030,2030,5,6.2,6.2,64.825601,-147.6486,0
+50308,Utility Plants Section,AK,Fairbanks North Star,GEN4,Conventional Steam Coal,ST,Doyon Utilities - Ft. Wainwright,Electric Utility,1,1955,,,1955,,2030,2030,2030,5,6.2,6.2,64.825601,-147.6486,0
+50308,Utility Plants Section,AK,Fairbanks North Star,GEN5,Conventional Steam Coal,ST,Doyon Utilities - Ft. Wainwright,Electric Utility,1,1989,,,1989,,2030,2044,2059,5,6.2,6.2,64.825601,-147.6486,0
+47,Colbert,AL,Colbert,1,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,1,1955,4,2016,1955,2016,,,,200,178,182,34.7439,-87.8486,0
+47,Colbert,AL,Colbert,2,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,3,1955,4,2016,1955,2016,,,,200,178,182,34.7439,-87.8486,0
+47,Colbert,AL,Colbert,3,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,7,1955,4,2016,1956,2016,,,,200,178,182,34.7439,-87.8486,0
+47,Colbert,AL,Colbert,4,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,11,1955,4,2016,1956,2016,,,,200,178,182,34.7439,-87.8486,0
+47,Colbert,AL,Colbert,5,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,11,1965,4,2016,1966,2016,,,,550,472,481,34.7439,-87.8486,0
+50,Widows Creek,AL,Jackson,1,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,7,1952,7,2014,1953,2015,,,,140.6,111,113,34.883022,-85.75525,0
+50,Widows Creek,AL,Jackson,2,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,10,1952,7,2014,1953,2015,,,,140.6,111,113,34.883022,-85.75525,0
+50,Widows Creek,AL,Jackson,3,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,11,1952,7,2013,1953,2014,,,,140.6,111,113,34.883022,-85.75525,0
+50,Widows Creek,AL,Jackson,4,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,1,1953,7,2014,1953,2015,,,,140.6,111,113,34.883022,-85.75525,0
+50,Widows Creek,AL,Jackson,5,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,6,1954,7,2013,1955,2014,,,,140.6,111,113,34.883022,-85.75525,0
+50,Widows Creek,AL,Jackson,6,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,7,1954,7,2014,1955,2015,,,,140.6,111,113,34.883022,-85.75525,0
+50,Widows Creek,AL,Jackson,7,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,2,1961,9,2015,1961,2016,,,,575,473,476,34.883022,-85.75525,0
+50,Widows Creek,AL,Jackson,8,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,2,1965,9,2015,1965,2016,,,,550,465,469,34.883022,-85.75525,0
+6002,James H Miller Jr,AL,Jefferson,1,Conventional Steam Coal,ST,Alabama Power Co,Electric Utility,10,1978,,,1979,,2030,2034,2049,705.5,687.8,687.8,33.6319,-87.0597,1
+6002,James H Miller Jr,AL,Jefferson,2,Conventional Steam Coal,ST,Alabama Power Co,Electric Utility,5,1985,,,1986,,2030,2041,2056,705.5,692.7,692.7,33.6319,-87.0597,1
+6002,James H Miller Jr,AL,Jefferson,3,Conventional Steam Coal,ST,Alabama Power Co,Electric Utility,5,1989,,,1990,,2030,2045,2060,705.5,693,693,33.6319,-87.0597,1
+6002,James H Miller Jr,AL,Jefferson,4,Conventional Steam Coal,ST,Alabama Power Co,Electric Utility,3,1991,,,1991,,2030,2046,2061,705.5,704,704,33.6319,-87.0597,1
+3,Barry,AL,Mobile,3,Conventional Steam Coal,ST,Alabama Power Co,Electric Utility,7,1959,8,2015,1960,2016,,,,272,249,249,31.0069,-88.0103,0
+3,Barry,AL,Mobile,4,Conventional Steam Coal,ST,Alabama Power Co,Electric Utility,12,1969,,,1970,,2030,2030,2040,403.7,362,362,31.0069,-88.0103,0
+3,Barry,AL,Mobile,5,Conventional Steam Coal,ST,Alabama Power Co,Electric Utility,10,1971,,,1972,,2030,2030,2042,788.8,756.5,756.5,31.0069,-88.0103,1
+26,E C Gaston,AL,Shelby,5,Conventional Steam Coal,ST,Alabama Power Co,Electric Utility,8,1974,,,1975,,2030,2030,2045,952,832,832,33.244211,-86.45806,0
+8,Gorgas,AL,Walker,10,Conventional Steam Coal,ST,Alabama Power Co,Electric Utility,10,1972,4,2019,1973,2019,,,,788.8,727.7,727.7,33.644344,-87.19649,0
+8,Gorgas,AL,Walker,6,Conventional Steam Coal,ST,Alabama Power Co,Electric Utility,4,1951,8,2015,1951,2016,,,,125,103,103,33.644344,-87.19649,0
+8,Gorgas,AL,Walker,7,Conventional Steam Coal,ST,Alabama Power Co,Electric Utility,7,1952,8,2015,1953,2016,,,,125,104,104,33.644344,-87.19649,0
+8,Gorgas,AL,Walker,8,Conventional Steam Coal,ST,Alabama Power Co,Electric Utility,5,1956,4,2019,1957,2019,,,,187.5,163,163,33.644344,-87.19649,0
+8,Gorgas,AL,Walker,9,Conventional Steam Coal,ST,Alabama Power Co,Electric Utility,6,1958,4,2019,1959,2019,,,,190.4,172,172,33.644344,-87.19649,0
+56,Lowman Energy Center,AL,Washington,1,Conventional Steam Coal,ST,PowerSouth Energy Cooperative,Electric Utility,6,1969,10,2020,1970,2021,,,,66,78,78,31.488019,-87.91075,0
+56,Lowman Energy Center,AL,Washington,2,Conventional Steam Coal,ST,PowerSouth Energy Cooperative,Electric Utility,6,1978,10,2020,1979,2021,,,,236,238,238,31.488019,-87.91075,0
+56,Lowman Energy Center,AL,Washington,3,Conventional Steam Coal,ST,PowerSouth Energy Cooperative,Electric Utility,6,1980,10,2020,1981,2021,,,,236,238,238,31.488019,-87.91075,0
+6138,Flint Creek,AR,Benton,1,Conventional Steam Coal,ST,Southwestern Electric Power Co,Electric Utility,5,1978,,,1979,,2030,2034,2049,558,494,494,36.2561,-94.5241,0
+56564,John W Turk Jr Power Plant,AR,Hempstead,1,Conventional Steam Coal,ST,Southwestern Electric Power Co,Electric Utility,12,2012,,,2013,,2043,2068,2083,609,650,650,33.649722,-93.81194,0
+6641,Independence Steam Electric Station,AR,Independence,1,Conventional Steam Coal,ST,Entergy Arkansas LLC,Electric Utility,1,1983,,,1983,,2030,2038,2053,900,824.4,836,35.678442,-91.40876,0
+6641,Independence Steam Electric Station,AR,Independence,2,Conventional Steam Coal,ST,Entergy Arkansas LLC,Electric Utility,12,1984,,,1985,,2030,2040,2055,900,842,842,35.678442,-91.40876,0
+6009,White Bluff,AR,Jefferson,1,Conventional Steam Coal,ST,Entergy Arkansas LLC,Electric Utility,8,1980,,,1981,,2030,2036,2051,900,817.4,823.4,34.4228,-92.1406,1
+6009,White Bluff,AR,Jefferson,2,Conventional Steam Coal,ST,Entergy Arkansas LLC,Electric Utility,8,1981,,,1982,,2030,2037,2052,900,820.6,832,34.4228,-92.1406,0
+56456,Plum Point Energy Station,AR,Mississippi,STG1,Conventional Steam Coal,ST,NRG Energy Services - Plum Point,IPP Non-CHP,9,2010,,,2011,,2041,2066,2081,720,680,680,35.6644,-89.9489,1
+6177,Coronado,AZ,Apache,CO1,Conventional Steam Coal,ST,Salt River Project,Electric Utility,12,1979,12,2032,1980,2033,,,,410.9,380,380,34.5789,-109.2708,0
+6177,Coronado,AZ,Apache,CO2,Conventional Steam Coal,ST,Salt River Project,Electric Utility,10,1980,12,2032,1981,2033,,,,410.9,382,382,34.5789,-109.2708,0
+8223,Springerville,AZ,Apache,1,Conventional Steam Coal,ST,Tucson Electric Power Co,Electric Utility,6,1985,12,2027,1986,2028,,,,424.8,381,381,34.3186,-109.1639,0
+8223,Springerville,AZ,Apache,2,Conventional Steam Coal,ST,Tucson Electric Power Co,Electric Utility,6,1990,12,2032,1991,2033,,,,424.8,406,406,34.3186,-109.1639,0
+8223,Springerville,AZ,Apache,3,Conventional Steam Coal,ST,Tucson Electric Power Co,Electric Utility,7,2006,,,2007,,2037,2062,2077,458.1,417,417,34.3186,-109.1639,0
+8223,Springerville,AZ,Apache,4,Conventional Steam Coal,ST,Tucson Electric Power Co,Electric Utility,12,2009,,,2010,,2040,2065,2080,458.1,415,415,34.3186,-109.1639,0
+160,Apache Station,AZ,Cochise,ST3,Conventional Steam Coal,ST,Arizona Electric Pwr Coop Inc,Electric Utility,9,1979,,,1980,,2030,2035,2050,204,175,175,32.0603,-109.8931,1
+4941,Navajo,AZ,Coconino,NAV1,Conventional Steam Coal,ST,Salt River Project,Electric Utility,5,1974,11,2019,1975,2020,,,,803.1,750,750,36.9047,-111.3886,0
+4941,Navajo,AZ,Coconino,NAV2,Conventional Steam Coal,ST,Salt River Project,Electric Utility,4,1975,11,2019,1975,2020,,,,803.1,750,750,36.9047,-111.3886,0
+4941,Navajo,AZ,Coconino,NAV3,Conventional Steam Coal,ST,Salt River Project,Electric Utility,4,1976,9,2019,1976,2020,,,,803.1,750,750,36.9047,-111.3886,0
+113,Cholla,AZ,Navajo,1,Conventional Steam Coal,ST,Arizona Public Service Co,Electric Utility,5,1962,,,1963,,2030,2030,2033,113.6,116,116,34.9394,-110.3033,0
+113,Cholla,AZ,Navajo,2,Conventional Steam Coal,ST,Arizona Public Service Co,Electric Utility,6,1978,11,2015,1979,2016,,,,288.9,260,260,34.9394,-110.3033,0
+113,Cholla,AZ,Navajo,3,Conventional Steam Coal,ST,Arizona Public Service Co,Electric Utility,5,1980,,,1981,,2030,2036,2051,312.3,271,271,34.9394,-110.3033,0
+113,Cholla,AZ,Navajo,4,Conventional Steam Coal,ST,Arizona Public Service Co,Electric Utility,6,1981,12,2020,1982,2021,,,,414,380,380,34.9394,-110.3033,0
+469,Cherokee,CO,Adams,1,Conventional Steam Coal,ST,Public Service Co of Colorado,Electric Utility,6,1957,4,2012,1958,2012,,,,125,107,107,39.807275,-104.9645,0
+469,Cherokee,CO,Adams,2,Conventional Steam Coal,ST,Public Service Co of Colorado,Electric Utility,6,1959,10,2011,1960,2012,,,,125,106,106,39.807275,-104.9645,0
+469,Cherokee,CO,Adams,3,Conventional Steam Coal,ST,Public Service Co of Colorado,Electric Utility,6,1962,8,2015,1963,2016,,,,170.5,152,152,39.807275,-104.9645,0
+477,Valmont,CO,Boulder,5,Conventional Steam Coal,ST,Public Service Co of Colorado,Electric Utility,5,1964,9,2017,1965,2018,,,,191.7,184,184,40.0195,-105.202,0
+465,Arapahoe,CO,Denver,1,Conventional Steam Coal,ST,Public Service Co of Colorado,Electric Utility,0,1950,12,2002,1950,2003,,,,44,45,45,39.67,-105.0028,0
+465,Arapahoe,CO,Denver,2,Conventional Steam Coal,ST,Public Service Co of Colorado,Electric Utility,0,1951,12,2002,1951,2003,,,,44,45,45,39.67,-105.0028,0
+465,Arapahoe,CO,Denver,3,Conventional Steam Coal,ST,Public Service Co of Colorado,Electric Utility,6,1951,12,2013,1952,2014,,,,40,35,40,39.67,-105.0028,0
+465,Arapahoe,CO,Denver,4,Conventional Steam Coal,ST,Public Service Co of Colorado,Electric Utility,6,1955,12,2013,1956,2014,,,,112.5,109,109,39.67,-105.0028,0
+8219,Ray D Nixon,CO,El Paso,1,Conventional Steam Coal,ST,City of Colorado Springs - (CO),Electric Utility,4,1980,12,2029,1980,2030,,,,207,208,208,38.633451,-104.7058,0
+492,South Plant,CO,El Paso,5,Conventional Steam Coal,ST,City of Colorado Springs - (CO),Electric Utility,11,1962,12,2016,1963,2017,,,,50,46,46,38.824444,-104.8333,0
+492,South Plant,CO,El Paso,6,Conventional Steam Coal,ST,City of Colorado Springs - (CO),Electric Utility,10,1968,8,2022,1969,2023,,,,75,77,77,38.824444,-104.8333,0
+462,W N Clark,CO,Fremont,1,Conventional Steam Coal,ST,"Black Hills Colorado Electric, LLC",Electric Utility,9,1955,12,2013,1956,2014,,,,18.7,16,16,38.4344,-105.25,0
+462,W N Clark,CO,Fremont,2,Conventional Steam Coal,ST,"Black Hills Colorado Electric, LLC",Electric Utility,1,1959,12,2013,1959,2014,,,,25,24.9,24.9,38.4344,-105.25,0
+6761,Rawhide,CO,Larimer,1,Conventional Steam Coal,ST,Platte River Power Authority,Electric Utility,4,1984,12,2029,1984,2030,,,,293.6,280,280,40.860905,-105.0212,0
+511,Trinidad (CO),CO,Las Animas,1,Conventional Steam Coal,ST,City of Trinidad - (CO),Electric Utility,5,1950,1,2017,1951,2017,,,,3.7,3.8,3.8,37.178979,-104.4875,0
+468,Cameo,CO,Mesa,1,Conventional Steam Coal,ST,Public Service Co of Colorado,Electric Utility,0,1957,12,2010,1957,2011,,,,25,23.7,23.7,39.127778,-108.3261,0
+468,Cameo,CO,Mesa,2,Conventional Steam Coal,ST,Public Service Co of Colorado,Electric Utility,0,1960,12,2010,1960,2011,,,,50,49,49,39.127778,-108.3261,0
+6021,Craig (CO),CO,Moffat,1,Conventional Steam Coal,ST,"Tri-State G & T Assn, Inc",Electric Utility,7,1980,12,2025,1981,2026,,,,446.4,427,427,40.4627,-107.5912,0
+6021,Craig (CO),CO,Moffat,2,Conventional Steam Coal,ST,"Tri-State G & T Assn, Inc",Electric Utility,11,1979,9,2028,1980,2029,,,,446.4,410,410,40.4627,-107.5912,0
+6021,Craig (CO),CO,Moffat,3,Conventional Steam Coal,ST,"Tri-State G & T Assn, Inc",Electric Utility,10,1984,12,2029,1985,2030,,,,534.8,448,448,40.4627,-107.5912,0
+527,Nucla,CO,Montrose,1,Conventional Steam Coal,ST,"Tri-State G & T Assn, Inc",Electric Utility,11,1959,9,2019,1960,2020,,,,11.5,12,12,38.2383,-108.5069,0
+527,Nucla,CO,Montrose,2,Conventional Steam Coal,ST,"Tri-State G & T Assn, Inc",Electric Utility,11,1959,9,2019,1960,2020,,,,11.5,12,12,38.2383,-108.5069,0
+527,Nucla,CO,Montrose,3,Conventional Steam Coal,ST,"Tri-State G & T Assn, Inc",Electric Utility,11,1959,9,2019,1960,2020,,,,11.5,12,12,38.2383,-108.5069,0
+527,Nucla,CO,Montrose,ST4,Conventional Steam Coal,ST,"Tri-State G & T Assn, Inc",Electric Utility,1,1991,9,2019,1991,2020,,,,79.3,64,64,38.2383,-108.5069,0
+6248,Pawnee,CO,Morgan,1,Conventional Steam Coal,ST,Public Service Co of Colorado,Electric Utility,11,1981,,,1982,,2030,2037,2052,552.3,505,505,40.2217,-103.6803,0
+508,Lamar Plant,CO,Prowers,4,Conventional Steam Coal,ST,City of Lamar - (CO),Electric Utility,8,1972,11,2011,1973,2012,,,,25,25,25,38.033327,-102.5379,0
+508,Lamar Plant,CO,Prowers,6,Conventional Steam Coal,ST,City of Lamar - (CO),Electric Utility,5,2009,9,2014,2010,2015,,,,18.5,15,15,38.033327,-102.5379,0
+470,Comanche (CO),CO,Pueblo,1,Conventional Steam Coal,ST,Public Service Co of Colorado,Electric Utility,6,1973,12,2022,1974,2023,,,,382.5,325,325,38.2081,-104.5747,0
+470,Comanche (CO),CO,Pueblo,2,Conventional Steam Coal,ST,Public Service Co of Colorado,Electric Utility,6,1975,12,2025,1976,2026,,,,396,335,335,38.2081,-104.5747,0
+470,Comanche (CO),CO,Pueblo,3,Conventional Steam Coal,ST,Public Service Co of Colorado,Electric Utility,7,2010,,,2011,,2041,2066,2081,856.8,750,766,38.2081,-104.5747,0
+525,Hayden,CO,Routt,1,Conventional Steam Coal,ST,Public Service Co of Colorado,Electric Utility,7,1965,12,2028,1966,2029,,,,190,179,179,40.4856,-107.185,0
+525,Hayden,CO,Routt,2,Conventional Steam Coal,ST,Public Service Co of Colorado,Electric Utility,9,1976,12,2027,1977,2028,,,,275.4,262,262,40.4856,-107.185,0
+568,Bridgeport Station,CT,Fairfield,3,Conventional Steam Coal,ST,"Generation Bridge II Connecticut, LLC",IPP Non-CHP,8,1968,6,2021,1969,2022,,,,400,257.6,323.5,41.1706,-73.1844,0
+594,Indian River Generating Station,DE,Sussex,1,Conventional Steam Coal,ST,Indian River Operations Inc,IPP Non-CHP,10,1957,7,2013,1958,2014,,,,81.6,89,89,38.5857,-75.2341,0
+594,Indian River Generating Station,DE,Sussex,2,Conventional Steam Coal,ST,Indian River Operations Inc,IPP Non-CHP,11,1959,7,2013,1960,2014,,,,81.6,89,89,38.5857,-75.2341,0
+594,Indian River Generating Station,DE,Sussex,3,Conventional Steam Coal,ST,Indian River Operations Inc,IPP Non-CHP,3,1970,1,2014,1970,2014,,,,176.8,165,165,38.5857,-75.2341,0
+594,Indian River Generating Station,DE,Sussex,4,Conventional Steam Coal,ST,Indian River Operations Inc,IPP Non-CHP,10,1980,12,2025,1981,2027,,,,445.5,410,410,38.5857,-75.2341,0
+643,Lansing Smith,FL,Bay,1,Conventional Steam Coal,ST,Florida Power & Light Co,Electric Utility,6,1965,3,2016,1966,2016,,,,149.6,162,162,30.2686,-85.7003,0
+643,Lansing Smith,FL,Bay,2,Conventional Steam Coal,ST,Florida Power & Light Co,Electric Utility,6,1967,3,2016,1968,2016,,,,190.4,195,195,30.2686,-85.7003,0
+628,Crystal River,FL,Citrus,1,Conventional Steam Coal,ST,"Duke Energy Florida, LLC",Electric Utility,10,1966,12,2018,1967,2019,,,,440.5,324,332,28.9656,-82.6977,0
+628,Crystal River,FL,Citrus,2,Conventional Steam Coal,ST,"Duke Energy Florida, LLC",Electric Utility,11,1969,12,2018,1970,2019,,,,523.8,442,448,28.9656,-82.6977,0
+628,Crystal River,FL,Citrus,5,Conventional Steam Coal,ST,"Duke Energy Florida, LLC",Electric Utility,10,1984,,,1985,,2030,2040,2055,739.2,698,721,28.9656,-82.6977,0
+628,Crystal River,FL,Citrus,ST4,Conventional Steam Coal,ST,"Duke Energy Florida, LLC",Electric Utility,12,1982,,,1983,,2030,2038,2053,739.2,712,721,28.9656,-82.6977,0
+667,Northside Generating Station,FL,Duval,1,Conventional Steam Coal,ST,JEA,Electric Utility,3,1966,,,1966,,2030,2030,2036,297.5,293,293,30.4172,-81.5525,0
+667,Northside Generating Station,FL,Duval,2,Conventional Steam Coal,ST,JEA,Electric Utility,6,1972,,,1973,,2030,2030,2043,297.5,293,293,30.4172,-81.5525,0
+207,St Johns River Power Park,FL,Duval,1,Conventional Steam Coal,ST,JEA,Electric Utility,4,1987,1,2018,1987,2018,,,,679,626,638,30.4308,-81.5508,0
+207,St Johns River Power Park,FL,Duval,2,Conventional Steam Coal,ST,JEA,Electric Utility,7,1988,1,2018,1989,2018,,,,679,626,638,30.4308,-81.5508,0
+645,Big Bend,FL,Hillsborough,ST2,Conventional Steam Coal,ST,Tampa Electric Co,Electric Utility,4,1973,12,2021,1973,2022,,,,445.5,385,395,27.7944,-82.4036,0
+645,Big Bend,FL,Hillsborough,ST4,Conventional Steam Coal,ST,Tampa Electric Co,Electric Utility,2,1985,,2040,1985,2040,2030,2040,2055,486,437,442,27.7944,-82.4036,0
+646,F J Gannon,FL,Hillsborough,1,Conventional Steam Coal,ST,Tampa Electric Co,Electric Utility,9,1957,1,2004,1958,2004,,,,125,94,94,27.907222,-82.42306,0
+646,F J Gannon,FL,Hillsborough,2,Conventional Steam Coal,ST,Tampa Electric Co,Electric Utility,11,1958,1,2004,1959,2004,,,,125,100,100,27.907222,-82.42306,0
+646,F J Gannon,FL,Hillsborough,3,Conventional Steam Coal,ST,Tampa Electric Co,Electric Utility,10,1960,12,2003,1961,2004,,,,179.5,150,155,27.907222,-82.42306,0
+646,F J Gannon,FL,Hillsborough,4,Conventional Steam Coal,ST,Tampa Electric Co,Electric Utility,11,1963,12,2003,1964,2004,,,,187.5,164,164,27.907222,-82.42306,0
+642,Scholz,FL,Jackson,1,Conventional Steam Coal,ST,Florida Power & Light Co,Electric Utility,3,1953,4,2015,1953,2015,,,,49,46,46,30.6692,-84.8869,0
+642,Scholz,FL,Jackson,2,Conventional Steam Coal,ST,Florida Power & Light Co,Electric Utility,10,1953,4,2015,1954,2015,,,,49,46,46,30.6692,-84.8869,0
+50976,Indiantown Cogeneration LP,FL,Martin,GEN1,Conventional Steam Coal,ST,Florida Power & Light Co,Electric Utility,12,1995,12,2020,1996,2021,,,,395.4,330,330,27.0389,-80.5125,0
+564,Stanton Energy Center,FL,Orange,1,Conventional Steam Coal,ST,Orlando Utilities Comm,Electric Utility,7,1987,12,,1988,2025,,,,464.5,453.4,453.4,28.4822,-81.1678,0
+564,Stanton Energy Center,FL,Orange,2,Conventional Steam Coal,ST,Orlando Utilities Comm,Electric Utility,6,1996,,,1997,,2030,2052,2067,464.5,469.3,469.3,28.4822,-81.1678,0
+676,C D McIntosh Jr,FL,Polk,3,Conventional Steam Coal,ST,City of Lakeland - (FL),Electric Utility,9,1982,4,2021,1983,2021,,,,363.8,342,342,28.0801,-81.9229,0
+136,Seminole (FL),FL,Putnam,1,Conventional Steam Coal,ST,Seminole Electric Cooperative Inc,Electric Utility,2,1984,12,2023,1984,2024,,,,714.6,626,639,29.733056,-81.63278,0
+136,Seminole (FL),FL,Putnam,2,Conventional Steam Coal,ST,Seminole Electric Cooperative Inc,Electric Utility,12,1984,,,1985,,2030,2040,2055,714.6,634,640,29.733056,-81.63278,0
+703,Bowen,GA,Bartow,1,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,10,1971,,,1972,,2030,2030,2042,805.8,714,714,34.1256,-84.9222,1
+703,Bowen,GA,Bartow,2,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,9,1972,,,1973,,2030,2030,2043,788.8,718,718,34.1256,-84.9222,1
+703,Bowen,GA,Bartow,3,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,12,1974,,,1975,,2030,2030,2045,952,883,883,34.1256,-84.9222,1
+703,Bowen,GA,Bartow,4,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,11,1975,,,1976,,2030,2031,2046,952,885,885,34.1256,-84.9222,1
+699,Arkwright,GA,Bibb,3,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,12,1943,12,2002,1944,2003,,,,40.2,42,42,32.926944,-83.69944,0
+699,Arkwright,GA,Bibb,4,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,11,1948,7,2002,1949,2003,,,,49,44,44,32.926944,-83.69944,0
+733,Kraft,GA,Chatham,2,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,5,1961,10,2015,1962,2016,,,,54.4,52,52,32.1486,-81.1458,0
+733,Kraft,GA,Chatham,3,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,5,1965,10,2015,1966,2016,,,,103.5,101,101,32.1486,-81.1458,0
+733,Kraft,GA,Chatham,ST1,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,7,1958,10,2015,1959,2016,,,,50,48,48,32.1486,-81.1458,0
+710,Jack McDonough,GA,Cobb,1,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,8,1963,2,2012,1964,2012,,,,299.2,251,251,33.8239,-84.4758,0
+710,Jack McDonough,GA,Cobb,2,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,6,1964,9,2011,1965,2012,,,,299.2,251,251,33.8239,-84.4758,0
+728,Yates,GA,Coweta,1,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,9,1950,4,2015,1951,2015,,,,122.5,97,97,33.4622,-84.8986,0
+728,Yates,GA,Coweta,2,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,11,1950,4,2015,1951,2015,,,,122.5,103,103,33.4622,-84.8986,0
+728,Yates,GA,Coweta,3,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,8,1952,4,2015,1953,2015,,,,122.5,111,111,33.4622,-84.8986,0
+728,Yates,GA,Coweta,4,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,6,1957,4,2015,1958,2015,,,,156.2,133,133,33.4622,-84.8986,0
+728,Yates,GA,Coweta,5,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,5,1958,4,2015,1959,2015,,,,156.2,135,135,33.4622,-84.8986,0
+727,Mitchell (GA),GA,Dougherty,1,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,11,1948,7,2002,1949,2003,,,,27.5,20,20,31.444728,-84.1347,0
+727,Mitchell (GA),GA,Dougherty,2,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,11,1948,12,2002,1949,2003,,,,27.5,20,20,31.444728,-84.1347,0
+727,Mitchell (GA),GA,Dougherty,3,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,5,1964,8,2016,1965,2017,,,,163.2,155,155,31.444728,-84.1347,0
+6124,McIntosh,GA,Effingham,1,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,2,1979,7,2019,1979,2020,,,,177.6,142.5,142.5,32.356287,-81.16835,0
+708,Hammond,GA,Floyd,1,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,6,1954,7,2019,1955,2020,,,,125,110,110,34.2528,-85.3456,0
+708,Hammond,GA,Floyd,2,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,9,1954,7,2019,1955,2020,,,,125,110,110,34.2528,-85.3456,0
+708,Hammond,GA,Floyd,3,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,6,1955,7,2019,1956,2020,,,,125,110,110,34.2528,-85.3456,0
+708,Hammond,GA,Floyd,4,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,12,1970,7,2019,1971,2020,,,,578,510,510,34.2528,-85.3456,0
+6052,Wansley,GA,Heard,1,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,12,1976,9,2022,1977,2023,,,,952,872,872,33.41342,-85.03233,0
+6052,Wansley,GA,Heard,2,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,4,1978,9,2022,1978,2023,,,,952,872,872,33.41342,-85.03233,0
+6257,Scherer,GA,Monroe,1,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,3,1982,,,1982,,2030,2037,2052,891,860,860,33.0606,-83.8075,1
+6257,Scherer,GA,Monroe,2,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,2,1984,,,1984,,2030,2039,2054,891,860,860,33.0606,-83.8075,1
+6257,Scherer,GA,Monroe,3,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,1,1987,,,1987,,2030,2042,2057,891,860,860,33.0606,-83.8075,1
+6257,Scherer,GA,Monroe,4,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,2,1989,1,2022,1989,2022,,,,891,860,860,33.0606,-83.8075,0
+709,Harllee Branch,GA,Putnam,1,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,6,1965,4,2015,1966,2015,,,,299.2,266,266,33.195,-83.2983,0
+709,Harllee Branch,GA,Putnam,2,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,6,1967,9,2013,1968,2014,,,,359,325,325,33.195,-83.2983,0
+709,Harllee Branch,GA,Putnam,3,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,7,1968,4,2015,1969,2015,,,,544,488,488,33.195,-83.2983,0
+709,Harllee Branch,GA,Putnam,4,Conventional Steam Coal,ST,Georgia Power Co,Electric Utility,6,1969,4,2015,1970,2015,,,,544,507,507,33.195,-83.2983,0
+10673,AES Hawaii,HI,Honolulu,GEN1,Conventional Steam Coal,ST,AES Hawaii LLC,IPP CHP,5,1992,9,2022,1993,2023,,,,203,180,180,21.303419,-158.1065,0
+1047,Lansing,IA,Allamakee,1,Conventional Steam Coal,ST,Interstate Power and Light Co,Electric Utility,1,1948,2,2006,1948,2006,,,,15,14.1,14.1,43.3359,-91.1675,0
+1047,Lansing,IA,Allamakee,2,Conventional Steam Coal,ST,Interstate Power and Light Co,Electric Utility,1,1949,11,2010,1949,2011,,,,11.5,11,11.2,43.3359,-91.1675,0
+1047,Lansing,IA,Allamakee,3,Conventional Steam Coal,ST,Interstate Power and Light Co,Electric Utility,1,1957,6,2013,1957,2014,,,,37.5,29.4,29.5,43.3359,-91.1675,0
+1047,Lansing,IA,Allamakee,4,Conventional Steam Coal,ST,Interstate Power and Light Co,Electric Utility,5,1977,6,2023,1978,2024,,,,274.5,241.4,242.8,43.3359,-91.1675,0
+1046,Dubuque,IA,Dubuque,ST2,Conventional Steam Coal,ST,Interstate Power and Light Co,Electric Utility,1,1929,11,2010,1929,2011,,,,15,11.8,13.2,42.5031,-90.65861,0
+1073,Prairie Creek,IA,Linn,1,Conventional Steam Coal,ST,Interstate Power and Light Co,Electric Utility,4,1997,12,2025,1997,,2030,2052,2067,14.6,5.3,5.3,41.944039,-91.63917,0
+1073,Prairie Creek,IA,Linn,2,Conventional Steam Coal,ST,Interstate Power and Light Co,Electric Utility,5,1951,11,2010,1952,2011,,,,23,18.4,20.7,41.944039,-91.63917,0
+1073,Prairie Creek,IA,Linn,3,Conventional Steam Coal,ST,Interstate Power and Light Co,Electric Utility,10,1958,,,1959,,2030,2030,2030,50,31,34.1,41.944039,-91.63917,0
+1058,Sixth Street,IA,Linn,1,Conventional Steam Coal,ST,Interstate Power and Light Co,Electric Utility,5,1921,11,2010,1922,2011,,,,10,9.4,9.4,41.984768,-91.66861,0
+1058,Sixth Street,IA,Linn,2,Conventional Steam Coal,ST,Interstate Power and Light Co,Electric Utility,11,1930,11,2010,1931,2011,,,,6,2.8,3.9,41.984768,-91.66861,0
+1058,Sixth Street,IA,Linn,4,Conventional Steam Coal,ST,Interstate Power and Light Co,Electric Utility,6,1942,11,2010,1943,2011,,,,15,12.6,12.5,41.984768,-91.66861,0
+1058,Sixth Street,IA,Linn,6,Conventional Steam Coal,ST,Interstate Power and Light Co,Electric Utility,1,1925,11,2010,1925,2011,,,,10,8,3,41.984768,-91.66861,0
+1058,Sixth Street,IA,Linn,7,Conventional Steam Coal,ST,Interstate Power and Light Co,Electric Utility,3,1945,11,2010,1945,2011,,,,15,14.7,7.8,41.984768,-91.66861,0
+1058,Sixth Street,IA,Linn,8,Conventional Steam Coal,ST,Interstate Power and Light Co,Electric Utility,10,1950,11,2010,1951,2011,,,,28.7,29.2,26.8,41.984768,-91.66861,0
+6664,Louisa,IA,Louisa,1,Conventional Steam Coal,ST,MidAmerican Energy Co,Electric Utility,10,1983,,,1984,,2030,2039,2054,811.9,746.9,755,41.3181,-91.0931,0
+1175,Pella,IA,Marion,5,Conventional Steam Coal,ST,City of Pella - (IA),Electric Utility,5,1964,6,2012,1965,2013,,,,11.5,,,41.3981,-92.9144,0
+1175,Pella,IA,Marion,6,Conventional Steam Coal,ST,City of Pella - (IA),Electric Utility,7,1972,6,2012,1973,2013,,,,26.5,,,41.3981,-92.9144,0
+1077,Sutherland,IA,Marshall,2,Conventional Steam Coal,ST,Interstate Power and Light Co,Electric Utility,5,1955,11,2010,1956,2011,,,,37.5,29.5,29.7,42.047333,-92.85944,0
+1218,Fair Station,IA,Muscatine,1,Conventional Steam Coal,ST,Central Iowa Power Cooperative,Electric Utility,1,1960,11,2013,1960,2014,,,,25,23,24,41.4569,-90.8233,0
+1218,Fair Station,IA,Muscatine,2,Conventional Steam Coal,ST,Central Iowa Power Cooperative,Electric Utility,4,1967,11,2013,1967,2014,,,,37.5,41,42,41.4569,-90.8233,0
+1167,Muscatine Plant #1,IA,Muscatine,7,Conventional Steam Coal,ST,Board of Water Electric & Communications,Electric Utility,4,1958,,,1958,,2030,2030,2030,25,20.1,20.1,41.3917,-91.0569,0
+1167,Muscatine Plant #1,IA,Muscatine,8,Conventional Steam Coal,ST,Board of Water Electric & Communications,Electric Utility,1,1969,,,1969,,2030,2030,2039,75,68,68,41.3917,-91.0569,0
+1167,Muscatine Plant #1,IA,Muscatine,8A,Conventional Steam Coal,ST,Board of Water Electric & Communications,Electric Utility,7,2000,3,2024,2001,2024,,,,18,14.5,14.5,41.3917,-91.0569,0
+1167,Muscatine Plant #1,IA,Muscatine,9,Conventional Steam Coal,ST,Board of Water Electric & Communications,Electric Utility,4,1983,,,1983,,2030,2038,2053,175.5,160.8,160.8,41.3917,-91.0569,0
+1082,Walter Scott Jr Energy Center,IA,Pottawattamie,1,Conventional Steam Coal,ST,MidAmerican Energy Co,Electric Utility,3,1954,3,2015,1954,2015,,,,49,37.4,37.4,41.18,-95.8408,0
+1082,Walter Scott Jr Energy Center,IA,Pottawattamie,2,Conventional Steam Coal,ST,MidAmerican Energy Co,Electric Utility,10,1958,3,2015,1959,2015,,,,81.6,80.8,80.8,41.18,-95.8408,0
+1082,Walter Scott Jr Energy Center,IA,Pottawattamie,3,Conventional Steam Coal,ST,MidAmerican Energy Co,Electric Utility,12,1978,,,1979,,2030,2034,2049,725.8,705.9,705.9,41.18,-95.8408,0
+1082,Walter Scott Jr Energy Center,IA,Pottawattamie,4,Conventional Steam Coal,ST,MidAmerican Energy Co,Electric Utility,6,2007,,,2008,,2038,2063,2078,922.5,805.8,805.8,41.18,-95.8408,0
+1081,Riverside,IA,Scott,3HS,Conventional Steam Coal,ST,MidAmerican Energy Co,Electric Utility,5,1949,8,2013,1950,2014,,,,5,4,4,41.54,-90.4481,0
+6254,Ottumwa,IA,Wapello,1,Conventional Steam Coal,ST,Interstate Power and Light Co,Electric Utility,5,1981,,,1982,,2030,2037,2052,725.9,729.3,740.7,41.0961,-92.55583,0
+1091,George Neal North,IA,Woodbury,1,Conventional Steam Coal,ST,MidAmerican Energy Co,Electric Utility,5,1964,4,2016,1965,2016,,,,147,134.3,134.3,42.32517,-96.37971,0
+1091,George Neal North,IA,Woodbury,2,Conventional Steam Coal,ST,MidAmerican Energy Co,Electric Utility,5,1972,4,2016,1973,2016,,,,349.2,283.7,283.7,42.32517,-96.37971,0
+1091,George Neal North,IA,Woodbury,3,Conventional Steam Coal,ST,MidAmerican Energy Co,Electric Utility,5,1975,,,1976,,2030,2031,2046,584.1,510,514,42.32517,-96.37971,0
+7343,George Neal South,IA,Woodbury,4,Conventional Steam Coal,ST,MidAmerican Energy Co,Electric Utility,7,1979,,,1980,,2030,2035,2050,695.9,647.1,651,42.3006,-96.3617,0
+876,Kincaid Generation LLC,IL,Christian,1,Conventional Steam Coal,ST,Dynegy Kincaid Generation,IPP Non-CHP,6,1967,7,2027,1968,2028,,,,659.5,556,556,39.590556,-89.49639,1
+876,Kincaid Generation LLC,IL,Christian,2,Conventional Steam Coal,ST,Dynegy Kincaid Generation,IPP Non-CHP,6,1968,7,2027,1969,2028,,,,659.5,556,556,39.590556,-89.49639,1
+867,Crawford,IL,Cook,7,Conventional Steam Coal,ST,Midwest Generations EME LLC,IPP Non-CHP,5,1958,8,2012,1959,2013,,,,239.3,213,216,41.82848,-87.72291,0
+867,Crawford,IL,Cook,8,Conventional Steam Coal,ST,Midwest Generations EME LLC,IPP Non-CHP,4,1961,8,2012,1961,2013,,,,358.1,319,326,41.82848,-87.72291,0
+886,Fisk Street,IL,Cook,19,Conventional Steam Coal,ST,Midwest Generations EME LLC,IPP Non-CHP,7,1968,8,2012,1969,2013,,,,374,326,326,41.8508,-87.6533,0
+6016,Duck Creek,IL,Fulton,1,Conventional Steam Coal,ST,Illinois Power Resources Generating LLC,IPP Non-CHP,6,1976,12,2019,1977,2020,,,,441,410,425,40.4663,-89.9841,0
+6017,Newton,IL,Jasper,1,Conventional Steam Coal,ST,Illinois Power Generating Co,IPP Non-CHP,11,1977,12,2027,1978,2028,,,,617.4,595,615,38.9361,-88.2781,1
+6017,Newton,IL,Jasper,2,Conventional Steam Coal,ST,Illinois Power Generating Co,IPP Non-CHP,12,1982,9,2016,1983,2017,,,,617.4,600,615,38.9361,-88.2781,0
+883,Waukegan,IL,Lake,6,Conventional Steam Coal,ST,Midwest Generations EME LLC,IPP Non-CHP,1,1952,12,2007,1952,2008,,,,121,100,100,42.3833,-87.8133,0
+883,Waukegan,IL,Lake,7,Conventional Steam Coal,ST,Midwest Generations EME LLC,IPP Non-CHP,6,1958,6,2022,1959,2023,,,,326.4,328,328,42.3833,-87.8133,0
+883,Waukegan,IL,Lake,8,Conventional Steam Coal,ST,Midwest Generations EME LLC,IPP Non-CHP,7,1962,6,2022,1963,2023,,,,355.3,361,361,42.3833,-87.8133,0
+898,Wood River,IL,Madison,4,Conventional Steam Coal,ST,Dynegy Midwest Generation Inc,IPP Non-CHP,6,1954,5,2016,1955,2017,,,,112.5,89,91,38.8639,-90.1347,0
+898,Wood River,IL,Madison,5,Conventional Steam Coal,ST,Dynegy Midwest Generation Inc,IPP Non-CHP,7,1964,5,2016,1965,2017,,,,387.6,371,374,38.8639,-90.1347,0
+891,Havana,IL,Mason,6,Conventional Steam Coal,ST,Dynegy Midwest Generation Inc,IPP Non-CHP,6,1978,11,2019,1979,2020,,,,488,411,434,40.2797,-90.08,0
+887,Joppa Steam,IL,Massac,1,Conventional Steam Coal,ST,Electric Energy Inc,IPP Non-CHP,8,1953,8,2022,1954,2023,,,,183.3,158,167,37.2094,-88.85889,0
+887,Joppa Steam,IL,Massac,2,Conventional Steam Coal,ST,Electric Energy Inc,IPP Non-CHP,9,1953,8,2022,1954,2023,,,,183.3,158,167,37.2094,-88.85889,0
+887,Joppa Steam,IL,Massac,3,Conventional Steam Coal,ST,Electric Energy Inc,IPP Non-CHP,5,1954,8,2022,1955,2023,,,,183.3,158,167,37.2094,-88.85889,0
+887,Joppa Steam,IL,Massac,4,Conventional Steam Coal,ST,Electric Energy Inc,IPP Non-CHP,8,1954,8,2022,1955,2023,,,,183.3,158,167,37.2094,-88.85889,0
+887,Joppa Steam,IL,Massac,5,Conventional Steam Coal,ST,Electric Energy Inc,IPP Non-CHP,6,1955,8,2022,1956,2023,,,,183.3,158,167,37.2094,-88.85889,0
+887,Joppa Steam,IL,Massac,6,Conventional Steam Coal,ST,Electric Energy Inc,IPP Non-CHP,8,1955,8,2022,1956,2023,,,,183.3,158,167,37.2094,-88.85889,0
+861,Coffeen,IL,Montgomery,1,Conventional Steam Coal,ST,Illinois Power Generating Co,IPP Non-CHP,12,1965,11,2019,1966,2020,,,,388.9,330,335,39.0586,-89.4031,0
+861,Coffeen,IL,Montgomery,2,Conventional Steam Coal,ST,Illinois Power Generating Co,IPP Non-CHP,9,1972,11,2019,1973,2020,,,,616.5,565,580,39.0586,-89.4031,0
+856,E D Edwards,IL,Peoria,1,Conventional Steam Coal,ST,Illinois Power Resources Generating LLC,IPP Non-CHP,5,1960,12,2015,1961,2016,,,,136,95,105,40.5958,-89.6631,0
+856,E D Edwards,IL,Peoria,2,Conventional Steam Coal,ST,Illinois Power Resources Generating LLC,IPP Non-CHP,6,1968,12,2022,1969,2023,,,,280.5,245,255,40.5958,-89.6631,0
+856,E D Edwards,IL,Peoria,3,Conventional Steam Coal,ST,Illinois Power Resources Generating LLC,IPP Non-CHP,6,1972,12,2022,1973,2023,,,,363.8,315,330,40.5958,-89.6631,0
+6238,Pearl Station,IL,Pike,1,Conventional Steam Coal,ST,"Prairie Power, Inc",Electric Utility,1,1967,6,2012,1967,2013,,,,22,22.2,22.2,39.449185,-90.61412,0
+892,Hennepin Power Station,IL,Putnam,1,Conventional Steam Coal,ST,Dynegy Midwest Generation Inc,IPP Non-CHP,6,1953,11,2019,1954,2020,,,,75,68,70,41.3028,-89.315,0
+892,Hennepin Power Station,IL,Putnam,2,Conventional Steam Coal,ST,Dynegy Midwest Generation Inc,IPP Non-CHP,5,1959,11,2019,1960,2020,,,,231.3,218,225,41.3028,-89.315,0
+889,Baldwin Energy Complex,IL,Randolph,1,Conventional Steam Coal,ST,Dynegy Midwest Generation Inc,IPP Non-CHP,7,1970,12,2027,1971,2026,,,,625.1,576,590,38.205,-89.8544,1
+889,Baldwin Energy Complex,IL,Randolph,2,Conventional Steam Coal,ST,Dynegy Midwest Generation Inc,IPP Non-CHP,3,1973,12,2027,1973,2026,,,,634.5,581,595,38.205,-89.8544,1
+889,Baldwin Energy Complex,IL,Randolph,3,Conventional Steam Coal,ST,Dynegy Midwest Generation Inc,IPP Non-CHP,4,1975,8,2020,1975,2021,,,,634.5,621,630,38.205,-89.8544,0
+963,Dallman,IL,Sangamon,1,Conventional Steam Coal,ST,City of Springfield - (IL),Electric Utility,6,1968,12,2020,1969,2021,,,,90.2,64,64,39.754803,-89.60239,0
+963,Dallman,IL,Sangamon,2,Conventional Steam Coal,ST,City of Springfield - (IL),Electric Utility,6,1972,12,2020,1973,2021,,,,90.2,60,60,39.754803,-89.60239,0
+963,Dallman,IL,Sangamon,3,Conventional Steam Coal,ST,City of Springfield - (IL),Electric Utility,6,1978,3,2024,1979,2024,,,,207.3,159,159,39.754803,-89.60239,0
+963,Dallman,IL,Sangamon,4,Conventional Steam Coal,ST,City of Springfield - (IL),Electric Utility,5,2009,,,2010,,2040,2065,2080,230.1,208.7,208.7,39.754803,-89.60239,0
+964,Lakeside,IL,Sangamon,6,Conventional Steam Coal,ST,City of Springfield - (IL),Electric Utility,4,1961,10,2009,1961,2010,,,,37.5,38,39,39.757327,-89.60051,0
+964,Lakeside,IL,Sangamon,7,Conventional Steam Coal,ST,City of Springfield - (IL),Electric Utility,12,1965,10,2009,1966,2010,,,,37.5,38,39,39.757327,-89.60051,0
+55856,Prairie State Generating Station,IL,St Clair,PC1,Conventional Steam Coal,ST,Prairie State Generating Co LLC,IPP Non-CHP,6,2012,,,2013,,2043,2068,2083,883,815,815,38.279167,-89.66694,0
+55856,Prairie State Generating Station,IL,St Clair,PC2,Conventional Steam Coal,ST,Prairie State Generating Co LLC,IPP Non-CHP,11,2012,,,2013,,2043,2068,2083,883,815,815,38.279167,-89.66694,0
+879,Powerton,IL,Tazewell,5,Conventional Steam Coal,ST,Midwest Generations EME LLC,IPP Non-CHP,9,1972,,,1973,,2030,2030,2043,892.8,769,769,40.5408,-89.6786,1
+879,Powerton,IL,Tazewell,6,Conventional Steam Coal,ST,Midwest Generations EME LLC,IPP Non-CHP,12,1975,,,1976,,2030,2031,2046,892.8,769,769,40.5408,-89.6786,1
+897,Vermilion,IL,Vermilion,2,Conventional Steam Coal,ST,Dynegy Midwest Generation Inc,IPP Non-CHP,11,1956,11,2011,1957,2012,,,,108.8,99,99,40.1781,-87.7481,0
+897,Vermilion,IL,Vermilion,ST1,Conventional Steam Coal,ST,Dynegy Midwest Generation Inc,IPP Non-CHP,5,1955,11,2011,1956,2012,,,,73.5,62,63,40.1781,-87.7481,0
+884,Will County,IL,Will,1,Conventional Steam Coal,ST,Midwest Generations EME LLC,IPP Non-CHP,7,1955,12,2010,1956,2011,,,,187.5,151,156,41.6334,-88.0629,0
+884,Will County,IL,Will,2,Conventional Steam Coal,ST,Midwest Generations EME LLC,IPP Non-CHP,3,1955,12,2010,1955,2011,,,,183.7,148,154,41.6334,-88.0629,0
+884,Will County,IL,Will,3,Conventional Steam Coal,ST,Midwest Generations EME LLC,IPP Non-CHP,6,1957,4,2015,1958,2015,,,,299.2,251,262,41.6334,-88.0629,0
+884,Will County,IL,Will,4,Conventional Steam Coal,ST,Midwest Generations EME LLC,IPP Non-CHP,6,1963,6,2022,1964,2023,,,,598.4,510,520,41.6334,-88.0629,0
+976,Marion,IL,Williamson,1,Conventional Steam Coal,ST,Southern Illinois Power Coop,Electric Utility,6,1963,,,1964,,2030,2030,2034,33,40,40,37.619747,-88.95311,0
+976,Marion,IL,Williamson,2,Conventional Steam Coal,ST,Southern Illinois Power Coop,Electric Utility,8,1963,,,1964,,2030,2030,2034,33,40,40,37.619747,-88.95311,0
+976,Marion,IL,Williamson,3,Conventional Steam Coal,ST,Southern Illinois Power Coop,Electric Utility,9,1963,,,1964,,2030,2030,2034,33,40,40,37.619747,-88.95311,0
+976,Marion,IL,Williamson,4,Conventional Steam Coal,ST,Southern Illinois Power Coop,Electric Utility,10,1978,11,2020,1979,2021,,,,173,170,170,37.619747,-88.95311,0
+988,Tanners Creek,IN,Dearborn,1,Conventional Steam Coal,ST,Indiana Michigan Power Co,Electric Utility,3,1951,6,2015,1951,2016,,,,152.5,145,145,39.0814,-84.8594,0
+988,Tanners Creek,IN,Dearborn,2,Conventional Steam Coal,ST,Indiana Michigan Power Co,Electric Utility,11,1952,6,2015,1953,2016,,,,152.5,145,145,39.0814,-84.8594,0
+988,Tanners Creek,IN,Dearborn,3,Conventional Steam Coal,ST,Indiana Michigan Power Co,Electric Utility,12,1954,6,2015,1955,2016,,,,215.4,200,205,39.0814,-84.8594,0
+988,Tanners Creek,IN,Dearborn,4,Conventional Steam Coal,ST,Indiana Michigan Power Co,Electric Utility,7,1964,6,2015,1965,2016,,,,579.7,500,500,39.0814,-84.8594,0
+1008,R Gallagher,IN,Floyd,1,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,6,1959,2,2012,1960,2012,,,,150,140,140,38.2636,-85.8381,0
+1008,R Gallagher,IN,Floyd,2,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,12,1958,6,2021,1959,2022,,,,150,140,140,38.2636,-85.8381,0
+1008,R Gallagher,IN,Floyd,3,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,4,1960,2,2012,1960,2012,,,,150,140,140,38.2636,-85.8381,0
+1008,R Gallagher,IN,Floyd,4,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,3,1961,6,2021,1961,2022,,,,150,140,140,38.2636,-85.8381,0
+6113,Gibson,IN,Gibson,1,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,5,1976,,,1977,,2030,2032,2047,667.9,630,635,38.372222,-87.76583,0
+6113,Gibson,IN,Gibson,2,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,4,1975,,,1975,,2030,2030,2045,667.9,630,635,38.372222,-87.76583,0
+6113,Gibson,IN,Gibson,3,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,3,1978,,,1978,,2030,2033,2048,667.9,630,635,38.372222,-87.76583,0
+6113,Gibson,IN,Gibson,4,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,3,1979,,,1979,,2030,2034,2049,667.9,622,627,38.372222,-87.76583,0
+6113,Gibson,IN,Gibson,5,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,10,1982,,,1983,,2030,2038,2053,667.9,620,625,38.372222,-87.76583,0
+6085,R M Schahfer,IN,Jasper,14,Conventional Steam Coal,ST,Northern Indiana Pub Serv Co,Electric Utility,12,1976,10,2021,1977,2022,,,,540,431,431,41.2164,-87.0261,0
+6085,R M Schahfer,IN,Jasper,15,Conventional Steam Coal,ST,Northern Indiana Pub Serv Co,Electric Utility,10,1979,10,2021,1980,2022,,,,556.4,472,472,41.2164,-87.0261,0
+6085,R M Schahfer,IN,Jasper,17,Conventional Steam Coal,ST,Northern Indiana Pub Serv Co,Electric Utility,4,1983,12,2025,1983,2026,,,,423.5,361,361,41.2164,-87.0261,0
+6085,R M Schahfer,IN,Jasper,18,Conventional Steam Coal,ST,Northern Indiana Pub Serv Co,Electric Utility,2,1986,12,2025,1986,2026,,,,423.5,361,361,41.2164,-87.0261,0
+983,Clifty Creek,IN,Jefferson,1,Conventional Steam Coal,ST,Indiana-Kentucky Electric Corp,Electric Utility,2,1955,,,1955,,2030,2030,2030,217.3,195.5,199.7,38.7378,-85.4206,0
+983,Clifty Creek,IN,Jefferson,2,Conventional Steam Coal,ST,Indiana-Kentucky Electric Corp,Electric Utility,5,1955,,,1956,,2030,2030,2030,217.3,195.5,199.7,38.7378,-85.4206,0
+983,Clifty Creek,IN,Jefferson,3,Conventional Steam Coal,ST,Indiana-Kentucky Electric Corp,Electric Utility,7,1955,,,1956,,2030,2030,2030,217.3,195.5,199.7,38.7378,-85.4206,0
+983,Clifty Creek,IN,Jefferson,4,Conventional Steam Coal,ST,Indiana-Kentucky Electric Corp,Electric Utility,10,1955,,,1956,,2030,2030,2030,217.3,195.5,199.7,38.7378,-85.4206,0
+983,Clifty Creek,IN,Jefferson,5,Conventional Steam Coal,ST,Indiana-Kentucky Electric Corp,Electric Utility,11,1955,,,1956,,2030,2030,2030,217.3,195.5,199.7,38.7378,-85.4206,0
+983,Clifty Creek,IN,Jefferson,6,Conventional Steam Coal,ST,Indiana-Kentucky Electric Corp,Electric Utility,3,1956,,,1956,,2030,2030,2030,217.3,195.5,199.7,38.7378,-85.4206,0
+1004,Edwardsport,IN,Knox,7,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,1,1949,3,2011,1949,2011,,,,40.2,45,45,38.8067,-87.2472,0
+1004,Edwardsport,IN,Knox,8,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,12,1951,3,2011,1952,2011,,,,69,75,75,38.8067,-87.2472,0
+1004,Edwardsport,IN,Knox,CT1,Coal Integrated Gasification Combined Cycle,CT,"Duke Energy Indiana, LLC",Electric Utility,6,2013,,,2014,,2044,2069,2084,240.6,,,38.8067,-87.2472,0
+1004,Edwardsport,IN,Knox,CT2,Coal Integrated Gasification Combined Cycle,CT,"Duke Energy Indiana, LLC",Electric Utility,6,2013,,,2014,,2044,2069,2084,240.6,,,38.8067,-87.2472,0
+1004,Edwardsport,IN,Knox,ST,Coal Integrated Gasification Combined Cycle,CA,"Duke Energy Indiana, LLC",Electric Utility,6,2013,,,2014,,2044,2069,2084,331.5,595,618,38.8067,-87.2472,0
+997,Michigan City,IN,LaPorte,12,Conventional Steam Coal,ST,Northern Indiana Pub Serv Co,Electric Utility,5,1974,5,2028,1975,2029,,,,540,455,455,41.7208,-86.9086,0
+996,Dean H Mitchell,IN,Lake,11,Conventional Steam Coal,ST,Northern Indiana Pub Serv Co,Electric Utility,5,1970,9,2010,1971,2011,,,,127.5,110,110,41.6392,-87.4069,0
+996,Dean H Mitchell,IN,Lake,5,Conventional Steam Coal,ST,Northern Indiana Pub Serv Co,Electric Utility,5,1959,9,2010,1960,2011,,,,128,125,125,41.6392,-87.4069,0
+996,Dean H Mitchell,IN,Lake,6,Conventional Steam Coal,ST,Northern Indiana Pub Serv Co,Electric Utility,9,1959,9,2010,1960,2011,,,,128,125,125,41.6392,-87.4069,0
+1037,Peru (IN),IN,Miami,2,Conventional Steam Coal,ST,City of Peru - (IN),Electric Utility,2,1959,12,2015,1959,2016,,,,22,20,20,40.7551,-86.0575,0
+1037,Peru (IN),IN,Miami,3,Conventional Steam Coal,ST,City of Peru - (IN),Electric Utility,6,1949,12,2015,1950,2016,,,,12.5,12,12,40.7551,-86.0575,0
+1024,Crawfordsville Power Plant,IN,Montgomery,4,Conventional Steam Coal,ST,Crawfordsville Energy LLC,IPP Non-CHP,1,1955,2,2023,1955,2023,,,,11.5,10.6,10.6,40.048889,-86.8992,0
+1024,Crawfordsville Power Plant,IN,Montgomery,5,Conventional Steam Coal,ST,Crawfordsville Energy LLC,IPP Non-CHP,1,1965,11,2021,1965,2022,,,,12.6,12.6,12.6,40.048889,-86.8992,0
+991,Eagle Valley (IN),IN,Morgan,3,Conventional Steam Coal,ST,Indianapolis Power & Light Co,Electric Utility,12,1951,4,2016,1952,2016,,,,50,40,40,39.48517,-86.4183,0
+991,Eagle Valley (IN),IN,Morgan,4,Conventional Steam Coal,ST,Indianapolis Power & Light Co,Electric Utility,1,1953,4,2016,1953,2016,,,,69,56,57,39.48517,-86.4183,0
+991,Eagle Valley (IN),IN,Morgan,5,Conventional Steam Coal,ST,Indianapolis Power & Light Co,Electric Utility,12,1953,4,2016,1954,2016,,,,69,62,63,39.48517,-86.4183,0
+991,Eagle Valley (IN),IN,Morgan,6,Conventional Steam Coal,ST,Indianapolis Power & Light Co,Electric Utility,10,1956,4,2016,1957,2016,,,,113.6,99,100,39.48517,-86.4183,0
+994,AES Petersburg,IN,Pike,4,Conventional Steam Coal,ST,Indianapolis Power & Light Co,Electric Utility,4,1986,,,1986,,2030,2041,2056,670.9,529.6,534.6,38.5281,-87.2525,0
+994,AES Petersburg,IN,Pike,ST1,Conventional Steam Coal,ST,Indianapolis Power & Light Co,Electric Utility,6,1967,5,2021,1968,2022,,,,281.6,222.5,225.1,38.5281,-87.2525,0
+994,AES Petersburg,IN,Pike,ST2,Conventional Steam Coal,ST,Indianapolis Power & Light Co,Electric Utility,12,1969,6,2023,1970,2024,,,,523.3,421.8,432.2,38.5281,-87.2525,0
+994,AES Petersburg,IN,Pike,ST3,Conventional Steam Coal,ST,Indianapolis Power & Light Co,Electric Utility,11,1977,,,1978,,2030,2033,2048,670.9,527.6,540.3,38.5281,-87.2525,0
+1043,Frank E Ratts,IN,Pike,1,Conventional Steam Coal,ST,"Hoosier Energy R E C, Inc",Electric Utility,4,1970,3,2015,1970,2015,,,,116.6,110,115,38.5201,-87.2662,0
+1043,Frank E Ratts,IN,Pike,2,Conventional Steam Coal,ST,"Hoosier Energy R E C, Inc",Electric Utility,4,1970,3,2015,1970,2015,,,,116.6,100,105,38.5201,-87.2662,0
+995,Bailly,IN,Porter,7,Conventional Steam Coal,ST,Northern Indiana Pub Serv Co,Electric Utility,11,1962,6,2018,1963,2019,,,,190.4,160,160,41.645,-87.1225,0
+995,Bailly,IN,Porter,8,Conventional Steam Coal,ST,Northern Indiana Pub Serv Co,Electric Utility,7,1968,6,2018,1969,2019,,,,413.1,320,320,41.645,-87.1225,0
+6137,A B Brown,IN,Posey,1,Conventional Steam Coal,ST,Southern Indiana Gas & Elec Co,Electric Utility,3,1979,10,2023,1979,2024,,,,265.2,245,245,37.9053,-87.715,0
+6137,A B Brown,IN,Posey,2,Conventional Steam Coal,ST,Southern Indiana Gas & Elec Co,Electric Utility,2,1986,10,2023,1986,2024,,,,265.2,240,240,37.9053,-87.715,0
+6166,Rockport,IN,Spencer,1,Conventional Steam Coal,ST,Indiana Michigan Power Co,Electric Utility,12,1984,12,2028,1985,2029,,,,1300,1300,1299,37.9256,-87.0372,0
+6166,Rockport,IN,Spencer,2,Conventional Steam Coal,ST,Indiana Michigan Power Co,Electric Utility,12,1989,12,2028,1990,2029,,,,1300,1300,1299,37.9256,-87.0372,0
+6213,Merom,IN,Sullivan,1,Conventional Steam Coal,ST,"Hallador Power Company, LLC",Electric Utility,9,1983,,,1984,,2030,2039,2054,540,489,495,39.0694,-87.5108,1
+6213,Merom,IN,Sullivan,2,Conventional Steam Coal,ST,"Hallador Power Company, LLC",Electric Utility,2,1982,,,1982,,2030,2037,2052,540,489,496,39.0694,-87.5108,1
+1001,Cayuga,IN,Vermillion,1,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,10,1970,,,1971,,2030,2030,2041,531,500,505,39.9242,-87.4244,0
+1001,Cayuga,IN,Vermillion,2,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,6,1972,,,1973,,2030,2030,2043,531,495,500,39.9242,-87.4244,0
+1010,Wabash River,IN,Vigo,2,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,8,1953,4,2016,1954,2016,,,,112.5,85,85,39.53,-87.4247,0
+1010,Wabash River,IN,Vigo,3,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,9,1954,4,2016,1955,2016,,,,123.2,85,85,39.53,-87.4247,0
+1010,Wabash River,IN,Vigo,4,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,1,1955,4,2016,1955,2016,,,,112.5,85,85,39.53,-87.4247,0
+1010,Wabash River,IN,Vigo,5,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,5,1956,4,2016,1957,2016,,,,125,95,95,39.53,-87.4247,0
+1010,Wabash River,IN,Vigo,6,Conventional Steam Coal,ST,"Duke Energy Indiana, LLC",Electric Utility,8,1968,12,2016,1969,2017,,,,387,318,318,39.53,-87.4247,0
+1012,F B Culley,IN,Warrick,1,Conventional Steam Coal,ST,Southern Indiana Gas & Elec Co,Electric Utility,6,1955,12,2006,1956,2007,,,,46,42,42,37.9111,-87.3275,0
+1012,F B Culley,IN,Warrick,2,Conventional Steam Coal,ST,Southern Indiana Gas & Elec Co,Electric Utility,12,1966,12,2025,1967,2026,,,,103.7,90,90,37.9111,-87.3275,0
+1012,F B Culley,IN,Warrick,3,Conventional Steam Coal,ST,Southern Indiana Gas & Elec Co,Electric Utility,6,1973,,,1974,,2030,2030,2044,265.2,270,270,37.9111,-87.3275,0
+6705,Warrick,IN,Warrick,1,Conventional Steam Coal,ST,AGC Division of APGI Inc,IPP CHP,4,1960,,,1960,,2030,2030,2030,166.6,155.4,157.9,37.915,-87.3328,0
+6705,Warrick,IN,Warrick,2,Conventional Steam Coal,ST,AGC Division of APGI Inc,IPP CHP,1,1964,,,1964,,2030,2030,2034,166.6,153.5,157.5,37.915,-87.3328,0
+6705,Warrick,IN,Warrick,3,Conventional Steam Coal,ST,AGC Division of APGI Inc,IPP CHP,10,1965,,,1966,,2030,2030,2036,166.6,149.8,153.1,37.915,-87.3328,0
+6705,Warrick,IN,Warrick,4,Conventional Steam Coal,ST,AGC Division of APGI Inc,IPP CHP,10,1970,,,1971,,2030,2030,2041,323,301,310.7,37.915,-87.3328,0
+1040,Whitewater Valley,IN,Wayne,1,Conventional Steam Coal,ST,City of Richmond - (IN),Electric Utility,3,1955,,,1955,,2030,2030,2030,33,34.7,34.7,39.8028,-84.8953,0
+1040,Whitewater Valley,IN,Wayne,2,Conventional Steam Coal,ST,City of Richmond - (IN),Electric Utility,8,1973,,,1974,,2030,2030,2044,60.9,65,65,39.8028,-84.8953,0
+1250,Lawrence Energy Center,KS,Douglas,2,Conventional Steam Coal,ST,"Evergy Kansas Central, Inc",Electric Utility,12,1952,11,2000,1953,2001,,,,38,26,26,39.0072,-95.26917,0
+1250,Lawrence Energy Center,KS,Douglas,3,Conventional Steam Coal,ST,"Evergy Kansas Central, Inc",Electric Utility,1,1955,11,2015,1955,2016,,,,49,48,48,39.0072,-95.26917,0
+1250,Lawrence Energy Center,KS,Douglas,4,Conventional Steam Coal,ST,"Evergy Kansas Central, Inc",Electric Utility,3,1960,,,1960,,2030,2030,2030,114,111.3,111.3,39.0072,-95.26917,0
+1250,Lawrence Energy Center,KS,Douglas,5,Conventional Steam Coal,ST,"Evergy Kansas Central, Inc",Electric Utility,5,1971,,,1972,,2030,2030,2042,403,374,374,39.0072,-95.26917,0
+108,Holcomb,KS,Finney,1,Conventional Steam Coal,ST,Sunflower Electric Power Corp,Electric Utility,8,1983,,,1984,,2030,2039,2054,348.7,359.1,359.1,37.9308,-100.9725,1
+1241,La Cygne,KS,Linn,1,Conventional Steam Coal,ST,Evergy Metro,Electric Utility,6,1973,,,1974,,2030,2030,2044,873,758,758,38.3481,-94.6456,0
+1241,La Cygne,KS,Linn,2,Conventional Steam Coal,ST,Evergy Metro,Electric Utility,5,1977,,,1978,,2030,2033,2048,725.9,668,668,38.3481,-94.6456,0
+6068,Jeffrey Energy Center,KS,Pottawatomie,1,Conventional Steam Coal,ST,"Evergy Kansas Central, Inc",Electric Utility,7,1978,,,1979,,2030,2034,2049,720,674.1,674.1,39.286453,-96.11723,0
+6068,Jeffrey Energy Center,KS,Pottawatomie,2,Conventional Steam Coal,ST,"Evergy Kansas Central, Inc",Electric Utility,5,1980,,,1981,,2030,2036,2051,720,664.1,664.1,39.286453,-96.11723,0
+6068,Jeffrey Energy Center,KS,Pottawatomie,3,Conventional Steam Coal,ST,"Evergy Kansas Central, Inc",Electric Utility,5,1983,,,1984,,2030,2039,2054,720,673.3,673.3,39.286453,-96.11723,0
+1252,Tecumseh Energy Center,KS,Shawnee,7,Conventional Steam Coal,ST,"Evergy Kansas Central, Inc",Electric Utility,8,1957,10,2018,1958,2019,,,,82,66,66,39.0539,-95.56889,0
+1252,Tecumseh Energy Center,KS,Shawnee,8,Conventional Steam Coal,ST,"Evergy Kansas Central, Inc",Electric Utility,4,1962,11,2015,1962,2016,,,,150,130,130,39.0539,-95.56889,0
+6064,Nearman Creek,KS,Wyandotte,1,Conventional Steam Coal,ST,City of Kansas City - (KS),Electric Utility,6,1981,,,1982,,2030,2037,2052,261,243,243,39.1681,-94.6975,0
+1360,Pineville,KY,Bell,3,Conventional Steam Coal,ST,Kentucky Utilities Co,Electric Utility,7,1951,1,2002,1952,2002,,,,37.5,32,33,36.796667,-83.76139,0
+6018,East Bend,KY,Boone,2,Conventional Steam Coal,ST,Duke Energy Kentucky Inc,Electric Utility,3,1981,,,1981,,2030,2036,2051,772,600,600,38.9036,-84.8514,0
+1356,Ghent,KY,Carroll,1,Conventional Steam Coal,ST,Kentucky Utilities Co,Electric Utility,2,1974,,,1974,,2030,2030,2044,556.9,475,479,38.7497,-85.035,0
+1356,Ghent,KY,Carroll,2,Conventional Steam Coal,ST,Kentucky Utilities Co,Electric Utility,4,1977,,,1977,,2030,2032,2047,556.3,495,486,38.7497,-85.035,0
+1356,Ghent,KY,Carroll,3,Conventional Steam Coal,ST,Kentucky Utilities Co,Electric Utility,5,1981,,,1982,,2030,2037,2052,556.5,485,478,38.7497,-85.035,0
+1356,Ghent,KY,Carroll,4,Conventional Steam Coal,ST,Kentucky Utilities Co,Electric Utility,8,1984,,,1985,,2030,2040,2055,556.2,478,487,38.7497,-85.035,0
+1385,Dale,KY,Clark,1,Conventional Steam Coal,ST,"East Kentucky Power Coop, Inc",Electric Utility,12,1954,4,2015,1955,2015,,,,27,23,23,37.8806,-84.2619,0
+1385,Dale,KY,Clark,2,Conventional Steam Coal,ST,"East Kentucky Power Coop, Inc",Electric Utility,12,1954,4,2015,1955,2015,,,,27,23,23,37.8806,-84.2619,0
+1385,Dale,KY,Clark,3,Conventional Steam Coal,ST,"East Kentucky Power Coop, Inc",Electric Utility,10,1957,4,2016,1958,2016,,,,81,74,75,37.8806,-84.2619,0
+1385,Dale,KY,Clark,4,Conventional Steam Coal,ST,"East Kentucky Power Coop, Inc",Electric Utility,8,1960,4,2016,1961,2016,,,,81,75,75,37.8806,-84.2619,0
+1381,Kenneth C Coleman,KY,Hancock,1,Conventional Steam Coal,ST,Big Rivers Electric Corp,Electric Utility,9,1969,9,2020,1970,2021,,,,205,150,150,37.9631,-86.7911,0
+1381,Kenneth C Coleman,KY,Hancock,2,Conventional Steam Coal,ST,Big Rivers Electric Corp,Electric Utility,7,1970,9,2020,1971,2021,,,,205,138,138,37.9631,-86.7911,0
+1381,Kenneth C Coleman,KY,Hancock,3,Conventional Steam Coal,ST,Big Rivers Electric Corp,Electric Utility,12,1971,9,2020,1972,2021,,,,192,155,155,37.9631,-86.7911,0
+1363,Cane Run,KY,Jefferson,4,Conventional Steam Coal,ST,Louisville Gas & Electric Co,Electric Utility,5,1962,6,2015,1963,2016,,,,163.2,155,155,38.1831,-85.8892,0
+1363,Cane Run,KY,Jefferson,5,Conventional Steam Coal,ST,Louisville Gas & Electric Co,Electric Utility,5,1966,6,2015,1967,2016,,,,209.4,168,168,38.1831,-85.8892,0
+1363,Cane Run,KY,Jefferson,6,Conventional Steam Coal,ST,Louisville Gas & Electric Co,Electric Utility,5,1969,4,2015,1970,2015,,,,272,240,240,38.1831,-85.8892,0
+1364,Mill Creek (KY),KY,Jefferson,1,Conventional Steam Coal,ST,Louisville Gas & Electric Co,Electric Utility,8,1972,12,2024,1973,2025,,,,355.5,300,300,38.0525,-85.9103,0
+1364,Mill Creek (KY),KY,Jefferson,2,Conventional Steam Coal,ST,Louisville Gas & Electric Co,Electric Utility,7,1974,6,2027,1975,2028,,,,355.5,297,297,38.0525,-85.9103,0
+1364,Mill Creek (KY),KY,Jefferson,3,Conventional Steam Coal,ST,Louisville Gas & Electric Co,Electric Utility,8,1978,,,1979,,2030,2034,2049,462.6,391,394,38.0525,-85.9103,0
+1364,Mill Creek (KY),KY,Jefferson,4,Conventional Steam Coal,ST,Louisville Gas & Electric Co,Electric Utility,9,1982,,,1983,,2030,2038,2053,543.6,477,486,38.0525,-85.9103,0
+1353,Big Sandy,KY,Lawrence,2,Conventional Steam Coal,ST,Kentucky Power Co,Electric Utility,10,1969,5,2015,1970,2016,,,,816.3,800,800,38.1707,-82.6176,0
+6041,H L Spurlock,KY,Mason,1,Conventional Steam Coal,ST,"East Kentucky Power Coop, Inc",Electric Utility,9,1977,,,1978,,2030,2033,2048,357.6,300,300,38.7,-83.8181,1
+6041,H L Spurlock,KY,Mason,2,Conventional Steam Coal,ST,"East Kentucky Power Coop, Inc",Electric Utility,3,1981,,,1981,,2030,2036,2051,592.1,510,510,38.7,-83.8181,1
+6041,H L Spurlock,KY,Mason,3,Conventional Steam Coal,ST,"East Kentucky Power Coop, Inc",Electric Utility,3,2005,,,2005,,2035,2060,2075,329.4,268,268,38.7,-83.8181,1
+6041,H L Spurlock,KY,Mason,4,Conventional Steam Coal,ST,"East Kentucky Power Coop, Inc",Electric Utility,4,2009,,,2009,,2039,2064,2079,329.4,268,268,38.7,-83.8181,1
+1379,Shawnee,KY,McCracken,1,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,4,1953,12,2033,1953,2034,,,,175,134,138,37.1517,-88.775,1
+1379,Shawnee,KY,McCracken,10,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,10,1956,6,2014,1957,2015,,,,175,124,127,37.1517,-88.775,1
+1379,Shawnee,KY,McCracken,2,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,6,1953,12,2033,1954,2034,,,,175,134,138,37.1517,-88.775,1
+1379,Shawnee,KY,McCracken,3,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,10,1953,,,1954,,2030,2030,2030,175,134,138,37.1517,-88.775,1
+1379,Shawnee,KY,McCracken,4,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,1,1954,12,2033,1954,2034,,,,175,134,138,37.1517,-88.775,1
+1379,Shawnee,KY,McCracken,5,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,10,1954,12,2033,1955,2034,,,,175,134,138,37.1517,-88.775,1
+1379,Shawnee,KY,McCracken,6,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,11,1954,12,2033,1955,2034,,,,175,134,138,37.1517,-88.775,1
+1379,Shawnee,KY,McCracken,7,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,12,1954,12,2033,1955,2034,,,,175,134,138,37.1517,-88.775,1
+1379,Shawnee,KY,McCracken,8,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,3,1955,12,2033,1955,2034,,,,175,134,138,37.1517,-88.775,1
+1379,Shawnee,KY,McCracken,9,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,7,1955,12,2033,1956,2034,,,,175,134,138,37.1517,-88.775,1
+1355,E W Brown,KY,Mercer,1,Conventional Steam Coal,ST,Kentucky Utilities Co,Electric Utility,5,1957,2,2019,1958,2019,,,,113.6,106,107,37.78831,-84.71257,0
+1355,E W Brown,KY,Mercer,2,Conventional Steam Coal,ST,Kentucky Utilities Co,Electric Utility,6,1963,2,2019,1964,2019,,,,179.5,166,168,37.78831,-84.71257,0
+1355,E W Brown,KY,Mercer,3,Conventional Steam Coal,ST,Kentucky Utilities Co,Electric Utility,7,1971,,,1972,,2030,2030,2042,464,412,416,37.78831,-84.71257,0
+1357,Green River,KY,Muhlenberg,1,Conventional Steam Coal,ST,Kentucky Utilities Co,Electric Utility,1,1950,12,2003,1950,2004,,,,37.5,22,22,37.3636,-87.1214,0
+1357,Green River,KY,Muhlenberg,2,Conventional Steam Coal,ST,Kentucky Utilities Co,Electric Utility,3,1950,12,2003,1950,2004,,,,37.5,22,22,37.3636,-87.1214,0
+1357,Green River,KY,Muhlenberg,3,Conventional Steam Coal,ST,Kentucky Utilities Co,Electric Utility,4,1954,10,2015,1954,2016,,,,75,68,71,37.3636,-87.1214,0
+1357,Green River,KY,Muhlenberg,4,Conventional Steam Coal,ST,Kentucky Utilities Co,Electric Utility,7,1959,10,2015,1960,2016,,,,113.6,93,98,37.3636,-87.1214,0
+1378,Paradise,KY,Muhlenberg,1,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,11,1963,4,2017,1964,2017,,,,704,628,659,37.2608,-86.9783,0
+1378,Paradise,KY,Muhlenberg,2,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,5,1963,4,2017,1964,2017,,,,704,602,633,37.2608,-86.9783,0
+1378,Paradise,KY,Muhlenberg,3,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,2,1970,1,2020,1970,2020,,,,1150.2,971,1017,37.2608,-86.9783,0
+6823,D B Wilson,KY,Ohio,1,Conventional Steam Coal,ST,Big Rivers Electric Corp,Electric Utility,9,1984,,,1985,,2030,2040,2055,509.4,417,417,37.4497,-87.0806,1
+1384,Cooper,KY,Pulaski,1,Conventional Steam Coal,ST,"East Kentucky Power Coop, Inc",Electric Utility,2,1965,,,1965,,2030,2030,2035,113.6,116,116,36.9981,-84.5919,0
+1384,Cooper,KY,Pulaski,2,Conventional Steam Coal,ST,"East Kentucky Power Coop, Inc",Electric Utility,10,1969,,,1970,,2030,2030,2040,230.4,225,225,36.9981,-84.5919,0
+6071,Trimble County,KY,Trimble,1,Conventional Steam Coal,ST,Louisville Gas & Electric Co,Electric Utility,12,1990,,,1991,,2030,2046,2061,566.1,511,511,38.5847,-85.4117,0
+6071,Trimble County,KY,Trimble,2,Conventional Steam Coal,ST,Louisville Gas & Electric Co,Electric Utility,2,2011,,,2011,,2041,2066,2081,834,732,760,38.5847,-85.4117,0
+1382,HMP&L Station Two Henderson,KY,Webster,1,Conventional Steam Coal,ST,Big Rivers Electric Corp,Electric Utility,6,1973,2,2019,1974,2019,,,,200,153,153,37.6469,-87.5028,0
+1382,HMP&L Station Two Henderson,KY,Webster,2,Conventional Steam Coal,ST,Big Rivers Electric Corp,Electric Utility,4,1974,2,2019,1974,2019,,,,205,159,159,37.6469,-87.5028,0
+6639,R D Green,KY,Webster,1,Conventional Steam Coal,ST,Big Rivers Electric Corp,Electric Utility,12,1979,,,1980,,2030,2035,2050,293,231,231,37.6461,-87.5,0
+1383,Robert A Reid,KY,Webster,1,Conventional Steam Coal,ST,Big Rivers Electric Corp,Electric Utility,1,1966,9,2020,1966,2021,,,,96,65,65,37.6461,-87.5019,0
+1361,Tyrone,KY,Woodford,3,Conventional Steam Coal,ST,Kentucky Utilities Co,Electric Utility,7,1953,2,2013,1954,2013,,,,75,71,73,38.0478,-84.8483,0
+1393,R S Nelson,LA,Calcasieu,6,Conventional Steam Coal,ST,Entergy Louisiana LLC,Electric Utility,5,1982,,,1983,,2030,2038,2053,614.6,517.5,536.9,30.2844,-93.2911,1
+51,Dolet Hills,LA,DeSoto,1,Conventional Steam Coal,ST,Cleco Power LLC,Electric Utility,4,1986,12,2021,1986,2022,,,,720.7,634.8,638,32.030556,-93.56917,0
+6055,Big Cajun 2,LA,Pointe Coupee,1,Conventional Steam Coal,ST,Louisiana Generating LLC,IPP Non-CHP,7,1981,,,1982,,2030,2037,2052,657.9,520,530,30.7261,-91.3692,0
+6055,Big Cajun 2,LA,Pointe Coupee,3,Conventional Steam Coal,ST,Louisiana Generating LLC,IPP Non-CHP,4,1983,,,1983,,2030,2038,2053,619,540,550,30.7261,-91.3692,0
+6190,Brame Energy Center,LA,Rapides,2,Conventional Steam Coal,ST,Cleco Power LLC,Electric Utility,8,1982,,,1983,,2030,2038,2053,558,496.6,493,31.395,-92.71667,1
+1626,Salem Harbor,MA,Essex,1,Conventional Steam Coal,ST,Salem Harbor Power Development LP,IPP Non-CHP,1,1952,6,2014,1952,2015,,,,81.9,79.7,81.4,42.5256,-70.8772,0
+1626,Salem Harbor,MA,Essex,2,Conventional Steam Coal,ST,Salem Harbor Power Development LP,IPP Non-CHP,9,1952,6,2014,1953,2015,,,,82,78,78.8,42.5256,-70.8772,0
+1626,Salem Harbor,MA,Essex,3,Conventional Steam Coal,ST,Salem Harbor Power Development LP,IPP Non-CHP,8,1958,6,2014,1959,2015,,,,165.7,149.8,149.9,42.5256,-70.8772,0
+10678,AES Warrior Run Cogeneration Facility,MD,Allegany,GEN1,Conventional Steam Coal,ST,AES WR Ltd Partnership,IPP CHP,8,1999,6,2024,2000,2025,,,,229,180,180,39.595171,-78.74533,0
+602,Brandon Shores,MD,Anne Arundel,1,Conventional Steam Coal,ST,Brandon Shores LLC,IPP Non-CHP,5,1984,6,2025,1985,2029,,,,685.1,635,635,39.182073,-76.53715,0
+602,Brandon Shores,MD,Anne Arundel,2,Conventional Steam Coal,ST,Brandon Shores LLC,IPP Non-CHP,5,1991,6,2025,1992,2029,,,,685.1,638,638,39.182073,-76.53715,0
+1554,Herbert A Wagner,MD,Anne Arundel,2,Conventional Steam Coal,ST,H.A. Wagner LLC,IPP Non-CHP,1,1959,6,2020,1959,2021,,,,136,118,118,39.1781,-76.5268,0
+1554,Herbert A Wagner,MD,Anne Arundel,3,Conventional Steam Coal,ST,H.A. Wagner LLC,IPP Non-CHP,8,1966,,,1967,,2030,2030,2037,359,305,305,39.1781,-76.5268,0
+1573,Morgantown Generating Plant,MD,Charles,ST1,Conventional Steam Coal,ST,"Lanyard Power Holdings, LLC",IPP Non-CHP,6,1970,6,2022,1971,2023,,,,626,596,596,38.3592,-76.9767,0
+1573,Morgantown Generating Plant,MD,Charles,ST2,Conventional Steam Coal,ST,"Lanyard Power Holdings, LLC",IPP Non-CHP,6,1971,6,2022,1972,2023,,,,626,609,609,38.3592,-76.9767,0
+65284,Dickerson,MD,Montgomery,2,Conventional Steam Coal,ST,"Lanyard Power Holdings, LLC",IPP Non-CHP,4,1960,8,2020,1960,2021,,,,196,173,173,39.2097,-77.4644,0
+65284,Dickerson,MD,Montgomery,3,Conventional Steam Coal,ST,"Lanyard Power Holdings, LLC",IPP Non-CHP,3,1962,8,2020,1962,2021,,,,196,173,173,39.2097,-77.4644,0
+65284,Dickerson,MD,Montgomery,ST1,Conventional Steam Coal,ST,"Lanyard Power Holdings, LLC",IPP Non-CHP,6,1959,8,2020,1960,2021,,,,196,173,173,39.2097,-77.4644,0
+65285,Chalk Point Steam,MD,Prince Georges,ST1,Conventional Steam Coal,ST,"Lanyard Power Holdings, LLC",IPP Non-CHP,8,1964,6,2021,1965,2022,,,,364,333.1,338.2,38.5444,-76.6861,0
+65285,Chalk Point Steam,MD,Prince Georges,ST2,Conventional Steam Coal,ST,"Lanyard Power Holdings, LLC",IPP Non-CHP,3,1965,6,2021,1965,2022,,,,364,336.9,344.5,38.5444,-76.6861,0
+1702,Dan E Karn,MI,Bay,1A,Conventional Steam Coal,ST,Consumers Energy Co - (MI),Electric Utility,11,1959,5,2023,1960,2024,,,,136,127.5,127.5,43.644996,-83.84007,0
+1702,Dan E Karn,MI,Bay,1B,Conventional Steam Coal,ST,Consumers Energy Co - (MI),Electric Utility,11,1959,5,2023,1960,2024,,,,136,127.5,127.5,43.644996,-83.84007,0
+1702,Dan E Karn,MI,Bay,2A,Conventional Steam Coal,ST,Consumers Energy Co - (MI),Electric Utility,3,1961,5,2023,1961,2024,,,,136,117.1,117.1,43.644996,-83.84007,0
+1702,Dan E Karn,MI,Bay,2B,Conventional Steam Coal,ST,Consumers Energy Co - (MI),Electric Utility,3,1961,5,2023,1961,2024,,,,136,117.1,117.1,43.644996,-83.84007,0
+1720,J C Weadock,MI,Bay,7,Conventional Steam Coal,ST,Consumers Energy Co - (MI),Electric Utility,5,1955,4,2016,1956,2016,,,,156.3,152,155,43.639927,-83.84471,0
+1720,J C Weadock,MI,Bay,8,Conventional Steam Coal,ST,Consumers Energy Co - (MI),Electric Utility,1,1958,4,2016,1958,2016,,,,156.3,151,155,43.639927,-83.84471,0
+1832,Erickson Station,MI,Eaton,1,Conventional Steam Coal,ST,Lansing Board of Water and Light,Electric Utility,2,1973,11,2022,1973,2023,,,,154.7,154.5,156.1,42.692222,-84.65722,0
+1731,Harbor Beach,MI,Huron,1,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,4,1968,11,2013,1968,2014,,,,121,95,103,43.8519,-82.6436,0
+1831,Eckert Station,MI,Ingham,1,Conventional Steam Coal,ST,Lansing Board of Water and Light,Electric Utility,6,1954,9,2015,1955,2016,,,,44,32.9,35.8,42.71839,-84.55808,0
+1831,Eckert Station,MI,Ingham,2,Conventional Steam Coal,ST,Lansing Board of Water and Light,Electric Utility,6,1958,3,2014,1959,2014,,,,44,31.6,33.7,42.71839,-84.55808,0
+1831,Eckert Station,MI,Ingham,3,Conventional Steam Coal,ST,Lansing Board of Water and Light,Electric Utility,6,1960,12,2015,1961,2016,,,,47,30.6,32.3,42.71839,-84.55808,0
+1831,Eckert Station,MI,Ingham,4,Conventional Steam Coal,ST,Lansing Board of Water and Light,Electric Utility,12,1964,5,2021,1965,2022,,,,80,64,66.8,42.71839,-84.55808,0
+1831,Eckert Station,MI,Ingham,5,Conventional Steam Coal,ST,Lansing Board of Water and Light,Electric Utility,6,1968,12,2020,1969,2021,,,,80,63.1,66.3,42.71839,-84.55808,0
+1831,Eckert Station,MI,Ingham,6,Conventional Steam Coal,ST,Lansing Board of Water and Light,Electric Utility,8,1970,12,2020,1971,2021,,,,80,62.8,64.1,42.71839,-84.55808,0
+50835,TES Filer City Station,MI,Manistee,GEN1,Conventional Steam Coal,ST,TES Filer City Station LP,IPP CHP,5,1990,6,2025,1991,2026,,,,70,60,60,44.217299,-86.28905,0
+1769,Presque Isle,MI,Marquette,1,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,9,1955,12,2006,1956,2007,,,,25,25,25,46.5789,-87.395,0
+1769,Presque Isle,MI,Marquette,2,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,7,1962,12,2006,1963,2007,,,,37.5,37,37,46.5789,-87.395,0
+1769,Presque Isle,MI,Marquette,3,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,1,1964,10,2009,1964,2010,,,,54.4,58,58,46.5789,-87.395,0
+1769,Presque Isle,MI,Marquette,4,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,12,1966,10,2009,1967,2010,,,,57.8,58,58,46.5789,-87.395,0
+1769,Presque Isle,MI,Marquette,5,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,12,1974,3,2019,1975,2019,,,,90,55,55,46.5789,-87.395,0
+1769,Presque Isle,MI,Marquette,6,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,4,1975,3,2019,1975,2019,,,,90,55,55,46.5789,-87.395,0
+1769,Presque Isle,MI,Marquette,7,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,6,1978,3,2019,1979,2019,,,,90,83,83,46.5789,-87.395,0
+1769,Presque Isle,MI,Marquette,8,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,11,1978,3,2019,1979,2019,,,,90,83,83,46.5789,-87.395,0
+1769,Presque Isle,MI,Marquette,9,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,8,1979,3,2019,1980,2019,,,,90,83,83,46.5789,-87.395,0
+1843,Shiras,MI,Marquette,1,Conventional Steam Coal,ST,City of Marquette - (MI),Electric Utility,1,1967,4,2019,1967,2019,,,,12.5,11.6,11.6,46.530598,-87.39221,0
+1843,Shiras,MI,Marquette,2,Conventional Steam Coal,ST,City of Marquette - (MI),Electric Utility,1,1972,4,2019,1972,2019,,,,21,19.5,19.5,46.530598,-87.39221,0
+1843,Shiras,MI,Marquette,3,Conventional Steam Coal,ST,City of Marquette - (MI),Electric Utility,4,1983,4,2019,1983,2019,,,,44,41,41,46.530598,-87.39221,0
+1723,J R Whiting,MI,Monroe,1,Conventional Steam Coal,ST,Consumers Energy Co - (MI),Electric Utility,7,1952,4,2016,1953,2016,,,,106.3,102,102,41.792114,-83.44948,0
+1723,J R Whiting,MI,Monroe,2,Conventional Steam Coal,ST,Consumers Energy Co - (MI),Electric Utility,12,1952,4,2016,1953,2016,,,,106.3,95,100,41.792114,-83.44948,0
+1723,J R Whiting,MI,Monroe,3,Conventional Steam Coal,ST,Consumers Energy Co - (MI),Electric Utility,11,1953,4,2016,1954,2016,,,,132.8,122,124,41.792114,-83.44948,0
+1733,Monroe (MI),MI,Monroe,1,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,6,1971,12,2032,1972,2033,,,,817.2,758,758,41.8906,-83.3464,0
+1733,Monroe (MI),MI,Monroe,2,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,3,1973,12,2032,1973,2033,,,,822.6,773,783,41.8906,-83.3464,0
+1733,Monroe (MI),MI,Monroe,3,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,5,1973,12,2028,1974,2029,,,,822.6,773,783,41.8906,-83.3464,0
+1733,Monroe (MI),MI,Monroe,4,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,5,1974,12,2028,1975,2029,,,,817.2,762,762,41.8906,-83.3464,0
+1695,B C Cobb,MI,Muskegon,4,Conventional Steam Coal,ST,Consumers Energy Co - (MI),Electric Utility,9,1956,4,2016,1957,2016,,,,156.3,156,160,43.258768,-86.24227,0
+1695,B C Cobb,MI,Muskegon,5,Conventional Steam Coal,ST,Consumers Energy Co - (MI),Electric Utility,3,1957,4,2016,1957,2016,,,,156.3,156,160,43.258768,-86.24227,0
+1710,J H Campbell,MI,Ottawa,1,Conventional Steam Coal,ST,Consumers Energy Co - (MI),Electric Utility,10,1962,5,2025,1963,2026,,,,265.2,260,260,42.910296,-86.20074,0
+1710,J H Campbell,MI,Ottawa,2,Conventional Steam Coal,ST,Consumers Energy Co - (MI),Electric Utility,7,1967,5,2025,1968,2026,,,,378.8,355.5,365.9,42.910296,-86.20074,0
+1710,J H Campbell,MI,Ottawa,3,Conventional Steam Coal,ST,Consumers Energy Co - (MI),Electric Utility,9,1980,5,2025,1981,2026,,,,916.8,784.6,785.3,42.910296,-86.20074,0
+1830,James De Young,MI,Ottawa,3,Conventional Steam Coal,ST,City of Holland,Electric Utility,4,1951,6,2016,1951,2017,,,,11.5,10.5,10.5,42.7956,-86.1133,0
+1830,James De Young,MI,Ottawa,4,Conventional Steam Coal,ST,City of Holland,Electric Utility,5,1962,6,2017,1963,2018,,,,22,20.5,20.5,42.7956,-86.1133,0
+1830,James De Young,MI,Ottawa,5,Conventional Steam Coal,ST,City of Holland,Electric Utility,6,1969,6,2017,1970,2018,,,,29.3,27,27,42.7956,-86.1133,0
+6034,Belle River,MI,St Clair,ST1,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,8,1984,12,2028,1985,2029,,,,697.5,635,635,42.7756,-82.495,0
+6034,Belle River,MI,St Clair,ST2,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,7,1985,12,2028,1986,2029,,,,697.5,635,635,42.7756,-82.495,0
+1732,Marysville,MI,St Clair,6,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,10,1930,5,1995,1931,1996,,,,50,33,33,42.9256,-82.4606,0
+1732,Marysville,MI,St Clair,7,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,4,1943,12,2011,1943,2012,,,,75,83,83,42.9256,-82.4606,0
+1732,Marysville,MI,St Clair,8,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,2,1947,12,2011,1947,2012,,,,75,83,83,42.9256,-82.4606,0
+1743,St Clair,MI,St Clair,1,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,8,1953,3,2019,1954,2019,,,,168.7,151,158,42.7642,-82.4719,0
+1743,St Clair,MI,St Clair,2,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,11,1953,12,2022,1954,2023,,,,156.2,154,162,42.7642,-82.4719,0
+1743,St Clair,MI,St Clair,3,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,6,1954,12,2022,1955,2023,,,,156.2,160,168,42.7642,-82.4719,0
+1743,St Clair,MI,St Clair,4,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,10,1954,11,2017,1955,2018,,,,168.7,151,158,42.7642,-82.4719,0
+1743,St Clair,MI,St Clair,6,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,4,1961,12,2022,1961,2023,,,,352.7,311,320,42.7642,-82.4719,0
+1743,St Clair,MI,St Clair,7,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,4,1969,12,2022,1969,2023,,,,544.5,440,450,42.7642,-82.4719,0
+1740,River Rouge,MI,Wayne,2,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,11,1957,6,2016,1958,2017,,,,292.5,251,260,42.2739,-83.1119,0
+1740,River Rouge,MI,Wayne,3,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,10,1958,5,2021,1959,2022,,,,358.1,272,280,42.2739,-83.1119,0
+1745,Trenton Channel,MI,Wayne,7,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,6,1949,4,2016,1950,2016,,,,120,110,110,42.1217,-83.1808,0
+1745,Trenton Channel,MI,Wayne,8,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,2,1950,4,2015,1950,2015,,,,120,100,100,42.1217,-83.1808,0
+1745,Trenton Channel,MI,Wayne,9,Conventional Steam Coal,ST,DTE Electric Company,Electric Utility,1,1968,12,2022,1968,2023,,,,535.5,495,495,42.1217,-83.1808,0
+10075,Taconite Harbor Energy Center,MN,Cook,GEN1,Conventional Steam Coal,ST,"ALLETE, Inc.",Electric Utility,1,1957,3,2023,1957,2023,,,,84,79,79,47.5314,-90.9114,0
+10075,Taconite Harbor Energy Center,MN,Cook,GEN2,Conventional Steam Coal,ST,"ALLETE, Inc.",Electric Utility,1,1957,3,2023,1957,2023,,,,84,75.9,75.9,47.5314,-90.9114,0
+10075,Taconite Harbor Energy Center,MN,Cook,GEN3,Conventional Steam Coal,ST,"ALLETE, Inc.",Electric Utility,1,1967,5,2015,1967,2016,,,,84,83.6,83.6,47.5314,-90.9114,0
+50636,Brainerd Public Utilities,MN,Crow Wing,VPLS,Conventional Steam Coal,ST,Brainerd Public Utilities,Electric Utility,1,1959,12,2014,1959,2015,,,,0.6,0.6,0.6,46.3758,-94.1817,0
+1904,Black Dog,MN,Dakota,1,Conventional Steam Coal,ST,Northern States Power Co - Minnesota,Electric Utility,8,1952,6,2002,1953,2003,,,,81,71.7,50,44.8108,-93.2501,0
+1904,Black Dog,MN,Dakota,3,Conventional Steam Coal,ST,Northern States Power Co - Minnesota,Electric Utility,7,1955,4,2015,1956,2015,,,,113.6,79,79,44.8108,-93.2501,0
+1904,Black Dog,MN,Dakota,4,Conventional Steam Coal,ST,Northern States Power Co - Minnesota,Electric Utility,9,1960,4,2015,1961,2015,,,,163.2,153,153,44.8108,-93.2501,0
+1927,Riverside (MN),MN,Hennepin,8,Conventional Steam Coal,ST,Northern States Power Co - Minnesota,Electric Utility,4,1964,4,2009,1964,2009,,,,238.8,227,227,45.0203,-93.2753,0
+1893,Clay Boswell,MN,Itasca,1,Conventional Steam Coal,ST,"ALLETE, Inc.",Electric Utility,7,1958,12,2018,1959,2019,,,,75,67.3,67.3,47.2611,-93.6528,0
+1893,Clay Boswell,MN,Itasca,2,Conventional Steam Coal,ST,"ALLETE, Inc.",Electric Utility,1,1960,12,2018,1960,2019,,,,75,67.4,67.4,47.2611,-93.6528,0
+1893,Clay Boswell,MN,Itasca,3,Conventional Steam Coal,ST,"ALLETE, Inc.",Electric Utility,5,1973,,,1974,,2030,2030,2044,364.5,352,352,47.2611,-93.6528,0
+1893,Clay Boswell,MN,Itasca,4,Conventional Steam Coal,ST,"ALLETE, Inc.",Electric Utility,5,1980,,,1981,,2030,2036,2051,558,585,585,47.2611,-93.6528,0
+2022,Willmar,MN,Kandiyohi,ST1,Conventional Steam Coal,ST,Willmar Municipal Utilities,Electric Utility,10,1949,12,2006,1950,2007,,,,4,4,4,45.121705,-95.05324,0
+2008,Silver Lake,MN,Olmsted,1,Conventional Steam Coal,ST,Rochester Public Utilities,Electric Utility,8,1948,12,2015,1949,2016,,,,8,6.6,6.6,44.02818,-92.46038,0
+2008,Silver Lake,MN,Olmsted,2,Conventional Steam Coal,ST,Rochester Public Utilities,Electric Utility,12,1953,12,2015,1954,2016,,,,12,7,7,44.02818,-92.46038,0
+2008,Silver Lake,MN,Olmsted,3,Conventional Steam Coal,ST,Rochester Public Utilities,Electric Utility,11,1962,12,2015,1963,2016,,,,25,20,20,44.02818,-92.46038,0
+2008,Silver Lake,MN,Olmsted,4,Conventional Steam Coal,ST,Rochester Public Utilities,Electric Utility,12,1969,12,2015,1970,2016,,,,54,46.4,46.4,44.02818,-92.46038,0
+1943,Hoot Lake,MN,Otter Tail,1,Conventional Steam Coal,ST,Otter Tail Power Co,Electric Utility,8,1948,12,2005,1949,2006,,,,7.5,7.7,7.7,46.290641,-96.04325,0
+1943,Hoot Lake,MN,Otter Tail,2,Conventional Steam Coal,ST,Otter Tail Power Co,Electric Utility,10,1959,6,2021,1960,2022,,,,54.4,58,58,46.290641,-96.04325,0
+1943,Hoot Lake,MN,Otter Tail,3,Conventional Steam Coal,ST,Otter Tail Power Co,Electric Utility,5,1964,6,2021,1965,2022,,,,75,80,80,46.290641,-96.04325,0
+1912,High Bridge,MN,Ramsey,5,Conventional Steam Coal,ST,Northern States Power Co - Minnesota,Electric Utility,8,1956,12,2007,1957,2008,,,,113.6,99,99,44.9314,-93.1117,0
+1912,High Bridge,MN,Ramsey,6,Conventional Steam Coal,ST,Northern States Power Co - Minnesota,Electric Utility,4,1959,12,2007,1959,2008,,,,163.2,172.1,172.1,44.9314,-93.1117,0
+6090,Sherburne County,MN,Sherburne,1,Conventional Steam Coal,ST,Northern States Power Co - Minnesota,Electric Utility,4,1976,12,2025,1976,2026,,,,765.3,680,680,45.3808,-93.8931,0
+6090,Sherburne County,MN,Sherburne,2,Conventional Steam Coal,ST,Northern States Power Co - Minnesota,Electric Utility,3,1977,12,2023,1977,2024,,,,765.3,682,682,45.3808,-93.8931,0
+6090,Sherburne County,MN,Sherburne,3,Conventional Steam Coal,ST,Northern States Power Co - Minnesota,Electric Utility,10,1987,12,2034,1988,2035,,,,938.7,876,876,45.3808,-93.8931,0
+2018,Virginia,MN,St Louis,1A,Conventional Steam Coal,ST,City of Virginia - (MN),Electric Utility,8,1992,8,2006,1993,2007,,,,4,4,4,47.522428,-92.54095,0
+1915,Allen S King,MN,Washington,1,Conventional Steam Coal,ST,Northern States Power Co - Minnesota,Electric Utility,3,1958,1,2028,1958,2028,,,,598.4,511,511,45.03,-92.7786,0
+2123,Columbia (MO),MO,Boone,5,Conventional Steam Coal,ST,City of Columbia - (MO),Electric Utility,1,1957,4,2016,1957,2016,,,,16.5,16.5,16.5,38.964646,-92.31677,0
+2123,Columbia (MO),MO,Boone,7,Conventional Steam Coal,ST,City of Columbia - (MO),Electric Utility,1,1965,12,2019,1965,2020,,,,22,22,22,38.964646,-92.31677,0
+2171,Missouri City,MO,Clay,1,Conventional Steam Coal,ST,City of Independence - (MO),Electric Utility,6,1954,1,2016,1955,2016,,,,23,19,19,39.231534,-94.30798,0
+2171,Missouri City,MO,Clay,2,Conventional Steam Coal,ST,City of Independence - (MO),Electric Utility,6,1954,1,2016,1955,2016,,,,23,19,19,39.231534,-94.30798,0
+2103,Labadie,MO,Franklin,1,Conventional Steam Coal,ST,Union Electric Co - (MO),Electric Utility,6,1970,,,1971,,2030,2030,2041,573.7,593,616,38.562244,-90.83769,1
+2103,Labadie,MO,Franklin,2,Conventional Steam Coal,ST,Union Electric Co - (MO),Electric Utility,6,1971,,,1972,,2030,2030,2042,573.7,593,616,38.562244,-90.83769,1
+2103,Labadie,MO,Franklin,3,Conventional Steam Coal,ST,Union Electric Co - (MO),Electric Utility,8,1972,,,1973,,2030,2030,2043,621,593,616,38.562244,-90.83769,1
+2103,Labadie,MO,Franklin,4,Conventional Steam Coal,ST,Union Electric Co - (MO),Electric Utility,8,1973,,,1974,,2030,2030,2044,621,593,616,38.562244,-90.83769,1
+2161,James River Power Station,MO,Greene,1,Conventional Steam Coal,ST,City Utilities of Springfield - (MO),Electric Utility,8,1957,12,2017,1958,2018,,,,22,21,21,37.108611,-93.26194,0
+2161,James River Power Station,MO,Greene,2,Conventional Steam Coal,ST,City Utilities of Springfield - (MO),Electric Utility,6,1957,12,2017,1958,2018,,,,22,21,21,37.108611,-93.26194,0
+2161,James River Power Station,MO,Greene,3,Conventional Steam Coal,ST,City Utilities of Springfield - (MO),Electric Utility,2,1960,12,2017,1960,2018,,,,44,41,41,37.108611,-93.26194,0
+6195,John Twitty Energy Center,MO,Greene,ST1,Conventional Steam Coal,ST,City Utilities of Springfield - (MO),Electric Utility,6,1976,,,1977,,2030,2032,2047,194,184,184,37.151706,-93.38804,1
+6195,John Twitty Energy Center,MO,Greene,ST2,Conventional Steam Coal,ST,City Utilities of Springfield - (MO),Electric Utility,1,2011,,,2011,,2041,2066,2081,300,275,275,37.151706,-93.38804,1
+2080,Montrose,MO,Henry,1,Conventional Steam Coal,ST,Evergy Metro,Electric Utility,7,1958,4,2016,1959,2016,,,,188,170,170,38.3114,-93.9348,0
+2080,Montrose,MO,Henry,2,Conventional Steam Coal,ST,Evergy Metro,Electric Utility,4,1960,12,2018,1960,2019,,,,188,164,164,38.3114,-93.9348,0
+2080,Montrose,MO,Henry,3,Conventional Steam Coal,ST,Evergy Metro,Electric Utility,5,1964,12,2018,1965,2019,,,,188,170,170,38.3114,-93.9348,0
+2079,Hawthorn,MO,Jackson,5,Conventional Steam Coal,ST,Evergy Metro,Electric Utility,5,1969,,,1970,,2030,2030,2040,569,561.6,561.6,39.1306,-94.4778,0
+2094,Sibley,MO,Jackson,1,Conventional Steam Coal,ST,Evergy Missouri West,Electric Utility,6,1960,6,2017,1961,2018,,,,55,42.2,42.2,39.178319,-94.18445,0
+2094,Sibley,MO,Jackson,2,Conventional Steam Coal,ST,Evergy Missouri West,Electric Utility,5,1962,12,2018,1963,2019,,,,50,42.1,42.1,39.178319,-94.18445,0
+2094,Sibley,MO,Jackson,3,Conventional Steam Coal,ST,Evergy Missouri West,Electric Utility,6,1969,12,2018,1970,2019,,,,419,364.1,364.1,39.178319,-94.18445,0
+2076,Asbury,MO,Jasper,1,Conventional Steam Coal,ST,Empire District Electric Co,Electric Utility,6,1970,3,2020,1971,2020,,,,212.8,198,198,37.361315,-94.58926,0
+2076,Asbury,MO,Jasper,2,Conventional Steam Coal,ST,Empire District Electric Co,Electric Utility,4,1986,12,2013,1986,2014,,,,18.7,14.5,14.5,37.361315,-94.58926,0
+6155,Rush Island,MO,Jefferson,1,Conventional Steam Coal,ST,Union Electric Co - (MO),Electric Utility,3,1976,12,2025,1976,2026,,,,621,589,609,38.131248,-90.26316,0
+6155,Rush Island,MO,Jefferson,2,Conventional Steam Coal,ST,Union Electric Co - (MO),Electric Utility,3,1977,12,2025,1977,2026,,,,621,589,609,38.131248,-90.26316,0
+2122,Chillicothe,MO,Livingston,4A,Conventional Steam Coal,ST,Chillicothe Municipal Utils,Electric Utility,6,1938,3,2004,1939,2004,,,,2.5,2.5,2.5,39.783388,-93.56411,0
+2122,Chillicothe,MO,Livingston,5,Conventional Steam Coal,ST,Chillicothe Municipal Utils,Electric Utility,8,1948,3,2004,1949,2004,,,,5,5,5,39.783388,-93.56411,0
+2122,Chillicothe,MO,Livingston,6,Conventional Steam Coal,ST,Chillicothe Municipal Utils,Electric Utility,9,1958,3,2004,1959,2004,,,,6,6,6,39.783388,-93.56411,0
+2167,New Madrid,MO,New Madrid,1,Conventional Steam Coal,ST,"Associated Electric Coop, Inc",Electric Utility,10,1972,,,1973,,2030,2030,2043,650,600,615,36.5147,-89.5617,1
+2167,New Madrid,MO,New Madrid,2,Conventional Steam Coal,ST,"Associated Electric Coop, Inc",Electric Utility,6,1977,,,1978,,2030,2033,2048,650,600,615,36.5147,-89.5617,1
+6065,Iatan,MO,Platte,1,Conventional Steam Coal,ST,Evergy Metro,Electric Utility,5,1980,,,1981,,2030,2036,2051,726,702.5,702.5,39.4472,-94.98,0
+6065,Iatan,MO,Platte,2,Conventional Steam Coal,ST,Evergy Metro,Electric Utility,8,2010,,,2011,,2041,2066,2081,999,897.1,897.1,39.4472,-94.98,0
+2168,Thomas Hill,MO,Randolph,1,Conventional Steam Coal,ST,"Associated Electric Coop, Inc",Electric Utility,12,1966,,,1967,,2030,2030,2037,171.7,165,167,39.5522,-92.6381,1
+2168,Thomas Hill,MO,Randolph,2,Conventional Steam Coal,ST,"Associated Electric Coop, Inc",Electric Utility,3,1969,,,1969,,2030,2030,2039,272,268,276,39.5522,-92.6381,1
+2168,Thomas Hill,MO,Randolph,3,Conventional Steam Coal,ST,"Associated Electric Coop, Inc",Electric Utility,5,1982,,,1983,,2030,2038,2053,738,703,716,39.5522,-92.6381,1
+2144,Marshall (MO),MO,Saline,4,Conventional Steam Coal,ST,City of Marshall - (MO),Electric Utility,7,1956,7,2016,1957,2017,,,,6,5.8,5.9,39.1228,-93.2064,0
+2144,Marshall (MO),MO,Saline,5,Conventional Steam Coal,ST,City of Marshall - (MO),Electric Utility,7,1967,12,2016,1968,2017,,,,16.5,16,16.2,39.1228,-93.2064,0
+6768,Sikeston Power Station,MO,Scott,1,Conventional Steam Coal,ST,City of Sikeston - (MO),Electric Utility,9,1981,,,1982,,2030,2037,2052,261,240,240,36.8791,-89.6209,0
+2107,Sioux,MO,St Charles,1,Conventional Steam Coal,ST,Union Electric Co - (MO),Electric Utility,5,1967,12,2028,1968,2029,,,,549.7,487,497,38.915479,-90.29025,1
+2107,Sioux,MO,St Charles,2,Conventional Steam Coal,ST,Union Electric Co - (MO),Electric Utility,5,1968,12,2028,1969,2029,,,,549.7,487,497,38.915479,-90.29025,1
+2104,Meramec,MO,St Louis,3,Conventional Steam Coal,ST,Union Electric Co - (MO),Electric Utility,1,1959,12,2022,1959,2023,,,,289,220,240,38.4017,-90.3358,0
+2104,Meramec,MO,St Louis,4,Conventional Steam Coal,ST,Union Electric Co - (MO),Electric Utility,7,1961,12,2022,1962,2023,,,,359,290,290,38.4017,-90.3358,0
+55076,Red Hills Generating Facility,MS,Choctaw,RHGF,Conventional Steam Coal,ST,"Choctaw Generation L.P, L.L.L.P.",IPP Non-CHP,4,2001,,,2001,,2031,2056,2071,513.7,440,440,33.3761,-89.2183,1
+6073,Victor J Daniel Jr,MS,Jackson,1,Conventional Steam Coal,ST,Mississippi Power Co,Electric Utility,9,1977,12,2027,1978,2028,,,,548.3,502,502,30.5322,-88.5553,1
+6073,Victor J Daniel Jr,MS,Jackson,2,Conventional Steam Coal,ST,Mississippi Power Co,Electric Utility,6,1981,12,2027,1982,2028,,,,548.3,502,502,30.5322,-88.5553,1
+6061,R D Morrow,MS,Lamar,1,Conventional Steam Coal,ST,Cooperative Energy,Electric Utility,4,1978,11,2018,1978,2019,,,,200,180,200,31.2186,-89.394,0
+6061,R D Morrow,MS,Lamar,2,Conventional Steam Coal,ST,Cooperative Energy,Electric Utility,12,1978,11,2018,1979,2019,,,,200,180,200,31.2186,-89.394,0
+55749,Hardin Generator Project,MT,Big Horn,UNT1,Conventional Steam Coal,ST,Heorot Power Management,IPP Non-CHP,3,2006,,,2006,,2036,2061,2076,115.7,107,107,45.7578,-107.6,0
+6089,Lewis & Clark,MT,Richland,1,Conventional Steam Coal,ST,Montana-Dakota Utilities Co,Electric Utility,10,1958,3,2021,1959,2021,,,,50,53.1,44,47.6785,-104.1567,0
+6076,Colstrip,MT,Rosebud,1,Conventional Steam Coal,ST,Talen Montana LLC,IPP Non-CHP,11,1975,1,2020,1976,2020,,,,358,307,307,45.8831,-106.614,0
+6076,Colstrip,MT,Rosebud,2,Conventional Steam Coal,ST,Talen Montana LLC,IPP Non-CHP,8,1976,1,2020,1977,2020,,,,358,307,307,45.8831,-106.614,0
+6076,Colstrip,MT,Rosebud,3,Conventional Steam Coal,ST,Talen Montana LLC,IPP Non-CHP,1,1984,,,1984,,2030,2039,2054,823.7,740,740,45.8831,-106.614,1
+6076,Colstrip,MT,Rosebud,4,Conventional Steam Coal,ST,Talen Montana LLC,IPP Non-CHP,4,1986,,,1986,,2030,2041,2056,823.7,740,740,45.8831,-106.614,1
+10784,Colstrip Energy LP,MT,Rosebud,GEN1,Conventional Steam Coal,ST,Colstrip Energy LP,IPP Non-CHP,2,1990,,,1990,,2030,2045,2060,46.1,38,40.5,45.9752,-106.6547,0
+2187,J E Corette Plant,MT,Yellowstone,1,Conventional Steam Coal,ST,Talen Montana LLC,IPP Non-CHP,6,1968,3,2015,1969,2015,,,,172.8,130,130,45.77562,-108.481,0
+2706,Asheville,NC,Buncombe,1,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,5,1964,1,2020,1965,2020,,,,206.6,189,192,35.4731,-82.5417,0
+2706,Asheville,NC,Buncombe,2,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,5,1971,1,2020,1972,2020,,,,207,189,192,35.4731,-82.5417,0
+2727,Marshall (NC),NC,Catawba,2,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,4,1966,12,2034,1966,2035,,,,348.5,370,380,35.5975,-80.9658,0
+2727,Marshall (NC),NC,Catawba,4,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,5,1970,,,1971,,2030,2030,2041,711,660,660,35.5975,-80.9658,0
+2708,Cape Fear,NC,Chatham,5,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,12,1956,10,2012,1957,2013,,,,140.6,144,148,35.595,-79.0495,0
+2708,Cape Fear,NC,Chatham,6,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,7,1958,10,2012,1959,2013,,,,187.9,172,175,35.595,-79.0495,0
+2721,James E. Rogers Energy Complex,NC,Cleveland,1,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,7,1940,10,2011,1941,2012,,,,40,38,39,35.22,-81.7594,0
+2721,James E. Rogers Energy Complex,NC,Cleveland,2,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,8,1940,10,2011,1941,2012,,,,40,38,39,35.22,-81.7594,0
+2721,James E. Rogers Energy Complex,NC,Cleveland,3,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,5,1948,10,2011,1949,2012,,,,65,61,62,35.22,-81.7594,0
+2721,James E. Rogers Energy Complex,NC,Cleveland,4,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,10,1948,10,2011,1949,2012,,,,65,61,62,35.22,-81.7594,0
+2718,G G Allen,NC,Gaston,1,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,6,1957,12,2024,1958,2025,,,,163.2,162,167,35.1897,-81.0122,0
+2718,G G Allen,NC,Gaston,2,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,11,1957,12,2021,1958,2022,,,,163.2,162,167,35.1897,-81.0122,0
+2718,G G Allen,NC,Gaston,3,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,10,1959,3,2021,1960,2021,,,,272,258,270,35.1897,-81.0122,0
+2718,G G Allen,NC,Gaston,4,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,10,1960,12,2021,1961,2022,,,,278,257,267,35.1897,-81.0122,0
+2718,G G Allen,NC,Gaston,5,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,7,1961,12,2024,1962,2025,,,,272,259,259,35.1897,-81.0122,0
+2732,Riverbend,NC,Gaston,4,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,10,1952,5,2013,1953,2014,,,,100,94,96,35.36,-80.9742,0
+2732,Riverbend,NC,Gaston,5,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,11,1952,5,2013,1953,2014,,,,100,94,96,35.36,-80.9742,0
+2732,Riverbend,NC,Gaston,6,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,8,1954,5,2013,1955,2014,,,,133,133,136,35.36,-80.9742,0
+2732,Riverbend,NC,Gaston,7,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,11,1954,5,2013,1955,2014,,,,133,133,136,35.36,-80.9742,0
+2713,L V Sutton Steam,NC,New Hanover,1,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,8,1954,11,2013,1955,2014,,,,112.5,97,98,34.283056,-77.98528,0
+2713,L V Sutton Steam,NC,New Hanover,2,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,5,1955,11,2013,1956,2014,,,,112.5,90,95,34.283056,-77.98528,0
+2713,L V Sutton Steam,NC,New Hanover,3,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,6,1972,11,2013,1973,2014,,,,446.6,366,389,34.283056,-77.98528,0
+6250,Mayo,NC,Person,1,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,3,1983,,,1983,,2030,2038,2053,763.2,704,713,36.5278,-78.8917,0
+2712,Roxboro,NC,Person,1,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,5,1966,,,1967,,2030,2030,2037,410.8,379,380,36.4833,-79.0731,0
+2712,Roxboro,NC,Person,2,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,5,1968,,,1969,,2030,2030,2039,657,668,673,36.4833,-79.0731,0
+2712,Roxboro,NC,Person,3,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,7,1973,,,1974,,2030,2030,2044,745.2,694,698,36.4833,-79.0731,0
+2712,Roxboro,NC,Person,4,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,9,1980,,,1981,,2030,2036,2051,745.2,698,711,36.4833,-79.0731,0
+2716,W H Weatherspoon,NC,Robeson,1,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,9,1949,9,2011,1950,2012,,,,46,48,49,34.587538,-78.97552,0
+2716,W H Weatherspoon,NC,Robeson,2,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,6,1950,9,2011,1951,2012,,,,46,48,49,34.587538,-78.97552,0
+2716,W H Weatherspoon,NC,Robeson,3,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,8,1952,9,2011,1953,2012,,,,73.5,74,79,34.587538,-78.97552,0
+2723,Dan River,NC,Rockingham,1,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,12,1949,4,2012,1950,2012,,,,70,67,69,36.4862,-79.7208,0
+2723,Dan River,NC,Rockingham,2,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,3,1950,4,2012,1950,2012,,,,70,67,69,36.4862,-79.7208,0
+2723,Dan River,NC,Rockingham,3,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,8,1955,4,2012,1956,2012,,,,150,142,145,36.4862,-79.7208,0
+2720,Buck,NC,Rowan,3,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,7,1941,5,2011,1942,2012,,,,80,75,76,35.7133,-80.3767,0
+2720,Buck,NC,Rowan,4,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,9,1942,5,2011,1943,2012,,,,40,38,39,35.7133,-80.3767,0
+2720,Buck,NC,Rowan,5,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,9,1953,5,2013,1954,2014,,,,125,128,131,35.7133,-80.3767,0
+2720,Buck,NC,Rowan,6,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,12,1953,5,2013,1954,2014,,,,125,128,131,35.7133,-80.3767,0
+2709,HF Lee Plant,NC,Wayne,1,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,6,1952,10,2012,1953,2013,,,,75,74,80,35.379866,-78.0878,0
+2709,HF Lee Plant,NC,Wayne,2,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,5,1951,10,2012,1952,2013,,,,75,68,80,35.379866,-78.0878,0
+2709,HF Lee Plant,NC,Wayne,3,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,8,1962,10,2012,1963,2013,,,,252.4,240,252,35.379866,-78.0878,0
+6030,Coal Creek,ND,McLean,1,Conventional Steam Coal,ST,Rainbow Energy Center,Electric Utility,6,1979,,,1980,,2030,2035,2050,604.8,568.3,568.3,47.377743,-101.1571,1
+6030,Coal Creek,ND,McLean,2,Conventional Steam Coal,ST,Rainbow Energy Center,Electric Utility,9,1980,,,1981,,2030,2036,2051,604.8,573.9,573.9,47.377743,-101.1571,1
+6469,Antelope Valley,ND,Mercer,1,Conventional Steam Coal,ST,Basin Electric Power Coop,Electric Utility,7,1984,,,1985,,2030,2040,2055,477,450,450,47.370542,-101.8357,1
+6469,Antelope Valley,ND,Mercer,2,Conventional Steam Coal,ST,Basin Electric Power Coop,Electric Utility,7,1986,,,1987,,2030,2042,2057,477,450,450,47.370542,-101.8357,1
+8222,Coyote,ND,Mercer,1,Conventional Steam Coal,ST,Otter Tail Power Co,Electric Utility,5,1981,,,1982,,2030,2037,2052,450,427,427,47.221447,-101.8157,1
+2817,Leland Olds,ND,Mercer,1,Conventional Steam Coal,ST,Basin Electric Power Coop,Electric Utility,1,1966,,,1966,,2030,2030,2036,216,221,221,47.280769,-101.3212,1
+2817,Leland Olds,ND,Mercer,2,Conventional Steam Coal,ST,Basin Electric Power Coop,Electric Utility,12,1975,,,1976,,2030,2031,2046,440,445,445,47.280769,-101.3212,1
+2824,Stanton,ND,Mercer,1,Conventional Steam Coal,ST,Great River Energy,Electric Utility,4,1967,3,2017,1967,2017,,,,190.2,187.2,187.2,47.286643,-101.3319,0
+2790,R M Heskett,ND,Morton,1,Conventional Steam Coal,ST,Montana-Dakota Utilities Co,Electric Utility,11,1954,2,2022,1955,2022,,,,40,29.5,29.5,46.8669,-100.8836,0
+2790,R M Heskett,ND,Morton,2,Conventional Steam Coal,ST,Montana-Dakota Utilities Co,Electric Utility,11,1963,1,2022,1964,2022,,,,75,74.8,74.8,46.8669,-100.8836,0
+2823,Milton R Young,ND,Oliver,1,Conventional Steam Coal,ST,"Minnkota Power Coop, Inc",Electric Utility,10,1970,,,1971,,2030,2030,2041,257,237,237,47.065854,-101.2131,1
+2823,Milton R Young,ND,Oliver,2,Conventional Steam Coal,ST,"Minnkota Power Coop, Inc",Electric Utility,4,1977,,,1977,,2030,2032,2047,477,447,455,47.065854,-101.2131,1
+56786,Spiritwood Station,ND,Stutsman,1,Conventional Steam Coal,ST,Great River Energy,Electric Utility,11,2014,,,2015,,2045,2070,2085,106.2,97.1,97.1,46.926423,-98.49971,0
+60,Whelan Energy Center,NE,Adams,1,Conventional Steam Coal,ST,City of Hastings - (NE),Electric Utility,7,1981,,,1982,,2030,2037,2052,76.3,76,76,40.580872,-98.31244,0
+60,Whelan Energy Center,NE,Adams,2,Conventional Steam Coal,ST,City of Hastings - (NE),Electric Utility,6,2011,,,2012,,2042,2067,2082,248,220,220,40.580872,-98.31244,0
+2240,Lon Wright,NE,Dodge,6,Conventional Steam Coal,ST,City of Fremont - (NE),Electric Utility,8,1957,,,1958,,2030,2030,2030,16.5,15.5,15.5,41.4281,-96.4623,0
+2240,Lon Wright,NE,Dodge,7,Conventional Steam Coal,ST,City of Fremont - (NE),Electric Utility,8,1963,,,1964,,2030,2030,2034,22,21,21,41.4281,-96.4623,0
+2240,Lon Wright,NE,Dodge,8,Conventional Steam Coal,ST,City of Fremont - (NE),Electric Utility,1,1976,,,1976,,2030,2031,2046,91.5,82,82,41.4281,-96.4623,0
+2291,North Omaha,NE,Douglas,4,Conventional Steam Coal,ST,Omaha Public Power District,Electric Utility,3,1963,,,1963,,2030,2030,2033,136,117.7,101.8,41.32909,-95.94466,0
+2291,North Omaha,NE,Douglas,5,Conventional Steam Coal,ST,Omaha Public Power District,Electric Utility,5,1968,,,1969,,2030,2030,2039,217.6,216.2,174.9,41.32909,-95.94466,0
+59,Platte,NE,Hall,1,Conventional Steam Coal,ST,City of Grand Island - (NE),Electric Utility,12,1982,,,1983,,2030,2038,2053,109.8,100,100,40.854765,-98.34822,0
+2277,Sheldon,NE,Lancaster,1,Conventional Steam Coal,ST,Nebraska Public Power District,Electric Utility,1,1961,,,1961,,2030,2030,2031,108.8,104,104,40.5589,-96.7847,0
+2277,Sheldon,NE,Lancaster,2,Conventional Steam Coal,ST,Nebraska Public Power District,Electric Utility,1,1965,,,1965,,2030,2030,2035,119.9,113,113,40.5589,-96.7847,0
+6077,Gerald Gentleman,NE,Lincoln,1,Conventional Steam Coal,ST,Nebraska Public Power District,Electric Utility,4,1979,,,1979,,2030,2034,2049,681.3,665,665,41.0808,-101.1408,0
+6077,Gerald Gentleman,NE,Lincoln,2,Conventional Steam Coal,ST,Nebraska Public Power District,Electric Utility,1,1982,,,1982,,2030,2037,2052,681.3,700,700,41.0808,-101.1408,0
+6096,Nebraska City,NE,Otoe,1,Conventional Steam Coal,ST,Omaha Public Power District,Electric Utility,4,1979,,,1979,,2030,2034,2049,651.6,650.3,650.3,40.6214,-95.7764,0
+6096,Nebraska City,NE,Otoe,2,Conventional Steam Coal,ST,Omaha Public Power District,Electric Utility,5,2009,,,2010,,2040,2065,2080,738,691,691,40.6214,-95.7764,0
+2364,Merrimack,NH,Merrimack,1,Conventional Steam Coal,ST,Granite Shore Power,IPP Non-CHP,12,1960,,,1961,,2030,2030,2031,113.6,108,108,43.1411,-71.4692,1
+2364,Merrimack,NH,Merrimack,2,Conventional Steam Coal,ST,Granite Shore Power,IPP Non-CHP,5,1968,,,1969,,2030,2030,2039,345.6,330.5,330,43.1411,-71.4692,1
+2367,Schiller,NH,Rockingham,4,Conventional Steam Coal,ST,Granite Shore Power,IPP Non-CHP,10,1952,,,1953,,2030,2030,2030,50,47.5,48,43.0978,-70.7842,0
+2367,Schiller,NH,Rockingham,6,Conventional Steam Coal,ST,Granite Shore Power,IPP Non-CHP,7,1957,,,1958,,2030,2030,2030,50,47.9,48.6,43.0978,-70.7842,0
+10043,Logan Generating Plant,NJ,Gloucester,GEN1,Conventional Steam Coal,ST,Logan Generating Company LP,IPP CHP,9,1994,5,2022,1995,2023,,,,242.3,219,219,39.7928,-75.40667,0
+2408,PSEG Mercer Generating Station,NJ,Mercer,1,Conventional Steam Coal,ST,PSEG Fossil LLC,IPP Non-CHP,12,1960,6,2017,1961,2018,,,,326.4,316,316,40.1792,-74.7339,0
+2408,PSEG Mercer Generating Station,NJ,Mercer,2,Conventional Steam Coal,ST,PSEG Fossil LLC,IPP Non-CHP,6,1961,6,2017,1962,2018,,,,326.4,316,316,40.1792,-74.7339,0
+10566,Chambers Cogeneration LP,NJ,Salem,GEN1,Conventional Steam Coal,ST,US Operating Services Company,IPP CHP,3,1994,6,2022,1994,2023,,,,285,244,242,39.693494,-75.48581,0
+87,Escalante,NM,McKinley,1,Conventional Steam Coal,ST,"Tri-State G & T Assn, Inc",Electric Utility,12,1984,11,2020,1985,2021,,,,257,253,253,35.4159,-108.082,0
+2442,Four Corners,NM,San Juan,1,Conventional Steam Coal,ST,Arizona Public Service Co,Electric Utility,5,1963,12,2013,1964,2014,,,,190,170,170,36.69,-108.4814,0
+2442,Four Corners,NM,San Juan,2,Conventional Steam Coal,ST,Arizona Public Service Co,Electric Utility,6,1963,12,2013,1964,2014,,,,190,170,170,36.69,-108.4814,0
+2442,Four Corners,NM,San Juan,3,Conventional Steam Coal,ST,Arizona Public Service Co,Electric Utility,8,1964,12,2013,1965,2014,,,,253.4,220,220,36.69,-108.4814,0
+2442,Four Corners,NM,San Juan,4,Conventional Steam Coal,ST,Arizona Public Service Co,Electric Utility,7,1969,12,2031,1970,2032,,,,818.1,770,770,36.69,-108.4814,0
+2442,Four Corners,NM,San Juan,5,Conventional Steam Coal,ST,Arizona Public Service Co,Electric Utility,7,1970,12,2031,1971,2032,,,,818.1,770,770,36.69,-108.4814,0
+2451,San Juan,NM,San Juan,1,Conventional Steam Coal,ST,Public Service Co of NM,Electric Utility,12,1976,6,2022,1977,2023,,,,369,340,340,36.8006,-108.4386,0
+2451,San Juan,NM,San Juan,2,Conventional Steam Coal,ST,Public Service Co of NM,Electric Utility,11,1973,12,2017,1974,2018,,,,369,340,340,36.8006,-108.4386,0
+2451,San Juan,NM,San Juan,3,Conventional Steam Coal,ST,Public Service Co of NM,Electric Utility,12,1979,12,2017,1980,2018,,,,555,497,497,36.8006,-108.4386,0
+2451,San Juan,NM,San Juan,4,Conventional Steam Coal,ST,Public Service Co of NM,Electric Utility,4,1982,9,2022,1982,2023,,,,555,507,507,36.8006,-108.4386,0
+2341,Mohave,NV,Clark,1,Conventional Steam Coal,ST,Southern California Edison Co,Electric Utility,4,1971,7,2012,1971,2013,,,,818.1,790,790,35.1458,-114.5917,0
+2341,Mohave,NV,Clark,2,Conventional Steam Coal,ST,Southern California Edison Co,Electric Utility,10,1971,7,2012,1972,2013,,,,818.1,790,790,35.1458,-114.5917,0
+2324,Reid Gardner,NV,Clark,1,Conventional Steam Coal,ST,Nevada Power Co,Electric Utility,6,1965,12,2014,1966,2015,,,,114,100,100,36.657347,-114.6333,0
+2324,Reid Gardner,NV,Clark,2,Conventional Steam Coal,ST,Nevada Power Co,Electric Utility,6,1968,12,2014,1969,2015,,,,114,100,100,36.657347,-114.6333,0
+2324,Reid Gardner,NV,Clark,3,Conventional Steam Coal,ST,Nevada Power Co,Electric Utility,5,1976,12,2014,1977,2015,,,,114,98,98,36.657347,-114.6333,0
+2324,Reid Gardner,NV,Clark,4,Conventional Steam Coal,ST,Nevada Power Co,Electric Utility,7,1983,3,2017,1984,2017,,,,294.8,257,255,36.657347,-114.6333,0
+56224,TS Power Plant,NV,Eureka,1,Conventional Steam Coal,ST,"Nevada Gold Energy, LLC",IPP Non-CHP,6,2008,,,2009,,2039,2064,2079,242,218.4,219.2,40.7461,-116.5297,0
+8224,North Valmy,NV,Humboldt,1,Conventional Steam Coal,ST,Sierra Pacific Power Co,Electric Utility,12,1981,,,1982,,2030,2037,2052,277.2,254,254,40.881317,-117.1516,0
+8224,North Valmy,NV,Humboldt,2,Conventional Steam Coal,ST,Sierra Pacific Power Co,Electric Utility,5,1985,,,1986,,2030,2041,2056,289.8,268,268,40.881317,-117.1516,0
+2554,Dunkirk Generating Plant,NY,Chautauqua,1,Conventional Steam Coal,ST,Dunkirk Power LLC,IPP Non-CHP,11,1950,4,2022,1951,2022,,,,96,75,75,42.491467,-79.34663,0
+2554,Dunkirk Generating Plant,NY,Chautauqua,2,Conventional Steam Coal,ST,Dunkirk Power LLC,IPP Non-CHP,12,1950,1,2019,1951,2019,,,,96,75,75,42.491467,-79.34663,0
+2554,Dunkirk Generating Plant,NY,Chautauqua,3,Conventional Steam Coal,ST,Dunkirk Power LLC,IPP Non-CHP,9,1959,4,2022,1960,2022,,,,217.6,185,185,42.491467,-79.34663,0
+2554,Dunkirk Generating Plant,NY,Chautauqua,ST4,Conventional Steam Coal,ST,Dunkirk Power LLC,IPP Non-CHP,8,1960,4,2022,1961,2022,,,,217.6,185,185,42.491467,-79.34663,0
+2642,Rochester 7,NY,Monroe,1,Conventional Steam Coal,ST,Rochester Gas & Electric Corp,Electric Utility,11,1948,2,2008,1949,2008,,,,46,46,47,43.268889,-77.62944,0
+2642,Rochester 7,NY,Monroe,2,Conventional Steam Coal,ST,Rochester Gas & Electric Corp,Electric Utility,11,1950,3,2008,1951,2008,,,,62.5,64,65,43.268889,-77.62944,0
+2642,Rochester 7,NY,Monroe,3,Conventional Steam Coal,ST,Rochester Gas & Electric Corp,Electric Utility,9,1953,4,2008,1954,2008,,,,62.5,64,65,43.268889,-77.62944,0
+2642,Rochester 7,NY,Monroe,4,Conventional Steam Coal,ST,Rochester Gas & Electric Corp,Electric Utility,2,1957,3,2008,1957,2008,,,,81.6,78,80,43.268889,-77.62944,0
+2527,Greenidge Generation LLC,NY,Yates,3,Conventional Steam Coal,ST,Greenidge Generation Holdings LLC,IPP Non-CHP,4,1950,12,2009,1950,2010,,,,50,52,48.9,42.6789,-76.9483,0
+2942,St Marys,OH,Auglaize,5,Conventional Steam Coal,ST,City of St Marys - (OH),Electric Utility,1,1957,12,2007,1957,2008,,,,6,5.8,5.8,40.5458,-84.3889,0
+2942,St Marys,OH,Auglaize,6,Conventional Steam Coal,ST,City of St Marys - (OH),Electric Utility,4,1967,12,2007,1967,2008,,,,10,9,9,40.5458,-84.3889,0
+6019,W H Zimmer,OH,Clermont,ST1,Conventional Steam Coal,ST,Dynegy W H Zimmer,IPP Non-CHP,3,1991,5,2022,1991,2023,,,,1425.6,1305,1333,38.8675,-84.2289,0
+2830,Walter C Beckjord,OH,Clermont,1,Conventional Steam Coal,ST,Duke Energy Ohio Inc,Electric Utility,6,1952,5,2012,1953,2013,,,,115,94,94,38.9917,-84.2981,0
+2830,Walter C Beckjord,OH,Clermont,2,Conventional Steam Coal,ST,Duke Energy Ohio Inc,Electric Utility,10,1953,10,2013,1954,2014,,,,112.5,94,94,38.9917,-84.2981,0
+2830,Walter C Beckjord,OH,Clermont,3,Conventional Steam Coal,ST,Duke Energy Ohio Inc,Electric Utility,11,1954,10,2013,1955,2014,,,,125,128,128,38.9917,-84.2981,0
+2830,Walter C Beckjord,OH,Clermont,4,Conventional Steam Coal,ST,Duke Energy Ohio Inc,Electric Utility,7,1958,2,2014,1959,2014,,,,163.2,150,150,38.9917,-84.2981,0
+2830,Walter C Beckjord,OH,Clermont,5,Conventional Steam Coal,ST,Duke Energy Ohio Inc,Electric Utility,12,1962,10,2014,1963,2015,,,,244.8,238,238,38.9917,-84.2981,0
+2830,Walter C Beckjord,OH,Clermont,6,Conventional Steam Coal,ST,Duke Energy Ohio Inc,Electric Utility,7,1969,10,2014,1970,2015,,,,460.8,414,420,38.9917,-84.2981,0
+2908,Lake Road (OH),OH,Cuyahoga,10,Conventional Steam Coal,ST,City of Cleveland - (OH),Electric Utility,1,1953,1,1994,1953,1994,,,,25,25,25,41.509235,-81.682464,0
+2908,Lake Road (OH),OH,Cuyahoga,11,Conventional Steam Coal,ST,City of Cleveland - (OH),Electric Utility,1,1967,1,1994,1967,1994,,,,85,85,85,41.509235,-81.682464,0
+2908,Lake Road (OH),OH,Cuyahoga,8,Conventional Steam Coal,ST,City of Cleveland - (OH),Electric Utility,1,1941,1,1994,1941,1994,,,,25,25,25,41.509235,-81.682464,0
+2908,Lake Road (OH),OH,Cuyahoga,9,Conventional Steam Coal,ST,City of Cleveland - (OH),Electric Utility,1,1953,1,1994,1953,1994,,,,25,25,25,41.509235,-81.682464,0
+8102,"Gavin Power, LLC",OH,Gallia,1,Conventional Steam Coal,ST,"Gavin Power, LLC",IPP Non-CHP,10,1974,,,1975,,2030,2030,2045,1300,1348,1348,38.9347,-82.1158,0
+8102,"Gavin Power, LLC",OH,Gallia,2,Conventional Steam Coal,ST,"Gavin Power, LLC",IPP Non-CHP,7,1975,,,1976,,2030,2031,2046,1300,1361,1361,38.9347,-82.1158,0
+2876,Kyger Creek,OH,Gallia,1,Conventional Steam Coal,ST,Ohio Valley Electric Corp,Electric Utility,2,1955,,,1955,,2030,2030,2030,217.3,194,198.7,38.9144,-82.1289,0
+2876,Kyger Creek,OH,Gallia,2,Conventional Steam Coal,ST,Ohio Valley Electric Corp,Electric Utility,6,1955,,,1956,,2030,2030,2030,217.3,192.2,198,38.9144,-82.1289,0
+2876,Kyger Creek,OH,Gallia,3,Conventional Steam Coal,ST,Ohio Valley Electric Corp,Electric Utility,9,1955,,,1956,,2030,2030,2030,217.3,192.2,198,38.9144,-82.1289,0
+2876,Kyger Creek,OH,Gallia,4,Conventional Steam Coal,ST,Ohio Valley Electric Corp,Electric Utility,11,1955,,,1956,,2030,2030,2030,217.3,192.2,198,38.9144,-82.1289,0
+2876,Kyger Creek,OH,Gallia,5,Conventional Steam Coal,ST,Ohio Valley Electric Corp,Electric Utility,12,1955,,,1956,,2030,2030,2030,217.3,192.2,198,38.9144,-82.1289,0
+2832,Miami Fort,OH,Hamilton,5,Conventional Steam Coal,ST,Luminant Miami Fort,IPP Non-CHP,12,1949,1,2008,1950,2008,,,,100,80,80,39.1128,-84.8036,0
+2832,Miami Fort,OH,Hamilton,6,Conventional Steam Coal,ST,Luminant Miami Fort,IPP Non-CHP,11,1960,6,2015,1961,2016,,,,163.2,163,163,39.1128,-84.8036,0
+2832,Miami Fort,OH,Hamilton,7,Conventional Steam Coal,ST,Luminant Miami Fort,IPP Non-CHP,5,1975,12,2027,1976,2028,,,,557.1,510,510,39.1128,-84.8036,0
+2832,Miami Fort,OH,Hamilton,8,Conventional Steam Coal,ST,Luminant Miami Fort,IPP Non-CHP,2,1978,12,2027,1978,2028,,,,557.7,510,510,39.1128,-84.8036,0
+2828,Cardinal,OH,Jefferson,1,Conventional Steam Coal,ST,Cardinal Operating Company,IPP Non-CHP,2,1967,,,1967,,2030,2030,2037,615.2,585,595,40.2522,-80.6486,0
+2828,Cardinal,OH,Jefferson,2,Conventional Steam Coal,ST,Cardinal Operating Company,IPP Non-CHP,7,1967,,,1968,,2030,2030,2038,615.2,585,595,40.2522,-80.6486,0
+2828,Cardinal,OH,Jefferson,3,Conventional Steam Coal,ST,Cardinal Operating Company,IPP Non-CHP,9,1977,12,2028,1978,2029,,,,650,620,620,40.2522,-80.6486,0
+2866,W H Sammis,OH,Jefferson,1,Conventional Steam Coal,ST,Energy Harbor Generation LLC,IPP Non-CHP,8,1959,5,2020,1960,2021,,,,190.4,180,180,40.5317,-80.6319,0
+2866,W H Sammis,OH,Jefferson,2,Conventional Steam Coal,ST,Energy Harbor Generation LLC,IPP Non-CHP,7,1960,5,2020,1961,2021,,,,190.4,180,180,40.5317,-80.6319,0
+2866,W H Sammis,OH,Jefferson,3,Conventional Steam Coal,ST,Energy Harbor Generation LLC,IPP Non-CHP,7,1961,5,2020,1962,2021,,,,190.4,180,180,40.5317,-80.6319,0
+2866,W H Sammis,OH,Jefferson,4,Conventional Steam Coal,ST,Energy Harbor Generation LLC,IPP Non-CHP,11,1962,5,2020,1963,2021,,,,190.4,180,180,40.5317,-80.6319,0
+2866,W H Sammis,OH,Jefferson,5,Conventional Steam Coal,ST,Energy Harbor Generation LLC,IPP Non-CHP,12,1967,6,2023,1968,2024,,,,334,290,290,40.5317,-80.6319,0
+2866,W H Sammis,OH,Jefferson,6,Conventional Steam Coal,ST,Energy Harbor Generation LLC,IPP Non-CHP,4,1969,6,2023,1969,2024,,,,680,600,600,40.5317,-80.6319,0
+2866,W H Sammis,OH,Jefferson,7,Conventional Steam Coal,ST,Energy Harbor Generation LLC,IPP Non-CHP,9,1971,6,2023,1972,2024,,,,680,600,600,40.5317,-80.6319,0
+2936,Painesville,OH,Lake,3,Conventional Steam Coal,ST,City of Painesville,Electric Utility,1,1953,,,1953,,2030,2030,2030,7.5,7,7,41.7265,-81.254,0
+2936,Painesville,OH,Lake,5,Conventional Steam Coal,ST,City of Painesville,Electric Utility,1,1965,,,1965,,2030,2030,2035,16.5,15.5,15.5,41.7265,-81.254,0
+2936,Painesville,OH,Lake,7,Conventional Steam Coal,ST,City of Painesville,Electric Utility,2,1990,,,1990,,2030,2045,2060,22,17.5,17.5,41.7265,-81.254,0
+2936,Painesville,OH,Lake,ST2,Conventional Steam Coal,ST,City of Painesville,Electric Utility,1,1949,,,1949,,2030,2030,2030,7.5,7,7,41.7265,-81.254,0
+2836,Avon Lake,OH,Lorain,7,Conventional Steam Coal,ST,"GenOn Power Midwest, LP",IPP Non-CHP,1,1949,5,2016,1949,2017,,,,86,70,70,41.504453,-82.05462,0
+2836,Avon Lake,OH,Lorain,9,Conventional Steam Coal,ST,"GenOn Power Midwest, LP",IPP Non-CHP,1,1970,3,2022,1970,2022,,,,680,627,627,41.504453,-82.05462,0
+2878,FirstEnergy Bay Shore,OH,Lucas,2,Conventional Steam Coal,ST,"Walleye Power, LLC ",IPP CHP,2,1959,9,2012,1959,2013,,,,140.6,138,138,41.6917,-83.4378,0
+2878,FirstEnergy Bay Shore,OH,Lucas,3,Conventional Steam Coal,ST,"Walleye Power, LLC ",IPP CHP,5,1963,9,2012,1964,2013,,,,140.6,142,142,41.6917,-83.4378,0
+2878,FirstEnergy Bay Shore,OH,Lucas,4,Conventional Steam Coal,ST,"Walleye Power, LLC ",IPP CHP,6,1968,9,2012,1969,2013,,,,217.6,215,215,41.6917,-83.4378,0
+2937,Piqua Power Plant,OH,Miami,10,Conventional Steam Coal,ST,City of Piqua - (OH),Electric Utility,12,1987,12,2007,1988,2008,,,,0.8,0.8,0.8,40.133848,-84.23726,0
+2937,Piqua Power Plant,OH,Miami,3,Conventional Steam Coal,ST,City of Piqua - (OH),Electric Utility,1,1940,12,2007,1940,2008,,,,4,4,4,40.133848,-84.23726,0
+2937,Piqua Power Plant,OH,Miami,4,Conventional Steam Coal,ST,City of Piqua - (OH),Electric Utility,1,1947,12,2007,1947,2008,,,,7.5,7.5,7.5,40.133848,-84.23726,0
+2937,Piqua Power Plant,OH,Miami,6,Conventional Steam Coal,ST,City of Piqua - (OH),Electric Utility,1,1951,12,2007,1951,2008,,,,12.5,12.5,12.5,40.133848,-84.23726,0
+2937,Piqua Power Plant,OH,Miami,7,Conventional Steam Coal,ST,City of Piqua - (OH),Electric Utility,1,1961,12,2007,1961,2008,,,,20,20,20,40.133848,-84.23726,0
+2848,O H Hutchings,OH,Montgomery,1,Conventional Steam Coal,ST,Kimura Power LLC,IPP Non-CHP,7,1948,6,2015,1949,2016,,,,69,58,59,39.6088,-84.2921,0
+2848,O H Hutchings,OH,Montgomery,2,Conventional Steam Coal,ST,Kimura Power LLC,IPP Non-CHP,3,1949,6,2015,1949,2016,,,,69,55,56,39.6088,-84.2921,0
+2848,O H Hutchings,OH,Montgomery,3,Conventional Steam Coal,ST,Kimura Power LLC,IPP Non-CHP,12,1950,6,2015,1951,2016,,,,69,63,64,39.6088,-84.2921,0
+2848,O H Hutchings,OH,Montgomery,4,Conventional Steam Coal,ST,Kimura Power LLC,IPP Non-CHP,2,1951,6,2013,1951,2014,,,,69,63,64,39.6088,-84.2921,0
+2848,O H Hutchings,OH,Montgomery,5,Conventional Steam Coal,ST,Kimura Power LLC,IPP Non-CHP,11,1952,6,2015,1953,2016,,,,69,63,64,39.6088,-84.2921,0
+2848,O H Hutchings,OH,Montgomery,6,Conventional Steam Coal,ST,Kimura Power LLC,IPP Non-CHP,8,1953,6,2015,1954,2016,,,,69,63,64,39.6088,-84.2921,0
+2943,Shelby Municipal Light Plant,OH,Richland,1,Conventional Steam Coal,ST,City of Shelby - (OH),Electric Utility,6,1968,11,2013,1969,2014,,,,12.5,12,12,40.88,-82.6567,0
+2943,Shelby Municipal Light Plant,OH,Richland,2,Conventional Steam Coal,ST,City of Shelby - (OH),Electric Utility,5,1973,11,2013,1974,2014,,,,12.5,12,12,40.88,-82.6567,0
+2943,Shelby Municipal Light Plant,OH,Richland,3,Conventional Steam Coal,ST,City of Shelby - (OH),Electric Utility,4,1948,4,2012,1948,2012,,,,5,5,5,40.88,-82.6567,0
+2943,Shelby Municipal Light Plant,OH,Richland,4,Conventional Steam Coal,ST,City of Shelby - (OH),Electric Utility,6,1954,11,2013,1955,2014,,,,7,7,7,40.88,-82.6567,0
+2861,Niles Power Plant,OH,Trumbull,1,Conventional Steam Coal,ST,"Niles Power, LLC",IPP Non-CHP,1,1954,10,2012,1954,2013,,,,132.8,108,108,41.166928,-80.74769,0
+2861,Niles Power Plant,OH,Trumbull,2,Conventional Steam Coal,ST,"Niles Power, LLC",IPP Non-CHP,1,1954,6,2012,1954,2013,,,,132.8,108,108,41.166928,-80.74769,0
+2914,Dover,OH,Tuscarawas,2,Conventional Steam Coal,ST,City of Dover - (OH),Electric Utility,1,1944,6,2007,1944,2008,,,,4,4,4,40.520066,-81.46815,0
+2914,Dover,OH,Tuscarawas,3,Conventional Steam Coal,ST,City of Dover - (OH),Electric Utility,1,1954,,,1954,,2030,2030,2030,8,8,8,40.520066,-81.46815,0
+2914,Dover,OH,Tuscarawas,4,Conventional Steam Coal,ST,City of Dover - (OH),Electric Utility,6,1968,,,1969,,2030,2030,2039,19.5,15.2,15.2,40.520066,-81.46815,0
+7286,Richard Gorsuch,OH,Washington,1,Conventional Steam Coal,ST,"American Mun Power-Ohio, Inc",Electric Utility,9,1988,11,2010,1989,2011,,,,50,50,50,39.3664,-81.5211,0
+7286,Richard Gorsuch,OH,Washington,2,Conventional Steam Coal,ST,"American Mun Power-Ohio, Inc",Electric Utility,9,1988,11,2010,1989,2011,,,,50,50,50,39.3664,-81.5211,0
+7286,Richard Gorsuch,OH,Washington,3,Conventional Steam Coal,ST,"American Mun Power-Ohio, Inc",Electric Utility,9,1988,11,2010,1989,2011,,,,50,50,50,39.3664,-81.5211,0
+7286,Richard Gorsuch,OH,Washington,4,Conventional Steam Coal,ST,"American Mun Power-Ohio, Inc",Electric Utility,9,1988,11,2010,1989,2011,,,,50,50,50,39.3664,-81.5211,0
+2935,Orrville,OH,Wayne,10,Conventional Steam Coal,ST,City of Orrville - (OH),Electric Utility,1,1971,,,1971,,2030,2030,2041,25,23,23,40.850964,-81.76576,0
+2935,Orrville,OH,Wayne,7,Conventional Steam Coal,ST,City of Orrville - (OH),Electric Utility,1,1949,,,1949,,2030,2030,2030,5,5,5,40.850964,-81.76576,0
+2935,Orrville,OH,Wayne,8,Conventional Steam Coal,ST,City of Orrville - (OH),Electric Utility,1,1955,,,1955,,2030,2030,2030,7.5,7.5,7.5,40.850964,-81.76576,0
+2935,Orrville,OH,Wayne,9,Conventional Steam Coal,ST,City of Orrville - (OH),Electric Utility,1,1961,,,1961,,2030,2030,2031,22,20,20,40.850964,-81.76576,0
+6772,Hugo,OK,Choctaw,1,Conventional Steam Coal,ST,"Western Farmers Elec Coop, Inc",Electric Utility,4,1982,,,1982,,2030,2037,2052,446,440,440,34.0158,-95.3206,1
+10671,River Valley,OK,Le Flore,GEN1,Conventional Steam Coal,ST,Oklahoma Gas & Electric Co,Electric Utility,9,1990,,,1991,,2030,2046,2061,175,161,161,35.1931,-94.6458,1
+10671,River Valley,OK,Le Flore,GEN2,Conventional Steam Coal,ST,Oklahoma Gas & Electric Co,Electric Utility,11,1990,,,1991,,2030,2046,2061,175,160.4,160.4,35.1931,-94.6458,0
+165,GREC,OK,Mayes,1,Conventional Steam Coal,ST,Grand River Dam Authority,Electric Utility,6,1981,12,2020,1982,2021,,,,540,540,540,36.190278,-95.2894,0
+165,GREC,OK,Mayes,2,Conventional Steam Coal,ST,Grand River Dam Authority,Electric Utility,10,1985,4,2026,1986,2026,,,,594,492.5,492.5,36.190278,-95.2894,0
+2952,Muskogee,OK,Muskogee,6,Conventional Steam Coal,ST,Oklahoma Gas & Electric Co,Electric Utility,6,1984,,,1985,,2030,2040,2055,572,521,521,35.76135,-95.28732,1
+6095,Sooner,OK,Noble,1,Conventional Steam Coal,ST,Oklahoma Gas & Electric Co,Electric Utility,11,1979,,,1980,,2030,2035,2050,569,519,519,36.45307,-97.05279,1
+6095,Sooner,OK,Noble,2,Conventional Steam Coal,ST,Oklahoma Gas & Electric Co,Electric Utility,12,1980,,,1981,,2030,2036,2051,569,519,519,36.45307,-97.05279,1
+2963,Northeastern,OK,Rogers,3,Conventional Steam Coal,ST,Public Service Co of Oklahoma,Electric Utility,12,1979,,,1980,,2030,2035,2050,473,460,460,36.4317,-95.7008,0
+2963,Northeastern,OK,Rogers,4,Conventional Steam Coal,ST,Public Service Co of Oklahoma,Electric Utility,9,1980,4,2016,1981,2016,,,,473,460,460,36.4317,-95.7008,0
+6106,Boardman,OR,Morrow,1,Conventional Steam Coal,ST,Portland General Electric Co,Electric Utility,8,1980,10,2020,1981,2021,,,,642.2,585,585,45.693182,-119.8088,0
+8226,Cheswick Power Plant,PA,Allegheny,1,Conventional Steam Coal,ST,"GenOn Power Midwest, LP",IPP Non-CHP,6,1970,3,2022,1971,2022,,,,637,565,565,40.5383,-79.7906,0
+3099,F R Phillips,PA,Allegheny,1,Conventional Steam Coal,ST,"GenOn Power Midwest, LP",IPP Non-CHP,1,1943,12,2002,1943,2003,,,,69,58,58,40.575833,-80.22861,0
+3099,F R Phillips,PA,Allegheny,2,Conventional Steam Coal,ST,"GenOn Power Midwest, LP",IPP Non-CHP,11,1949,12,2002,1950,2003,,,,81,59,59,40.575833,-80.22861,0
+3099,F R Phillips,PA,Allegheny,3,Conventional Steam Coal,ST,"GenOn Power Midwest, LP",IPP Non-CHP,9,1950,12,2002,1951,2003,,,,81,59,59,40.575833,-80.22861,0
+3099,F R Phillips,PA,Allegheny,4,Conventional Steam Coal,ST,"GenOn Power Midwest, LP",IPP Non-CHP,2,1956,12,2002,1956,2003,,,,179,134,134,40.575833,-80.22861,0
+3136,Keystone,PA,Armstrong,1,Conventional Steam Coal,ST,KeyCon Operating LLC,IPP Non-CHP,8,1967,,,1968,,2030,2030,2038,936,850,850,40.6604,-79.3411,1
+3136,Keystone,PA,Armstrong,2,Conventional Steam Coal,ST,KeyCon Operating LLC,IPP Non-CHP,7,1968,,,1969,,2030,2030,2039,936,850,850,40.6604,-79.3411,1
+3115,Titus,PA,Berks,1,Conventional Steam Coal,ST,"Titus Power, LLC",IPP Non-CHP,3,1951,9,2013,1951,2014,,,,75,72,72,40.3056,-75.9081,0
+3115,Titus,PA,Berks,2,Conventional Steam Coal,ST,"Titus Power, LLC",IPP Non-CHP,6,1951,9,2013,1952,2014,,,,75,72,72,40.3056,-75.9081,0
+3115,Titus,PA,Berks,3,Conventional Steam Coal,ST,"Titus Power, LLC",IPP Non-CHP,4,1953,9,2013,1953,2014,,,,75,72,72,40.3056,-75.9081,0
+10143,Colver Green Energy,PA,Cambria,COLV,Conventional Steam Coal,ST,"Inter-Power/AhlCon Partners, L.P.",IPP Non-CHP,2,1995,,,1995,,2030,2050,2065,118,110,110,40.55108,-78.79794,1
+10603,Ebensburg Power,PA,Cambria,GEN1,Conventional Steam Coal,ST,Ebensburg Power Co,IPP Non-CHP,11,1990,,,1991,,2030,2046,2061,57.6,50,50,40.455,-78.7472,1
+50776,Panther Creek Energy Facility,PA,Carbon,GEN1,Conventional Steam Coal,ST,"Panther Creek Power Operating, LLC",IPP Non-CHP,7,1992,,,1993,,2030,2048,2063,94,80,80,40.8556,-75.8781,1
+3159,Cromby Generating Station,PA,Chester,1,Conventional Steam Coal,ST,"Constellation Power, Inc",IPP Non-CHP,7,1954,5,2011,1955,2012,,,,187.5,144,147,40.1531,-75.5294,0
+3161,Eddystone Generating Station,PA,Delaware,1,Conventional Steam Coal,ST,"Constellation Power, Inc",IPP Non-CHP,2,1960,5,2011,1960,2012,,,,353.6,279,288,39.858,-75.323,0
+3161,Eddystone Generating Station,PA,Delaware,2,Conventional Steam Coal,ST,"Constellation Power, Inc",IPP Non-CHP,10,1960,5,2012,1961,2013,,,,353.6,309,311,39.858,-75.323,0
+3118,Conemaugh,PA,Indiana,1,Conventional Steam Coal,ST,KeyCon Operating LLC,IPP Non-CHP,5,1970,,,1971,,2030,2030,2041,975.5,850,850,40.3842,-79.0611,1
+3118,Conemaugh,PA,Indiana,2,Conventional Steam Coal,ST,KeyCon Operating LLC,IPP Non-CHP,5,1971,,,1972,,2030,2030,2042,975.5,850,850,40.3842,-79.0611,1
+3122,Homer City Generating Station,PA,Indiana,1,Conventional Steam Coal,ST,NRG Homer City Services LLC,IPP Non-CHP,6,1969,4,2024,1970,2024,,,,660,626.1,631.2,40.512825,-79.19611,0
+3122,Homer City Generating Station,PA,Indiana,2,Conventional Steam Coal,ST,NRG Homer City Services LLC,IPP Non-CHP,8,1969,8,2023,1970,2024,,,,660,613.3,618.5,40.512825,-79.19611,0
+3122,Homer City Generating Station,PA,Indiana,3,Conventional Steam Coal,ST,NRG Homer City Services LLC,IPP Non-CHP,11,1977,7,2023,1978,2024,,,,692,648.9,665.4,40.512825,-79.19611,0
+3130,Seward (PA),PA,Indiana,4,Conventional Steam Coal,ST,Seward Generating LLC,IPP Non-CHP,6,1950,11,2003,1951,2004,,,,62,60,62,40.40625,-79.03366,1
+3130,Seward (PA),PA,Indiana,5,Conventional Steam Coal,ST,Seward Generating LLC,IPP Non-CHP,4,1957,11,2003,1957,2004,,,,156.2,136,137,40.40625,-79.03366,1
+3130,Seward (PA),PA,Indiana,FB1,Conventional Steam Coal,ST,Seward Generating LLC,IPP Non-CHP,11,2004,,,2005,,2035,2060,2075,585,521,521,40.40625,-79.03366,1
+3149,TalenEnergy Montour,PA,Montour,1,Conventional Steam Coal,ST,TalenEnergy Montour LLC,IPP Non-CHP,3,1972,,,1972,,2030,2030,2042,864.9,752,752,41.0714,-76.6672,0
+3149,TalenEnergy Montour,PA,Montour,11,Conventional Steam Coal,ST,TalenEnergy Montour LLC,IPP Non-CHP,4,1973,2,2019,1973,2019,,,,17.2,11,11.8,41.0714,-76.6672,0
+3149,TalenEnergy Montour,PA,Montour,2,Conventional Steam Coal,ST,TalenEnergy Montour LLC,IPP Non-CHP,4,1973,,,1973,,2030,2030,2043,893,752,752,41.0714,-76.6672,0
+50888,Northampton Generating Company LP,PA,Northampton,GEN1,Conventional Steam Coal,ST,"EIF Northampton GP, LLC",IPP Non-CHP,8,1995,,,1996,,2030,2051,2066,134.1,112,112,40.6917,-75.4792,1
+3113,Portland (PA),PA,Northampton,2,Conventional Steam Coal,ST,"Portland Power, LLC",IPP Non-CHP,9,1962,6,2013,1963,2014,,,,255,226,226,40.910205,-75.0794,0
+3148,TalenEnergy Martins Creek,PA,Northampton,1,Conventional Steam Coal,ST,TalenEnergy Martins Creek LLC,IPP Non-CHP,9,1954,9,2007,1955,2008,,,,156.2,140,150,40.797762,-75.10542,0
+3148,TalenEnergy Martins Creek,PA,Northampton,2,Conventional Steam Coal,ST,TalenEnergy Martins Creek LLC,IPP Non-CHP,6,1956,9,2007,1957,2008,,,,156.2,140,150,40.797762,-75.10542,0
+10343,Foster Wheeler Mt Carmel Cogen,PA,Northumberland,TG1,Conventional Steam Coal,ST,Mount Carmel Cogen Inc,IPP CHP,1,1990,,,1990,,2030,2045,2060,47.3,43,40,40.811189,-76.45295,1
+10113,John B Rich Memorial Power Station,PA,Schuylkill,GEN1,Conventional Steam Coal,ST,Gilberton Power Co,IPP CHP,2,1988,,,1988,,2030,2043,2058,88.4,80,80,40.7903,-76.1983,1
+54634,St Nicholas Cogen Project,PA,Schuylkill,SNCP,Conventional Steam Coal,ST,Schuylkill Energy Resource Inc,IPP CHP,9,1990,,,1991,,2030,2046,2061,99.2,86,86,40.8222,-76.1736,1
+50611,Westwood Generation LLC,PA,Schuylkill,GEN1,Conventional Steam Coal,ST,"Rausch Creek Generation, LLC",IPP Non-CHP,6,1987,,,1988,,2030,2043,2058,36,30,30,40.6191,-76.45,1
+50879,Wheelabrator Frackville Energy,PA,Schuylkill,GEN1,Conventional Steam Coal,ST,Wheelabrator Environmental Systems,IPP CHP,9,1988,2,2020,1989,2020,,,,48,42.5,42.5,40.782377,-76.17618,0
+3152,Sunbury Generation LP,PA,Snyder,1,Conventional Steam Coal,ST,Sunbury Generation LP,IPP Non-CHP,11,1949,7,2014,1950,2015,,,,89.1,80,80,40.8361,-76.825,0
+3152,Sunbury Generation LP,PA,Snyder,2,Conventional Steam Coal,ST,Sunbury Generation LP,IPP Non-CHP,9,1949,7,2014,1950,2015,,,,89.1,80,80,40.8361,-76.825,0
+3152,Sunbury Generation LP,PA,Snyder,3,Conventional Steam Coal,ST,Sunbury Generation LP,IPP Non-CHP,4,1951,7,2014,1951,2015,,,,103.5,94,94,40.8361,-76.825,0
+3152,Sunbury Generation LP,PA,Snyder,4,Conventional Steam Coal,ST,Sunbury Generation LP,IPP Non-CHP,8,1953,7,2014,1954,2015,,,,156.2,128,134,40.8361,-76.825,0
+50974,Scrubgrass Reclamation CO. LP.,PA,Venango,GEN1,Conventional Steam Coal,ST,Scrubgrass Reclamation CO. LP.,IPP Non-CHP,6,1993,,,1994,,2030,2049,2064,94.7,82.8,85.2,41.2691,-79.8134,1
+3132,Warren,PA,Warren,1,Conventional Steam Coal,ST,"Warren Generation, LLC",IPP Non-CHP,9,1948,9,2002,1949,2003,,,,42,41,41,41.835947,-79.18867,0
+3132,Warren,PA,Warren,2,Conventional Steam Coal,ST,"Warren Generation, LLC",IPP Non-CHP,3,1949,9,2002,1949,2003,,,,42,41,41,41.835947,-79.18867,0
+3098,Elrama Power Plant,PA,Washington,1,Conventional Steam Coal,ST,"GenOn Power Midwest, LP",IPP Non-CHP,4,1952,3,2014,1952,2014,,,,100,93,93,40.251829,-79.91802,0
+3098,Elrama Power Plant,PA,Washington,2,Conventional Steam Coal,ST,"GenOn Power Midwest, LP",IPP Non-CHP,1,1953,3,2014,1953,2014,,,,100,93,93,40.251829,-79.91802,0
+3098,Elrama Power Plant,PA,Washington,3,Conventional Steam Coal,ST,"GenOn Power Midwest, LP",IPP Non-CHP,9,1954,3,2014,1955,2014,,,,125,103,103,40.251829,-79.91802,0
+3098,Elrama Power Plant,PA,Washington,4,Conventional Steam Coal,ST,"GenOn Power Midwest, LP",IPP Non-CHP,10,1960,3,2014,1961,2014,,,,185,171,171,40.251829,-79.91802,0
+3264,W S Lee,SC,Anderson,1,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,3,1951,11,2014,1951,2015,,,,90,100,100,34.6022,-82.435,0
+3264,W S Lee,SC,Anderson,2,Conventional Steam Coal,ST,"Duke Energy Carolinas, LLC",Electric Utility,7,1951,11,2014,1952,2015,,,,90,100,102,34.6022,-82.435,0
+130,Cross,SC,Berkeley,1,Conventional Steam Coal,ST,South Carolina Public Service Authority,Electric Utility,5,1995,,,1996,,2030,2051,2066,590.9,580,585,33.371506,-80.11324,0
+130,Cross,SC,Berkeley,2,Conventional Steam Coal,ST,South Carolina Public Service Authority,Electric Utility,5,1984,,,1985,,2030,2040,2055,556.2,565,570,33.371506,-80.11324,0
+130,Cross,SC,Berkeley,3,Conventional Steam Coal,ST,South Carolina Public Service Authority,Electric Utility,1,2007,,,2007,,2037,2062,2077,591,610,610,33.371506,-80.11324,0
+130,Cross,SC,Berkeley,4,Conventional Steam Coal,ST,South Carolina Public Service Authority,Electric Utility,10,2008,,,2009,,2039,2064,2079,652,615,615,33.371506,-80.11324,0
+3319,Jefferies,SC,Berkeley,3,Conventional Steam Coal,ST,South Carolina Public Service Authority,Electric Utility,1,1970,12,2012,1970,2013,,,,172.8,152,152,33.244404,-79.99091,0
+3319,Jefferies,SC,Berkeley,4,Conventional Steam Coal,ST,South Carolina Public Service Authority,Electric Utility,1,1970,12,2012,1970,2013,,,,172.8,150,155,33.244404,-79.99091,0
+3298,Williams,SC,Berkeley,ST1,Conventional Steam Coal,ST,"South Carolina Genertg Co, Inc",Electric Utility,7,1973,,,1974,,2030,2030,2044,659.7,605,610,33.0158,-79.9297,0
+3280,Canadys Steam,SC,Colleton,1,Conventional Steam Coal,ST,"Dominion Energy South Carolina, Inc",Electric Utility,4,1962,12,2012,1962,2013,,,,136,105,90,33.0647,-80.6228,0
+3280,Canadys Steam,SC,Colleton,2,Conventional Steam Coal,ST,"Dominion Energy South Carolina, Inc",Electric Utility,5,1964,11,2013,1965,2014,,,,136,115,115,33.0647,-80.6228,0
+3280,Canadys Steam,SC,Colleton,3,Conventional Steam Coal,ST,"Dominion Energy South Carolina, Inc",Electric Utility,6,1967,11,2013,1968,2014,,,,217.6,180,180,33.0647,-80.6228,0
+3251,H B Robinson,SC,Darlington,1,Conventional Steam Coal,ST,Duke Energy Progress - (NC),Electric Utility,5,1960,10,2012,1961,2013,,,,206.6,177,179,34.4017,-80.1589,0
+6249,Winyah,SC,Georgetown,1,Conventional Steam Coal,ST,South Carolina Public Service Authority,Electric Utility,3,1975,12,2030,1975,2031,,,,315,275,280,33.33184,-79.35724,0
+6249,Winyah,SC,Georgetown,2,Conventional Steam Coal,ST,South Carolina Public Service Authority,Electric Utility,7,1977,12,2030,1978,2031,,,,315,285,290,33.33184,-79.35724,0
+6249,Winyah,SC,Georgetown,3,Conventional Steam Coal,ST,South Carolina Public Service Authority,Electric Utility,5,1980,12,2030,1981,2031,,,,315,285,290,33.33184,-79.35724,0
+6249,Winyah,SC,Georgetown,4,Conventional Steam Coal,ST,South Carolina Public Service Authority,Electric Utility,11,1981,12,2030,1982,2031,,,,315,285,290,33.33184,-79.35724,0
+3317,Dolphus M Grainger,SC,Horry,1,Conventional Steam Coal,ST,South Carolina Public Service Authority,Electric Utility,6,1966,12,2012,1967,2013,,,,81.6,83,85,33.826655,-79.05337,0
+3317,Dolphus M Grainger,SC,Horry,2,Conventional Steam Coal,ST,South Carolina Public Service Authority,Electric Utility,6,1966,12,2012,1967,2013,,,,81.6,83,85,33.826655,-79.05337,0
+3297,Wateree,SC,Richland,1,Conventional Steam Coal,ST,"Dominion Energy South Carolina, Inc",Electric Utility,9,1970,,,1971,,2030,2030,2041,385.9,342,342,33.8264,-80.6228,0
+3297,Wateree,SC,Richland,2,Conventional Steam Coal,ST,"Dominion Energy South Carolina, Inc",Electric Utility,12,1971,,,1972,,2030,2030,2042,385.9,342,342,33.8264,-80.6228,0
+6098,Big Stone,SD,Grant,1,Conventional Steam Coal,ST,Otter Tail Power Co,Electric Utility,5,1975,,,1976,,2030,2031,2046,450,475,475,45.303652,-96.51007,1
+3325,Ben French,SD,Pennington,ST1,Conventional Steam Coal,ST,"Black Hills Power, Inc.",Electric Utility,4,1960,3,2014,1960,2014,,,,25,21.6,21.6,44.087235,-103.261,0
+3396,Bull Run,TN,Anderson,1,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,6,1967,9,2023,1968,2024,,,,950,865,872,36.0211,-84.1567,0
+3405,John Sevier,TN,Hawkins,1,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,7,1955,12,2012,1956,2013,,,,200,176,178,36.3767,-82.9639,0
+3405,John Sevier,TN,Hawkins,2,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,9,1955,12,2012,1956,2013,,,,200,176,178,36.3767,-82.9639,0
+3405,John Sevier,TN,Hawkins,3,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,2,1956,6,2014,1956,2015,,,,200,176,178,36.3767,-82.9639,0
+3405,John Sevier,TN,Hawkins,4,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,10,1957,6,2014,1958,2015,,,,200,176,178,36.3767,-82.9639,0
+3406,Johnsonville,TN,Humphreys,1,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,10,1951,12,2017,1952,2018,,,,125,107,113,36.0278,-87.9861,0
+3406,Johnsonville,TN,Humphreys,10,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,8,1959,12,2015,1960,2016,,,,172.8,141,144,36.0278,-87.9861,0
+3406,Johnsonville,TN,Humphreys,2,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,11,1951,12,2017,1952,2018,,,,125,107,113,36.0278,-87.9861,0
+3406,Johnsonville,TN,Humphreys,3,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,2,1952,12,2017,1952,2018,,,,125,107,113,36.0278,-87.9861,0
+3406,Johnsonville,TN,Humphreys,4,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,4,1952,12,2017,1952,2018,,,,125,107,113,36.0278,-87.9861,0
+3406,Johnsonville,TN,Humphreys,5,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,11,1952,12,2015,1953,2016,,,,147,107,113,36.0278,-87.9861,0
+3406,Johnsonville,TN,Humphreys,6,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,2,1953,12,2015,1953,2016,,,,147,107,113,36.0278,-87.9861,0
+3406,Johnsonville,TN,Humphreys,7,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,11,1958,12,2015,1959,2016,,,,172.8,141,144,36.0278,-87.9861,0
+3406,Johnsonville,TN,Humphreys,8,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,1,1959,12,2015,1959,2016,,,,172.8,141,144,36.0278,-87.9861,0
+3406,Johnsonville,TN,Humphreys,9,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,6,1959,12,2015,1960,2016,,,,172.8,141,144,36.0278,-87.9861,0
+3419,Watts Bar Fossil,TN,Rhea,ST1,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,3,1942,12,2011,1942,2012,,,,60,56,56,35.6108,-84.7811,0
+3419,Watts Bar Fossil,TN,Rhea,ST2,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,2,1942,12,2011,1942,2012,,,,60,56,56,35.6108,-84.7811,0
+3419,Watts Bar Fossil,TN,Rhea,ST3,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,2,1943,12,2011,1943,2012,,,,60,56,56,35.6108,-84.7811,0
+3419,Watts Bar Fossil,TN,Rhea,ST4,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,4,1945,12,2011,1945,2012,,,,60,56,56,35.6108,-84.7811,0
+3407,Kingston,TN,Roane,1,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,2,1954,12,2027,1954,2028,,,,175,132,135,35.8992,-84.5194,1
+3407,Kingston,TN,Roane,2,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,4,1954,12,2027,1954,2028,,,,175,132,135,35.8992,-84.5194,1
+3407,Kingston,TN,Roane,3,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,6,1954,12,2027,1955,2028,,,,175,132,135,35.8992,-84.5194,1
+3407,Kingston,TN,Roane,4,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,7,1954,12,2027,1955,2028,,,,175,132,135,35.8992,-84.5194,1
+3407,Kingston,TN,Roane,5,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,1,1955,12,2027,1955,2028,,,,200,174,176,35.8992,-84.5194,1
+3407,Kingston,TN,Roane,6,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,3,1955,12,2027,1955,2028,,,,200,174,176,35.8992,-84.5194,1
+3407,Kingston,TN,Roane,7,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,5,1955,12,2026,1956,2027,,,,200,174,176,35.8992,-84.5194,1
+3407,Kingston,TN,Roane,8,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,8,1955,12,2026,1956,2027,,,,200,174,176,35.8992,-84.5194,1
+3407,Kingston,TN,Roane,9,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,12,1955,12,2026,1956,2027,,,,200,174,176,35.8992,-84.5194,1
+3393,Allen,TN,Shelby,1,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,5,1959,3,2018,1960,2018,,,,330,247,250,35.074087,-90.14868,0
+3393,Allen,TN,Shelby,2,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,5,1959,3,2018,1960,2018,,,,330,247,250,35.074087,-90.14868,0
+3393,Allen,TN,Shelby,3,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,10,1959,3,2018,1960,2018,,,,330,247,250,35.074087,-90.14868,0
+3399,Cumberland (TN),TN,Stewart,1,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,3,1973,12,2028,1973,2029,,,,1300,1239,1265,36.3903,-87.6539,1
+3399,Cumberland (TN),TN,Stewart,2,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,11,1973,12,2026,1974,2027,,,,1300,1231,1257,36.3903,-87.6539,1
+3403,Gallatin (TN),TN,Sumner,1,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,11,1956,12,2031,1957,2032,,,,300,225,228,36.3156,-86.4006,1
+3403,Gallatin (TN),TN,Sumner,2,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,6,1957,12,2031,1958,2032,,,,300,225,228,36.3156,-86.4006,1
+3403,Gallatin (TN),TN,Sumner,3,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,5,1959,12,2031,1960,2032,,,,327.6,263,266,36.3156,-86.4006,1
+3403,Gallatin (TN),TN,Sumner,4,Conventional Steam Coal,ST,Tennessee Valley Authority,Electric Utility,8,1959,12,2031,1960,2032,,,,327.6,263,266,36.3156,-86.4006,1
+6183,San Miguel,TX,Atascosa,1,Conventional Steam Coal,ST,"San Miguel Electric Coop, Inc",Electric Utility,1,1982,,,1982,,2030,2037,2052,410,391,391,28.7044,-98.4775,1
+7097,J K Spruce,TX,Bexar,1,Conventional Steam Coal,ST,City of San Antonio - (TX),Electric Utility,12,1992,12,2028,1993,2029,,,,566,560,560,29.309722,-98.3203,0
+7097,J K Spruce,TX,Bexar,2,Conventional Steam Coal,ST,City of San Antonio - (TX),Electric Utility,5,2010,,,2011,,2041,2066,2081,922.5,785,785,29.309722,-98.3203,0
+6181,J T Deely,TX,Bexar,1,Conventional Steam Coal,ST,City of San Antonio - (TX),Electric Utility,8,1977,1,2023,1978,2023,,,,486,420,420,29.308056,-98.3228,0
+6181,J T Deely,TX,Bexar,2,Conventional Steam Coal,ST,City of San Antonio - (TX),Electric Utility,8,1978,1,2023,1979,2023,,,,446,420,420,29.308056,-98.3228,0
+6179,Fayette Power Project,TX,Fayette,1,Conventional Steam Coal,ST,Lower Colorado River Authority,Electric Utility,6,1979,,,1980,,2030,2035,2050,615,590,598,29.9172,-96.7506,0
+6179,Fayette Power Project,TX,Fayette,2,Conventional Steam Coal,ST,Lower Colorado River Authority,Electric Utility,5,1980,,,1981,,2030,2036,2051,615,590,598,29.9172,-96.7506,0
+6179,Fayette Power Project,TX,Fayette,3,Conventional Steam Coal,ST,Lower Colorado River Authority,Electric Utility,4,1988,,,1988,,2030,2043,2058,460,435,440,29.9172,-96.7506,0
+3470,W A Parish,TX,Fort Bend,5,Conventional Steam Coal,ST,NRG Texas Power LLC,IPP Non-CHP,12,1977,,,1978,,2030,2033,2048,734.1,664,664,29.4828,-95.6311,1
+3470,W A Parish,TX,Fort Bend,6,Conventional Steam Coal,ST,NRG Texas Power LLC,IPP Non-CHP,12,1978,,,1979,,2030,2034,2049,734.1,663,663,29.4828,-95.6311,1
+3470,W A Parish,TX,Fort Bend,7,Conventional Steam Coal,ST,NRG Texas Power LLC,IPP Non-CHP,6,1980,,,1981,,2030,2036,2051,614.6,577,577,29.4828,-95.6311,1
+3470,W A Parish,TX,Fort Bend,8,Conventional Steam Coal,ST,NRG Texas Power LLC,IPP Non-CHP,12,1982,,,1983,,2030,2038,2053,654,610,610,29.4828,-95.6311,1
+3497,Big Brown,TX,Freestone,1,Conventional Steam Coal,ST,Luminant Generation Company LLC,IPP Non-CHP,12,1971,2,2018,1972,2018,,,,593.4,606,606,31.8206,-96.0544,0
+3497,Big Brown,TX,Freestone,2,Conventional Steam Coal,ST,Luminant Generation Company LLC,IPP Non-CHP,12,1972,2,2018,1973,2018,,,,593.4,602,602,31.8206,-96.0544,0
+6178,Coleto Creek,TX,Goliad,1,Conventional Steam Coal,ST,Coleto Creek Power LP,IPP Non-CHP,6,1980,12,2027,1981,2028,,,,622.4,655,655,28.7128,-97.21417,1
+7902,Pirkey,TX,Harrison,1,Conventional Steam Coal,ST,Southwestern Electric Power Co,Electric Utility,1,1985,3,2023,1985,2023,,,,721,650,650,32.4607,-94.4852,0
+6194,Tolk,TX,Lamb,1,Conventional Steam Coal,ST,Southwestern Public Service Co,Electric Utility,1,1982,12,2028,1982,2029,,,,567.9,532,532,34.186494,-102.57,0
+6194,Tolk,TX,Lamb,2,Conventional Steam Coal,ST,Southwestern Public Service Co,Electric Utility,1,1985,12,2028,1985,2029,,,,567.9,535,535,34.186494,-102.57,0
+298,Limestone,TX,Limestone,1,Conventional Steam Coal,ST,NRG Texas Power LLC,IPP Non-CHP,12,1985,,,1986,,2030,2041,2056,893,831,831,31.4219,-96.2525,1
+298,Limestone,TX,Limestone,2,Conventional Steam Coal,ST,NRG Texas Power LLC,IPP Non-CHP,12,1986,,,1987,,2030,2042,2057,956.8,858,858,31.4219,-96.2525,1
+56611,Sandy Creek Energy Station,TX,McLennan,S01,Conventional Steam Coal,ST,Sandy Creek Energy Associates LP,IPP Non-CHP,5,2013,,,2014,,2044,2069,2084,1008,932.6,932.6,31.474378,-96.95715,0
+6648,Sandow No 4,TX,Milam,4,Conventional Steam Coal,ST,Luminant Generation Company LLC,IPP Non-CHP,5,1981,1,2018,1982,2018,,,,590.6,600,600,30.565871,-97.06403,0
+52071,Sandow No 5,TX,Milam,5,Conventional Steam Coal,ST,Luminant Generation Company LLC,IPP Non-CHP,1,2010,1,2018,2010,2018,,,,661.5,600,600,30.5681,-97.0614,0
+52071,Sandow No 5,TX,Milam,GEN1,Conventional Steam Coal,ST,Luminant Generation Company LLC,IPP Non-CHP,12,1953,12,2006,1954,2007,,,,121,121,124,30.5681,-97.0614,0
+52071,Sandow No 5,TX,Milam,GEN2,Conventional Steam Coal,ST,Luminant Generation Company LLC,IPP Non-CHP,2,1954,12,2006,1954,2007,,,,121,121,124,30.5681,-97.0614,0
+52071,Sandow No 5,TX,Milam,GEN3,Conventional Steam Coal,ST,Luminant Generation Company LLC,IPP Non-CHP,7,1954,12,2006,1955,2007,,,,121,121,124,30.5681,-97.0614,0
+6193,Harrington,TX,Potter,1,Conventional Steam Coal,ST,Southwestern Public Service Co,Electric Utility,1,1976,12,2036,1976,2037,,,,360,339,339,35.29816,-101.7472,0
+6193,Harrington,TX,Potter,2,Conventional Steam Coal,ST,Southwestern Public Service Co,Electric Utility,1,1978,12,2038,1978,2039,,,,360,339,339,35.29816,-101.7472,0
+6193,Harrington,TX,Potter,3,Conventional Steam Coal,ST,Southwestern Public Service Co,Electric Utility,1,1980,12,2040,1980,2041,,,,360,340,340,35.29816,-101.7472,0
+7030,Major Oak Power,TX,Robertson,1,Conventional Steam Coal,ST,"Major Oak Power, LLC",IPP Non-CHP,9,1990,,,1991,,2030,2046,2061,174.6,152,153,31.091925,-96.69503,0
+7030,Major Oak Power,TX,Robertson,2,Conventional Steam Coal,ST,"Major Oak Power, LLC",IPP Non-CHP,10,1991,,,1992,,2030,2047,2062,174.6,153,154,31.091925,-96.69503,0
+6180,Oak Grove (TX),TX,Robertson,OG1,Conventional Steam Coal,ST,Luminant Generation Company LLC,IPP Non-CHP,4,2010,,,2010,,2040,2065,2080,916.8,855,855,31.1803,-96.4866,1
+6180,Oak Grove (TX),TX,Robertson,OG2,Conventional Steam Coal,ST,Luminant Generation Company LLC,IPP Non-CHP,4,2011,,,2011,,2041,2066,2081,878.6,855,855,31.1803,-96.4866,1
+6146,Martin Lake,TX,Rusk,1,Conventional Steam Coal,ST,Luminant Generation Company LLC,IPP Non-CHP,5,1977,,,1978,,2030,2033,2048,793.2,800,815,32.2606,-94.5706,1
+6146,Martin Lake,TX,Rusk,2,Conventional Steam Coal,ST,Luminant Generation Company LLC,IPP Non-CHP,5,1978,,,1979,,2030,2034,2049,793.2,805,820,32.2606,-94.5706,1
+6146,Martin Lake,TX,Rusk,3,Conventional Steam Coal,ST,Luminant Generation Company LLC,IPP Non-CHP,4,1979,,,1979,,2030,2034,2049,793.2,805,820,32.2606,-94.5706,1
+6147,Monticello,TX,Titus,1,Conventional Steam Coal,ST,Luminant Generation Company LLC,IPP Non-CHP,12,1974,1,2018,1975,2018,,,,593.4,535,580,33.0917,-95.0417,0
+6147,Monticello,TX,Titus,2,Conventional Steam Coal,ST,Luminant Generation Company LLC,IPP Non-CHP,12,1975,1,2018,1976,2018,,,,593.4,535,580,33.0917,-95.0417,0
+6147,Monticello,TX,Titus,3,Conventional Steam Coal,ST,Luminant Generation Company LLC,IPP Non-CHP,6,1995,1,2018,1996,2018,,,,793.2,795,795,33.0917,-95.0417,0
+6139,Welsh,TX,Titus,1,Conventional Steam Coal,ST,Southwestern Electric Power Co,Electric Utility,3,1977,1,2028,1977,2028,,,,558,500,500,33.05522,-94.83999,0
+6139,Welsh,TX,Titus,2,Conventional Steam Coal,ST,Southwestern Electric Power Co,Electric Utility,4,1980,4,2016,1980,2016,,,,558,528,528,33.05522,-94.83999,0
+6139,Welsh,TX,Titus,3,Conventional Steam Coal,ST,Southwestern Electric Power Co,Electric Utility,3,1982,1,2028,1982,2028,,,,558,500,500,33.05522,-94.83999,0
+3644,Carbon,UT,Carbon,1,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,11,1954,4,2015,1955,2015,,,,75,67,67,39.7272,-110.8644,0
+3644,Carbon,UT,Carbon,2,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,9,1957,4,2015,1958,2015,,,,113.6,105,105,39.7272,-110.8644,0
+50951,Sunnyside Cogen Associates,UT,Carbon,GEN1,Conventional Steam Coal,ST,Sunnyside Cogeneration Assoc,IPP Non-CHP,2,1993,,,1993,,2030,2048,2063,58.1,51,51,39.5472,-110.3917,0
+6165,Hunter,UT,Emery,1,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,6,1978,,2043,1979,2043,,,,525,446,446,39.1747,-111.0289,0
+6165,Hunter,UT,Emery,2,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,6,1980,,2043,1981,2043,,,,525,446,446,39.1747,-111.0289,0
+6165,Hunter,UT,Emery,3,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,6,1983,,2043,1984,2043,,,,527.2,471,471,39.1747,-111.0289,0
+8069,Huntington,UT,Emery,1,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,6,1977,12,2036,1978,2037,,,,541.3,459,459,39.3792,-111.0781,0
+8069,Huntington,UT,Emery,2,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,7,1974,12,2036,1975,2037,,,,517.5,450,450,39.3792,-111.0781,0
+6481,Intermountain Power Project,UT,Millard,1,Conventional Steam Coal,ST,Los Angeles Department of Water & Power,Electric Utility,6,1986,7,2025,1987,2026,,,,820,900,900,39.509731,-112.5802,0
+6481,Intermountain Power Project,UT,Millard,2,Conventional Steam Coal,ST,Los Angeles Department of Water & Power,Electric Utility,5,1987,7,2025,1988,2026,,,,820,900,900,39.509731,-112.5802,0
+7790,Bonanza,UT,Uintah,1,Conventional Steam Coal,ST,Deseret Generation & Tran Coop,Electric Utility,5,1986,,,1987,,2030,2042,2057,499.5,458,458,40.0864,-109.2844,0
+3803,Chesapeake,VA,Chesapeake,3,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,6,1959,1,2015,1960,2015,,,,185.2,156,162,36.7711,-76.3019,0
+3803,Chesapeake,VA,Chesapeake,ST1,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,6,1953,1,2015,1954,2015,,,,112.5,111,111,36.7711,-76.3019,0
+3803,Chesapeake,VA,Chesapeake,ST2,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,12,1954,1,2015,1955,2015,,,,112.5,111,111,36.7711,-76.3019,0
+3803,Chesapeake,VA,Chesapeake,ST4,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,5,1962,1,2015,1963,2015,,,,239.3,217,221,36.7711,-76.3019,0
+3797,Chesterfield,VA,Chesterfield,3,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,12,1952,3,2019,1953,2019,,,,112.5,97.5,101.5,37.3822,-77.3833,0
+3797,Chesterfield,VA,Chesterfield,4,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,6,1960,3,2019,1961,2019,,,,187.5,162.5,167.5,37.3822,-77.3833,0
+3797,Chesterfield,VA,Chesterfield,5,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,8,1964,5,2023,1965,2024,,,,359,336,342,37.3822,-77.3833,0
+3797,Chesterfield,VA,Chesterfield,6,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,12,1969,5,2023,1970,2024,,,,693.9,670,690,37.3822,-77.3833,0
+3776,Glen Lyn,VA,Giles,5,Conventional Steam Coal,ST,Appalachian Power Co,Electric Utility,6,1944,6,2015,1945,2016,,,,100,90,95,37.3706,-80.8633,0
+3776,Glen Lyn,VA,Giles,6,Conventional Steam Coal,ST,Appalachian Power Co,Electric Utility,5,1957,6,2015,1958,2016,,,,237.5,235,240,37.3706,-80.8633,0
+7213,Clover,VA,Halifax,1,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,10,1995,,,1996,,2030,2051,2066,424,440,443,36.869,-78.704,0
+7213,Clover,VA,Halifax,2,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,3,1996,,,1996,,2030,2051,2066,424,437.1,439,36.869,-78.704,0
+52007,Mecklenburg Power Station,VA,Mecklenburg,GEN1,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,11,1992,3,2019,1993,2019,,,,69.9,69,69,36.59951,-78.52991,0
+52007,Mecklenburg Power Station,VA,Mecklenburg,GEN2,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,11,1992,3,2019,1993,2019,,,,69.9,69,69,36.59951,-78.52991,0
+54081,Spruance Operating Services LLC,VA,Richmond City,GEN1,Conventional Steam Coal,ST,Veolia Energy Operating Service,IPP CHP,5,1992,1,2021,1993,2021,,,,57.4,52.5,52.5,37.4556,-77.4308,0
+54081,Spruance Operating Services LLC,VA,Richmond City,GEN2,Conventional Steam Coal,ST,Veolia Energy Operating Service,IPP CHP,5,1992,1,2021,1993,2021,,,,57.4,52.5,52.5,37.4556,-77.4308,0
+3775,Clinch River,VA,Russell,3,Conventional Steam Coal,ST,Appalachian Power Co,Electric Utility,12,1961,12,2015,1962,2016,,,,237.5,230,235,36.9333,-82.1997,0
+56808,Virginia City Hybrid Energy Center,VA,Wise,1,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,7,2012,,,2013,,2043,2068,2083,668,610,626,36.916389,-82.33806,0
+3809,Yorktown,VA,York,1,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,7,1957,3,2019,1958,2019,,,,187.5,159,162,37.2144,-76.4611,0
+3809,Yorktown,VA,York,2,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,1,1959,3,2019,1959,2019,,,,187.5,164,165,37.2144,-76.4611,0
+3845,Transalta Centralia Generation,WA,Lewis,1,Conventional Steam Coal,ST,TransAlta Centralia Gen LLC,IPP Non-CHP,12,1972,12,2020,1973,2021,,,,729.9,670,670,46.755938,-122.8598,0
+3845,Transalta Centralia Generation,WA,Lewis,2,Conventional Steam Coal,ST,TransAlta Centralia Gen LLC,IPP Non-CHP,7,1973,12,2025,1974,2026,,,,729.9,670,670,46.755938,-122.8598,0
+4072,Pulliam,WI,Brown,3,Conventional Steam Coal,ST,Wisconsin Public Service Corp,Electric Utility,1,1943,12,2007,1943,2008,,,,30,25.8,25.8,44.54,-88.0086,0
+4072,Pulliam,WI,Brown,4,Conventional Steam Coal,ST,Wisconsin Public Service Corp,Electric Utility,8,1947,12,2007,1948,2008,,,,30,30.1,30.1,44.54,-88.0086,0
+4072,Pulliam,WI,Brown,5,Conventional Steam Coal,ST,Wisconsin Public Service Corp,Electric Utility,9,1949,6,2015,1950,2016,,,,50,47.7,48.2,44.54,-88.0086,0
+4072,Pulliam,WI,Brown,6,Conventional Steam Coal,ST,Wisconsin Public Service Corp,Electric Utility,11,1951,6,2015,1952,2016,,,,69,69.8,71,44.54,-88.0086,0
+4072,Pulliam,WI,Brown,7,Conventional Steam Coal,ST,Wisconsin Public Service Corp,Electric Utility,11,1958,10,2018,1959,2019,,,,81.6,76.1,77.8,44.54,-88.0086,0
+4072,Pulliam,WI,Brown,8,Conventional Steam Coal,ST,Wisconsin Public Service Corp,Electric Utility,12,1964,10,2018,1965,2019,,,,149.6,133.8,136.4,44.54,-88.0086,0
+4140,Alma,WI,Buffalo,1,Conventional Steam Coal,ST,Dairyland Power Coop,Electric Utility,9,1947,3,2012,1948,2012,,,,15,18.9,20.6,44.308333,-91.91111,0
+4140,Alma,WI,Buffalo,2,Conventional Steam Coal,ST,Dairyland Power Coop,Electric Utility,10,1947,3,2012,1948,2012,,,,15,18,19.7,44.308333,-91.91111,0
+4140,Alma,WI,Buffalo,3,Conventional Steam Coal,ST,Dairyland Power Coop,Electric Utility,7,1951,3,2012,1952,2012,,,,15,18.9,20.6,44.308333,-91.91111,0
+4140,Alma,WI,Buffalo,4,Conventional Steam Coal,ST,Dairyland Power Coop,Electric Utility,4,1957,9,2014,1957,2015,,,,54.4,40.4,44.6,44.308333,-91.91111,0
+4140,Alma,WI,Buffalo,5,Conventional Steam Coal,ST,Dairyland Power Coop,Electric Utility,1,1960,10,2014,1960,2015,,,,81.6,62.1,69,44.308333,-91.91111,0
+4271,John P Madgett,WI,Buffalo,1,Conventional Steam Coal,ST,Dairyland Power Coop,Electric Utility,11,1979,,,1980,,2030,2035,2050,387,389.8,392.5,44.303583,-91.91265,0
+8023,Columbia (WI),WI,Columbia,1,Conventional Steam Coal,ST,Wisconsin Power & Light Co,Electric Utility,5,1975,6,2029,1976,2029,,,,556,579.3,583.1,43.4864,-89.4203,0
+8023,Columbia (WI),WI,Columbia,2,Conventional Steam Coal,ST,Wisconsin Power & Light Co,Electric Utility,5,1978,6,2029,1979,2029,,,,556,568.8,581.5,43.4864,-89.4203,0
+3992,Blount Street,WI,Dane,1,Conventional Steam Coal,ST,Madison Gas & Electric Co,Electric Utility,0,1925,1,2006,1925,2006,,,,10,6.8,7.2,43.0789,-89.3744,0
+3992,Blount Street,WI,Dane,3,Conventional Steam Coal,ST,Madison Gas & Electric Co,Electric Utility,9,1953,12,2011,1954,2012,,,,34.5,30.1,30.1,43.0789,-89.3744,0
+3992,Blount Street,WI,Dane,4,Conventional Steam Coal,ST,Madison Gas & Electric Co,Electric Utility,10,1938,12,2011,1939,2012,,,,20,12,12,43.0789,-89.3744,0
+3992,Blount Street,WI,Dane,5,Conventional Steam Coal,ST,Madison Gas & Electric Co,Electric Utility,11,1948,12,2011,1949,2012,,,,23,22.9,22.9,43.0789,-89.3744,0
+4054,Nelson Dewey Generating Station,WI,Grant,1,Conventional Steam Coal,ST,Wisconsin Power & Light Co,Electric Utility,12,1959,12,2015,1960,2016,,,,113.6,103.9,106,42.7225,-91.0085,0
+4054,Nelson Dewey Generating Station,WI,Grant,2,Conventional Steam Coal,ST,Wisconsin Power & Light Co,Electric Utility,12,1962,12,2015,1963,2016,,,,113.6,105.2,107.4,42.7225,-91.0085,0
+6170,Pleasant Prairie,WI,Kenosha,1,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,6,1980,4,2018,1981,2018,,,,616.6,594,594,42.5381,-87.9033,0
+6170,Pleasant Prairie,WI,Kenosha,2,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,7,1985,4,2018,1986,2018,,,,616.6,594,594,42.5381,-87.9033,0
+4125,Manitowoc,WI,Manitowoc,2,Conventional Steam Coal,ST,Manitowoc Public Utilities,Electric Utility,0,1935,12,2003,1935,2004,,,,5,5,5,44.082,-87.6558,0
+4125,Manitowoc,WI,Manitowoc,3,Conventional Steam Coal,ST,Manitowoc Public Utilities,Electric Utility,0,1941,12,2003,1941,2004,,,,10,10,10,44.082,-87.6558,0
+4078,Weston,WI,Marathon,1,Conventional Steam Coal,ST,Wisconsin Public Service Corp,Electric Utility,12,1954,6,2015,1955,2016,,,,60,50.7,51.3,44.8606,-89.6553,0
+4078,Weston,WI,Marathon,3,Conventional Steam Coal,ST,Wisconsin Public Service Corp,Electric Utility,12,1981,,,1982,,2030,2037,2052,350.5,334.7,339.8,44.8606,-89.6553,0
+4078,Weston,WI,Marathon,4,Conventional Steam Coal,ST,Wisconsin Public Service Corp,Electric Utility,7,2008,,,2009,,2039,2064,2079,595,553.2,558.5,44.8606,-89.6553,0
+56068,Elm Road Generating Station,WI,Milwaukee,1,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,2,2010,,,2010,,2040,2065,2080,701.3,635.9,637.3,42.8492,-87.8336,0
+56068,Elm Road Generating Station,WI,Milwaukee,2,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,1,2011,,,2011,,2041,2066,2081,701.3,634.9,638.1,42.8492,-87.8336,0
+7549,Milwaukee County,WI,Milwaukee,1,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,3,1955,4,2016,1955,2016,,,,11,7,7,43.046,-88.0281,0
+4041,South Oak Creek,WI,Milwaukee,5,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,12,1959,5,2024,1960,2025,,,,299.2,242.2,242.2,42.8457,-87.8294,0
+4041,South Oak Creek,WI,Milwaukee,6,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,12,1961,5,2024,1962,2025,,,,299.2,253.8,256.7,42.8457,-87.8294,0
+4041,South Oak Creek,WI,Milwaukee,7,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,3,1965,5,2025,1965,2026,,,,317.6,306.5,309.3,42.8457,-87.8294,0
+4041,South Oak Creek,WI,Milwaukee,8,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,10,1967,5,2025,1968,2026,,,,324,311.4,315.4,42.8457,-87.8294,0
+4040,Port Washington Generating Station,WI,Ozaukee,1,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,10,1935,9,2004,1936,2005,,,,80,65,65,43.3842,-87.8689,0
+4040,Port Washington Generating Station,WI,Ozaukee,2,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,10,1943,9,2004,1944,2005,,,,80,80,80,43.3842,-87.8689,0
+4040,Port Washington Generating Station,WI,Ozaukee,3,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,10,1948,9,2004,1949,2005,,,,80,80,80,43.3842,-87.8689,0
+4040,Port Washington Generating Station,WI,Ozaukee,4,Conventional Steam Coal,ST,Wisconsin Electric Power Co,Electric Utility,8,1949,1,2003,1950,2003,,,,80,80,80,43.3842,-87.8689,0
+4050,Edgewater,WI,Sheboygan,3,Conventional Steam Coal,ST,Wisconsin Power & Light Co,Electric Utility,7,1951,12,2015,1952,2016,,,,69,47.2,48.7,43.715142,-87.70586,0
+4050,Edgewater,WI,Sheboygan,4,Conventional Steam Coal,ST,Wisconsin Power & Light Co,Electric Utility,12,1969,9,2018,1970,2019,,,,351,294.4,295.6,43.715142,-87.70586,0
+4050,Edgewater,WI,Sheboygan,5,Conventional Steam Coal,ST,Wisconsin Power & Light Co,Electric Utility,3,1985,6,2025,1985,2026,,,,413.7,409.1,409.3,43.715142,-87.70586,0
+4143,Genoa,WI,Vernon,ST3,Conventional Steam Coal,ST,Dairyland Power Coop,Electric Utility,6,1969,6,2021,1970,2022,,,,345.6,307.5,318,43.5589,-91.2325,0
+3954,Mt Storm,WV,Grant,1,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,9,1965,,,1966,,2030,2030,2036,570.2,554,569,39.2008,-79.2636,1
+3954,Mt Storm,WV,Grant,2,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,7,1966,,,1967,,2030,2030,2037,570.2,555,570,39.2008,-79.2636,1
+3954,Mt Storm,WV,Grant,3,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,12,1973,,,1974,,2030,2030,2044,522,520,537,39.2008,-79.2636,1
+7537,North Branch (WV),WV,Grant,1,Conventional Steam Coal,ST,Virginia Electric & Power Co,Electric Utility,5,1992,12,2012,1993,2013,,,,80,74,77,39.2633,-79.3308,0
+3944,FirstEnergy Harrison Power Station,WV,Harrison,1,Conventional Steam Coal,ST,Monongahela Power Co,Electric Utility,12,1972,,,1973,,2030,2030,2043,684,652,662,39.384167,-80.3325,1
+3944,FirstEnergy Harrison Power Station,WV,Harrison,2,Conventional Steam Coal,ST,Monongahela Power Co,Electric Utility,12,1973,,,1974,,2030,2030,2044,684,651,661,39.384167,-80.3325,1
+3944,FirstEnergy Harrison Power Station,WV,Harrison,3,Conventional Steam Coal,ST,Monongahela Power Co,Electric Utility,12,1974,,,1975,,2030,2030,2045,684,651,661,39.384167,-80.3325,1
+3936,Kanawha River,WV,Kanawha,1,Conventional Steam Coal,ST,Appalachian Power Co,Electric Utility,7,1953,12,2017,1954,2018,,,,219.6,200,200,38.2056,-81.4211,0
+3936,Kanawha River,WV,Kanawha,2,Conventional Steam Coal,ST,Appalachian Power Co,Electric Utility,12,1953,12,2017,1954,2018,,,,219.6,200,200,38.2056,-81.4211,0
+3945,FirstEnergy Rivesville,WV,Marion,5,Conventional Steam Coal,ST,Monongahela Power Co,Electric Utility,6,1943,9,2012,1944,2013,,,,35,37,39,39.531389,-80.11306,0
+3945,FirstEnergy Rivesville,WV,Marion,6,Conventional Steam Coal,ST,Monongahela Power Co,Electric Utility,9,1951,9,2012,1952,2013,,,,74.7,88,91,39.531389,-80.11306,0
+10151,Grant Town Power Plant,WV,Marion,GEN1,Conventional Steam Coal,ST,American Bituminous Power LP,IPP Non-CHP,7,1992,,,1993,,2030,2048,2063,95.7,80,80,39.561831,-80.16314,1
+3948,Mitchell (WV),WV,Marshall,1,Conventional Steam Coal,ST,Kentucky Power Co,Electric Utility,5,1971,,,1972,,2030,2030,2042,816.3,770,770,39.8297,-80.8153,0
+3948,Mitchell (WV),WV,Marshall,2,Conventional Steam Coal,ST,Kentucky Power Co,Electric Utility,5,1971,,,1972,,2030,2030,2042,816.3,790,790,39.8297,-80.8153,0
+6264,Mountaineer,WV,Mason,1,Conventional Steam Coal,ST,Appalachian Power Co,Electric Utility,9,1980,,,1981,,2030,2036,2051,1300,1299,1299,38.9794,-81.9344,0
+3938,Philip Sporn,WV,Mason,1,Conventional Steam Coal,ST,Appalachian Power Co,Electric Utility,1,1950,11,2015,1950,2016,,,,152.5,145,150,38.9669,-81.9231,0
+3938,Philip Sporn,WV,Mason,2,Conventional Steam Coal,ST,Appalachian Power Co,Electric Utility,7,1950,11,2015,1951,2016,,,,152.5,145,150,38.9669,-81.9231,0
+3938,Philip Sporn,WV,Mason,3,Conventional Steam Coal,ST,Appalachian Power Co,Electric Utility,8,1951,11,2015,1952,2016,,,,152.5,145,150,38.9669,-81.9231,0
+3938,Philip Sporn,WV,Mason,4,Conventional Steam Coal,ST,Appalachian Power Co,Electric Utility,2,1952,11,2015,1952,2016,,,,152.5,145,150,38.9669,-81.9231,0
+3938,Philip Sporn,WV,Mason,5,Conventional Steam Coal,ST,Appalachian Power Co,Electric Utility,12,1960,2,2012,1961,2012,,,,495.5,440,450,38.9669,-81.9231,0
+3943,FirstEnergy Fort Martin Power Station,WV,Monongalia,1,Conventional Steam Coal,ST,Monongahela Power Co,Electric Utility,10,1967,,,1968,,2030,2030,2038,576,552,552,39.710833,-79.9275,1
+3943,FirstEnergy Fort Martin Power Station,WV,Monongalia,2,Conventional Steam Coal,ST,Monongahela Power Co,Electric Utility,12,1968,,,1969,,2030,2030,2039,576,546,546,39.710833,-79.9275,1
+56671,Longview Power Plant,WV,Monongalia,MKA01,Conventional Steam Coal,ST,"Longview Power, LLC",IPP Non-CHP,12,2011,,,2012,,2042,2067,2082,807.5,710,710,39.707893,-79.95897,0
+10743,Morgantown Energy Facility,WV,Monongalia,GEN1,Conventional Steam Coal,ST,Morgantown Energy Associates,IPP CHP,11,1991,,,1992,,2030,2047,2062,68.9,50,50,39.6397,-79.96056,0
+3946,FirstEnergy Willow Island,WV,Pleasants,1,Conventional Steam Coal,ST,Monongahela Power Co,Electric Utility,2,1949,9,2012,1949,2013,,,,50,54,55,39.367222,-81.30001,0
+3946,FirstEnergy Willow Island,WV,Pleasants,2,Conventional Steam Coal,ST,Monongahela Power Co,Electric Utility,10,1960,9,2012,1961,2013,,,,163.2,181,186,39.367222,-81.30001,0
+6004,Pleasants Power Station,WV,Pleasants,1,Conventional Steam Coal,ST,"Omnis Pleasants, LLC",IPP Non-CHP,4,1979,,,1979,,2030,2034,2049,684,639,650,39.366667,-81.29444,0
+6004,Pleasants Power Station,WV,Pleasants,2,Conventional Steam Coal,ST,"Omnis Pleasants, LLC",IPP Non-CHP,12,1980,,,1981,,2030,2036,2051,684,639,650,39.366667,-81.29444,0
+3942,FirstEnergy Albright,WV,Preston,1,Conventional Steam Coal,ST,Monongahela Power Co,Electric Utility,12,1952,9,2012,1953,2013,,,,69,73,76,39.488611,-79.63694,0
+3942,FirstEnergy Albright,WV,Preston,2,Conventional Steam Coal,ST,Monongahela Power Co,Electric Utility,10,1952,9,2012,1953,2013,,,,69,73,76,39.488611,-79.63694,0
+3942,FirstEnergy Albright,WV,Preston,3,Conventional Steam Coal,ST,Monongahela Power Co,Electric Utility,10,1954,9,2012,1955,2013,,,,140.2,137,140,39.488611,-79.63694,0
+3935,John E Amos,WV,Putnam,1,Conventional Steam Coal,ST,Appalachian Power Co,Electric Utility,9,1971,,,1972,,2030,2030,2042,816.3,800,800,38.4731,-81.8233,0
+3935,John E Amos,WV,Putnam,2,Conventional Steam Coal,ST,Appalachian Power Co,Electric Utility,6,1972,,,1973,,2030,2030,2043,816.3,800,800,38.4731,-81.8233,0
+3935,John E Amos,WV,Putnam,3,Conventional Steam Coal,ST,Appalachian Power Co,Electric Utility,10,1973,,,1974,,2030,2030,2044,1300,1300,1299,38.4731,-81.8233,0
+56609,Dry Fork Station,WY,Campbell,1,Conventional Steam Coal,ST,Basin Electric Power Coop,Electric Utility,11,2011,,,2012,,2042,2067,2082,483.7,390,405,44.388889,-105.4608,1
+4150,Neil Simpson,WY,Campbell,5,Conventional Steam Coal,ST,"Black Hills Power, Inc.",Electric Utility,5,1959,3,2014,1960,2014,,,,21.7,14.6,18.6,44.2872,-105.3878,0
+7504,Neil Simpson II,WY,Campbell,2,Conventional Steam Coal,ST,"Black Hills Power, Inc.",Electric Utility,9,1995,,,1996,,2030,2051,2066,90,80,80,44.2856,-105.3833,0
+55479,Wygen 1,WY,Campbell,1,Conventional Steam Coal,ST,"Black Hills Power, Inc.",IPP Non-CHP,1,2003,,,2003,,2033,2058,2073,90,85,86,44.2858,-105.3833,0
+56319,Wygen 2,WY,Campbell,1,Conventional Steam Coal,ST,"Black Hills Power, Inc.",Electric Utility,1,2008,,,2008,,2038,2063,2078,95,90,91,44.2919,-105.3811,0
+56596,Wygen III,WY,Campbell,5,Conventional Steam Coal,ST,"Black Hills Power, Inc.",Electric Utility,4,2010,,,2010,,2040,2065,2080,116,100,103,44.2919,-105.3806,0
+6101,Wyodak,WY,Campbell,1,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,9,1978,12,2039,1979,2040,,,,402.3,332,335,44.290128,-105.3815,0
+4158,Dave Johnston,WY,Converse,1,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,2,1959,12,2027,1959,2028,,,,133.6,93,99,42.8378,-105.7769,0
+4158,Dave Johnston,WY,Converse,2,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,1,1961,12,2027,1961,2028,,,,133.6,102,106,42.8378,-105.7769,0
+4158,Dave Johnston,WY,Converse,3,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,12,1964,12,2027,1965,2028,,,,255,220,220,42.8378,-105.7769,0
+4158,Dave Johnston,WY,Converse,4,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,7,1972,12,2027,1973,2028,,,,400,330,330,42.8378,-105.7769,0
+4162,Naughton,WY,Lincoln,1,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,5,1963,12,2025,1964,2026,,,,192,156,156,41.7581,-110.5983,0
+4162,Naughton,WY,Lincoln,2,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,10,1968,12,2025,1969,2026,,,,256,201,201,41.7581,-110.5983,0
+6204,Laramie River Station,WY,Platte,1,Conventional Steam Coal,ST,Basin Electric Power Coop,Electric Utility,9,1981,,,1982,,2030,2037,2052,621,560,560,42.108889,-104.8825,1
+6204,Laramie River Station,WY,Platte,2,Conventional Steam Coal,ST,Basin Electric Power Coop,Electric Utility,7,1981,,,1982,,2030,2037,2052,621,570,570,42.108889,-104.8825,1
+6204,Laramie River Station,WY,Platte,3,Conventional Steam Coal,ST,Basin Electric Power Coop,Electric Utility,11,1982,,,1983,,2030,2038,2053,621,570,570,42.108889,-104.8825,1
+8066,Jim Bridger,WY,Sweetwater,1,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,11,1974,12,2037,1975,2038,,,,608.3,531,531,41.7378,-108.7875,0
+8066,Jim Bridger,WY,Sweetwater,2,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,12,1975,12,2037,1976,2038,,,,617,539,539,41.7378,-108.7875,0
+8066,Jim Bridger,WY,Sweetwater,3,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,9,1976,12,2037,1977,2038,,,,608.3,523,523,41.7378,-108.7875,0
+8066,Jim Bridger,WY,Sweetwater,4,Conventional Steam Coal,ST,PacifiCorp,Electric Utility,11,1979,12,2037,1980,2038,,,,608.3,526,526,41.7378,-108.7875,0
+4151,Osage (WY),WY,Weston,1,Conventional Steam Coal,ST,"Black Hills Power, Inc.",Electric Utility,1,1948,3,2014,1948,2014,,,,11.5,10.1,10.1,43.9703,-104.4106,0
+4151,Osage (WY),WY,Weston,2,Conventional Steam Coal,ST,"Black Hills Power, Inc.",Electric Utility,1,1950,3,2014,1950,2014,,,,11.5,10.1,10.1,43.9703,-104.4106,0
+4151,Osage (WY),WY,Weston,3,Conventional Steam Coal,ST,"Black Hills Power, Inc.",Electric Utility,1,1952,3,2014,1952,2014,,,,11.5,10.1,10.1,43.9703,-104.4106,0
+54304,Birchwood Power,VA,King George,1,Conventional Steam Coal,ST,Birchwood Power Partners LP,IPP Non-CHP,,,3,2021,,2021,,,,258.3,237.7,242.2,38.2667,-77.3147,0
+127,Oklaunion,TX,Wilbarger,1,Conventional Steam Coal,ST,Oklaunion Power Station,Electric Utility,,,9,2020,,2021,,,,720,650,650,34.0825,-99.1753,0
+1374,Elmer Smith,KY,Daviess,1,Conventional Steam Coal,ST,City of Owensboro - (KY),Electric Utility,,,6,2020,,2021,,,,163.2,137,142.3,37.7942,-87.0608,0
+1374,Elmer Smith,KY,Daviess,2,Conventional Steam Coal,ST,City of Owensboro - (KY),Electric Utility,,,6,2020,,2021,,,,282.1,262.8,265.5,37.7942,-87.0608,0
+1825,J B Sims,MI,Ottawa,3,Conventional Steam Coal,ST,City of Grand Haven - (MI),Electric Utility,,,6,2020,,2021,,,,80,69.1,69.1,43.0706,-86.235,0
+2840,Conesville,OH,Coshocton,4,Conventional Steam Coal,ST,AEP Generation Resources Inc,IPP Non-CHP,,,6,2020,,2021,,,,841.5,780,780,40.1842,-81.8811,0
+6082,Somerset Operating Co LLC,NY,Niagara,1,Conventional Steam Coal,ST,Somerset Operating Co LLC,IPP Non-CHP,,,3,2020,,2020,,,,655.1,676.4,684.4,43.358889,-78.60472,0
+6094,FirstEnergy Bruce Mansfield,PA,Beaver,3,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,11,2019,,2020,,,,913.7,830,830,40.6348,-80.4159,0
+2535,Cayuga Operating Company,NY,Tompkins,1,Conventional Steam Coal,ST,"Cayuga Operating Company, LLC",IPP Non-CHP,,,10,2019,,2020,,,,155.3,151,152,42.6028,-76.6336,0
+2535,Cayuga Operating Company,NY,Tompkins,2,Conventional Steam Coal,ST,"Cayuga Operating Company, LLC",IPP Non-CHP,,,10,2019,,2020,,,,167.2,139.6,77.6,42.6028,-76.6336,0
+6136,Gibbons Creek,TX,Grimes,1,Conventional Steam Coal,ST,Texas Municipal Power Agency,Electric Utility,,,10,2019,,2020,,,,453.5,470,470,30.619937,-96.08185,0
+10641,Cambria Cogen,PA,Cambria,GEN1,Conventional Steam Coal,ST,Cambria CoGen Co,IPP CHP,,,9,2019,,2020,,,,98,88,88,40.474167,-78.7014,0
+10377,James River Genco LLC,VA,Hopewell City,GEN1,Conventional Steam Coal,ST,City Point Energy Center,IPP CHP,,,6,2019,,2020,,,,57.4,46.3,46.3,37.2939,-77.2697,0
+10377,James River Genco LLC,VA,Hopewell City,GEN2,Conventional Steam Coal,ST,City Point Energy Center,IPP CHP,,,6,2019,,2020,,,,57.4,46.3,46.3,37.2939,-77.2697,0
+2840,Conesville,OH,Coshocton,5,Conventional Steam Coal,ST,AEP Generation Resources Inc,IPP Non-CHP,,,5,2019,,2020,,,,443.9,375,375,40.1842,-81.8811,0
+2840,Conesville,OH,Coshocton,6,Conventional Steam Coal,ST,AEP Generation Resources Inc,IPP Non-CHP,,,5,2019,,2020,,,,443.9,375,375,40.1842,-81.8811,0
+2378,B L England,NJ,Cape May,2,Conventional Steam Coal,ST,RC Cape May Holdings LLC,IPP Non-CHP,,,4,2019,,2019,,,,163.2,146,146,39.2908,-74.6364,0
+10384,Edgecombe Genco LLC,NC,Edgecombe,GEN1,Conventional Steam Coal,ST,Edgecombe Operating Services LLC,IPP CHP,,,4,2019,,2019,,,,57.4,57.8,57.8,36.037318,-77.75335,0
+10384,Edgecombe Genco LLC,NC,Edgecombe,GEN2,Conventional Steam Coal,ST,Edgecombe Operating Services LLC,IPP CHP,,,4,2019,,2019,,,,57.4,57.8,57.8,36.037318,-77.75335,0
+6094,FirstEnergy Bruce Mansfield,PA,Beaver,1,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,2,2019,,2019,,,,913.7,830,830,40.6348,-80.4159,0
+6094,FirstEnergy Bruce Mansfield,PA,Beaver,2,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,2,2019,,2019,,,,913.7,830,830,40.6348,-80.4159,0
+50039,Kline Township Cogen Facility,PA,Schuylkill,GEN1,Conventional Steam Coal,ST,Northeastern Power Co,IPP CHP,,,11,2018,,2019,,,,59,51,51,40.873399,-75.99349,0
+1552,"CP Crane Power, LLC",MD,Baltimore,1,Conventional Steam Coal,ST,"CP Crane Power, LLC",IPP Non-CHP,,,6,2018,,2019,,,,190.4,190,190,39.323604,-76.36512,0
+1552,"CP Crane Power, LLC",MD,Baltimore,2,Conventional Steam Coal,ST,"CP Crane Power, LLC",IPP Non-CHP,,,6,2018,,2019,,,,209.4,195,195,39.323604,-76.36512,0
+2850,J M Stuart,OH,Adams,2,Conventional Steam Coal,ST,Dayton Power & Light Co,Electric Utility,,,6,2018,,2019,,,,610.2,577,577,38.6361,-83.6939,0
+2850,J M Stuart,OH,Adams,3,Conventional Steam Coal,ST,Dayton Power & Light Co,Electric Utility,,,6,2018,,2019,,,,610.2,577,577,38.6361,-83.6939,0
+2850,J M Stuart,OH,Adams,4,Conventional Steam Coal,ST,Dayton Power & Light Co,Electric Utility,,,6,2018,,2019,,,,610.2,577,577,38.6361,-83.6939,0
+6031,Killen Station,OH,Adams,2,Conventional Steam Coal,ST,Dayton Power & Light Co,Electric Utility,,,6,2018,,2019,,,,660.6,600,600,38.6903,-83.4803,0
+10380,Elizabethtown Power LLC,NC,Bladen,GEN1,Conventional Steam Coal,ST,North Carolina Renewable Power,IPP CHP,,,1,2018,,2018,,,,34.7,32,32,34.647155,-78.64151,0
+2850,J M Stuart,OH,Adams,1,Conventional Steam Coal,ST,Dayton Power & Light Co,Electric Utility,,,10,2017,,2018,,,,610.2,577,577,38.6361,-83.6939,0
+1619,Brayton Point,MA,Bristol,1,Conventional Steam Coal,ST,Brayton Point Energy LLC,IPP Non-CHP,,,6,2017,,2018,,,,241,225.2,233.2,41.7103,-71.1931,0
+1619,Brayton Point,MA,Bristol,2,Conventional Steam Coal,ST,Brayton Point Energy LLC,IPP Non-CHP,,,6,2017,,2018,,,,241,237.8,236.9,41.7103,-71.1931,0
+1619,Brayton Point,MA,Bristol,3,Conventional Steam Coal,ST,Brayton Point Energy LLC,IPP Non-CHP,,,6,2017,,2018,,,,642.6,575,584.9,41.7103,-71.1931,0
+54035,Roanoke Valley Energy Facility I,NC,Halifax,GEN1,Conventional Steam Coal,ST,Westmoreland Partners,IPP CHP,,,2,2017,,2017,,,,182.3,165,167.2,36.4364,-77.6167,0
+54755,Roanoke Valley Energy Facility II,NC,Halifax,GEN2,Conventional Steam Coal,ST,Westmoreland Partners,IPP CHP,,,2,2017,,2017,,,,57.8,44,45.1,36.4364,-77.6167,0
+10672,Cedar Bay Generating Company LP,FL,Duval,GEN1,Conventional Steam Coal,ST,Cedar Bay Operating Services LLC,IPP CHP,,,12,2016,,2017,,,,291.6,250,250,30.4225,-81.6064,0
+4259,Endicott Station,MI,Hillsdale,1,Conventional Steam Coal,ST,Michigan South Central Power Agency,Electric Utility,,,5,2016,,2017,,,,55,55,55,42.0317,-84.755,0
+6225,Jasper 2,IN,Dubois,1,Conventional Steam Coal,ST,City of Jasper - (IN),Electric Utility,,,5,2016,,2017,,,,14.5,13.6,13.6,38.4004,-86.9146,0
+10071,Portsmouth Genco LLC,VA,Portsmouth City,GEN1,Conventional Steam Coal,ST,Portsmouth Operating Services LLC,IPP Non-CHP,,,5,2016,,2017,,,,57.4,57.5,57.5,36.8702,-76.3529,0
+10071,Portsmouth Genco LLC,VA,Portsmouth City,GEN2,Conventional Steam Coal,ST,Portsmouth Operating Services LLC,IPP Non-CHP,,,5,2016,,2017,,,,57.4,57.5,57.5,36.8702,-76.3529,0
+2549,C R Huntley Generating Station,NY,Erie,67,Conventional Steam Coal,ST,NRG Huntley Operations Inc,IPP Non-CHP,,,3,2016,,2016,,,,200,190,190,42.97,-78.93,0
+2549,C R Huntley Generating Station,NY,Erie,S68,Conventional Steam Coal,ST,NRG Huntley Operations Inc,IPP Non-CHP,,,3,2016,,2016,,,,200,190,190,42.97,-78.93,0
+1032,Logansport,IN,Cass,4,Conventional Steam Coal,ST,City of Logansport - (IN),Electric Utility,,,1,2016,,2016,,,,18,16.5,16.5,40.758858,-86.36029,0
+1032,Logansport,IN,Cass,5,Conventional Steam Coal,ST,City of Logansport - (IN),Electric Utility,,,1,2016,,2016,,,,25,22,22,40.758858,-86.36029,0
+1771,Escanaba,MI,Delta,1,Conventional Steam Coal,ST,Escanaba Operating Services LLC,Electric Utility,,,1,2016,,2016,,,,11.5,13,13,45.771667,-87.06392,0
+1771,Escanaba,MI,Delta,2,Conventional Steam Coal,ST,Escanaba Operating Services LLC,Electric Utility,,,1,2016,,2016,,,,11.5,13,13,45.771667,-87.06392,0
+2169,Chamois,MO,Osage,1,Conventional Steam Coal,ST,Central Electric Power Coop - (MO),Electric Utility,,,12,2015,,2016,,,,15,16,17,38.6839,-91.7558,0
+2169,Chamois,MO,Osage,2,Conventional Steam Coal,ST,Central Electric Power Coop - (MO),Electric Utility,,,12,2015,,2016,,,,44,47,50,38.6839,-91.7558,0
+2843,Picway,OH,Pickaway,5,Conventional Steam Coal,ST,AEP Generation Resources Inc,IPP Non-CHP,,,5,2015,,2016,,,,106.2,95,100,39.7933,-83.0097,0
+2872,Muskingum River,OH,Morgan,1,Conventional Steam Coal,ST,AEP Generation Resources Inc,IPP Non-CHP,,,5,2015,,2016,,,,219.6,190,205,39.5908,-81.6797,0
+2872,Muskingum River,OH,Morgan,2,Conventional Steam Coal,ST,AEP Generation Resources Inc,IPP Non-CHP,,,5,2015,,2016,,,,219.6,190,205,39.5908,-81.6797,0
+2872,Muskingum River,OH,Morgan,3,Conventional Steam Coal,ST,AEP Generation Resources Inc,IPP Non-CHP,,,5,2015,,2016,,,,237.5,205,215,39.5908,-81.6797,0
+2872,Muskingum River,OH,Morgan,4,Conventional Steam Coal,ST,AEP Generation Resources Inc,IPP Non-CHP,,,5,2015,,2016,,,,237.5,205,215,39.5908,-81.6797,0
+2872,Muskingum River,OH,Morgan,5,Conventional Steam Coal,ST,AEP Generation Resources Inc,IPP Non-CHP,,,5,2015,,2016,,,,615.2,585,585,39.5908,-81.6797,0
+3947,Kammer,WV,Marshall,1,Conventional Steam Coal,ST,AEP Generation Resources Inc,IPP Non-CHP,,,5,2015,,2016,,,,237.5,200,210,39.8461,-80.8186,0
+3947,Kammer,WV,Marshall,2,Conventional Steam Coal,ST,AEP Generation Resources Inc,IPP Non-CHP,,,5,2015,,2016,,,,237.5,200,210,39.8461,-80.8186,0
+3947,Kammer,WV,Marshall,3,Conventional Steam Coal,ST,AEP Generation Resources Inc,IPP Non-CHP,,,5,2015,,2016,,,,237.5,200,210,39.8461,-80.8186,0
+10676,AES Beaver Valley Partners Beaver Valley,PA,Beaver,GEN2,Conventional Steam Coal,ST,AES Beaver Valley,IPP CHP,,,5,2015,,2016,,,,35,32,31.5,40.657218,-80.35393,0
+10676,AES Beaver Valley Partners Beaver Valley,PA,Beaver,GEN3,Conventional Steam Coal,ST,AES Beaver Valley,IPP CHP,,,5,2015,,2016,,,,114,114,120,40.657218,-80.35393,0
+2835,FirstEnergy Ashtabula,OH,Ashtabula,5,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,4,2015,,2015,,,,256,244,244,41.9086,-80.7697,0
+2837,FirstEnergy Eastlake,OH,Lake,1,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,4,2015,,2015,,,,123,132,132,41.6711,-81.4425,0
+2837,FirstEnergy Eastlake,OH,Lake,2,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,4,2015,,2015,,,,123,132,132,41.6711,-81.4425,0
+2837,FirstEnergy Eastlake,OH,Lake,3,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,4,2015,,2015,,,,123,132,132,41.6711,-81.4425,0
+2838,FirstEnergy Lake Shore,OH,Cuyahoga,18,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,4,2015,,2015,,,,256,245,245,41.5356,-81.6419,0
+10769,Rio Bravo Poso,CA,Kern,UP8,Conventional Steam Coal,ST,Rio Bravo Poso,IPP CHP,,,11,2014,,2015,,,,38.2,33,33,35.547452,-119.0754,0
+10002,ACE Cogeneration Facility,CA,San Bernardino,GEN1,Conventional Steam Coal,ST,ACE Cogeneration Co,IPP CHP,,,10,2014,,2015,,,,108,101.2,101.5,35.765767,-117.3836,0
+10768,Rio Bravo Jasmin,CA,Kern,UP9,Conventional Steam Coal,ST,Rio Bravo Jasmin,IPP CHP,,,10,2014,,2015,,,,38.2,33,33,35.7415,-119.0512,0
+1606,Mount Tom,MA,Hampden,1,Conventional Steam Coal,ST,Pinetree Power- Tamworth LLC.,IPP Non-CHP,,,6,2014,,2015,,,,136,143.6,145.7,42.2806,-72.6055,0
+4127,Menasha,WI,WINNEBAGO,3,Conventional Steam Coal,ST,City of Menasha - (WI),IPP CHP,,,6,2014,,2015,,,,7.5,7.5,7.5,44.20002,-88.45817,0
+4127,Menasha,WI,WINNEBAGO,4,Conventional Steam Coal,ST,City of Menasha - (WI),IPP CHP,,,6,2014,,2015,,,,13.6,12.5,12.5,44.20002,-88.45817,0
+4127,Menasha,WI,WINNEBAGO,5,Conventional Steam Coal,ST,City of Menasha - (WI),IPP CHP,,,6,2014,,2015,,,,6.9,6.9,6.9,44.20002,-88.45817,0
+2378,B L England,NJ,Cape May,1,Conventional Steam Coal,ST,RC Cape May Holdings LLC,IPP Non-CHP,,,5,2014,,2015,,,,136,113,113,39.2908,-74.6364,0
+58923,Missouri S&T - Power Plant,MO,Phelps,500K,Conventional Steam Coal,ST,Missouri University of Science and Technology,IPP Non-CHP,,,5,2014,,2015,,,,0.5,0.2,0.5,37.953889,-91.77444,0
+54144,Piney Creek Project,PA,CLARION,GEN1,Conventional Steam Coal,ST,Colmac Clarion Inc,IPP Non-CHP,,,1,2014,,2014,,,,36.2,32.5,32.5,41.1764,-79.4414,0
+3179,Hatfields Ferry Power Station,PA,Greene,1,Conventional Steam Coal,ST,Allegheny Energy Supply Co LLC,IPP Non-CHP,,,10,2013,,2014,,,,576,530,570,39.855556,-79.9275,0
+3179,Hatfields Ferry Power Station,PA,Greene,2,Conventional Steam Coal,ST,Allegheny Energy Supply Co LLC,IPP Non-CHP,,,10,2013,,2014,,,,576,530,570,39.855556,-79.9275,0
+3179,Hatfields Ferry Power Station,PA,Greene,3,Conventional Steam Coal,ST,Allegheny Energy Supply Co LLC,IPP Non-CHP,,,10,2013,,2014,,,,576,530,570,39.855556,-79.9275,0
+3181,FirstEnergy Mitchell Power Station,PA,Washington,3,Conventional Steam Coal,ST,Allegheny Energy Supply Co LLC,IPP Non-CHP,,,10,2013,,2014,,,,299.2,278,288,40.221111,-79.96833,0
+50651,Syracuse Energy,NY,Onondaga,GEN1,Conventional Steam Coal,ST,Syracuse Energy Corp,IPP CHP,,,9,2013,,2014,,,,90.6,62.8,61.9,43.0653,-76.2086,0
+50651,Syracuse Energy,NY,Onondaga,GEN2,Conventional Steam Coal,ST,Syracuse Energy Corp,IPP CHP,,,9,2013,,2014,,,,10.5,11,11,43.0653,-76.2086,0
+2840,Conesville,OH,Coshocton,3,Conventional Steam Coal,ST,AEP Generation Resources Inc,IPP Non-CHP,,,12,2012,,2013,,,,161.5,165,165,40.1842,-81.8811,0
+10675,AES Thames,CT,New London,GEN1,Conventional Steam Coal,ST,AES Thames LLC,IPP CHP,,,12,2012,,2013,,,,213.9,181,181,41.428781,-72.10108,0
+3788,Potomac River,VA,Alexandria,1,Conventional Steam Coal,ST,NRG Potomac River LLC,IPP Non-CHP,,,10,2012,,2013,,,,92,88,88,38.8203,-77.0411,0
+3788,Potomac River,VA,Alexandria,2,Conventional Steam Coal,ST,NRG Potomac River LLC,IPP Non-CHP,,,10,2012,,2013,,,,92,88,88,38.8203,-77.0411,0
+3788,Potomac River,VA,Alexandria,3,Conventional Steam Coal,ST,NRG Potomac River LLC,IPP Non-CHP,,,10,2012,,2013,,,,110,102,102,38.8203,-77.0411,0
+3788,Potomac River,VA,Alexandria,4,Conventional Steam Coal,ST,NRG Potomac River LLC,IPP Non-CHP,,,10,2012,,2013,,,,110,102,102,38.8203,-77.0411,0
+3788,Potomac River,VA,Alexandria,5,Conventional Steam Coal,ST,NRG Potomac River LLC,IPP Non-CHP,,,10,2012,,2013,,,,110,102,102,38.8203,-77.0411,0
+1570,FirstEnergy R Paul Smith Power Station,MD,Washington,11,Conventional Steam Coal,ST,Allegheny Energy Supply Co LLC,IPP Non-CHP,,,9,2012,,2013,,,,75,87,88,39.595,-77.82694,0
+1570,FirstEnergy R Paul Smith Power Station,MD,Washington,9,Conventional Steam Coal,ST,Allegheny Energy Supply Co LLC,IPP Non-CHP,,,9,2012,,2013,,,,34.5,28,28,39.595,-77.82694,0
+2837,FirstEnergy Eastlake,OH,Lake,4,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,9,2012,,2013,,,,208,240,240,41.6711,-81.4425,0
+2837,FirstEnergy Eastlake,OH,Lake,5,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,9,2012,,2013,,,,680,597,597,41.6711,-81.4425,0
+2864,FirstEnergy R E Burger,OH,Belmont,3,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,9,2012,,2013,,,,103.4,94,94,39.91,-80.76083,0
+3178,FirstEnergy Armstrong Power Station,PA,Armstrong,1,Conventional Steam Coal,ST,Allegheny Energy Supply Co LLC,IPP Non-CHP,,,9,2012,,2013,,,,163.2,172,180,40.929167,-79.46556,0
+3178,FirstEnergy Armstrong Power Station,PA,Armstrong,2,Conventional Steam Coal,ST,Allegheny Energy Supply Co LLC,IPP Non-CHP,,,9,2012,,2013,,,,163.2,172,176,40.929167,-79.46556,0
+7652,US DOE Savannah River Site (D Area),SC,Aiken,HP-1,Conventional Steam Coal,ST,Savannah River Nuclear Solutions LLC,IPP CHP,,,4,2012,,2012,,,,9.4,9.4,9.4,33.2906,-81.6831,0
+7652,US DOE Savannah River Site (D Area),SC,Aiken,HP-2,Conventional Steam Coal,ST,Savannah River Nuclear Solutions LLC,IPP CHP,,,4,2012,,2012,,,,9.4,9.4,9.4,33.2906,-81.6831,0
+7652,US DOE Savannah River Site (D Area),SC,Aiken,HP-3,Conventional Steam Coal,ST,Savannah River Nuclear Solutions LLC,IPP CHP,,,4,2012,,2012,,,,9.4,9.4,9.4,33.2906,-81.6831,0
+7652,US DOE Savannah River Site (D Area),SC,Aiken,LP-1,Conventional Steam Coal,ST,Savannah River Nuclear Solutions LLC,IPP CHP,,,4,2012,,2012,,,,12.5,12.5,12.5,33.2906,-81.6831,0
+7652,US DOE Savannah River Site (D Area),SC,Aiken,LP-2,Conventional Steam Coal,ST,Savannah River Nuclear Solutions LLC,IPP CHP,,,4,2012,,2012,,,,12.5,12.5,12.5,33.2906,-81.6831,0
+7652,US DOE Savannah River Site (D Area),SC,Aiken,LP-3,Conventional Steam Coal,ST,Savannah River Nuclear Solutions LLC,IPP CHP,,,4,2012,,2012,,,,12.5,12.5,12.5,33.2906,-81.6831,0
+7652,US DOE Savannah River Site (D Area),SC,Aiken,LP-4,Conventional Steam Coal,ST,Savannah River Nuclear Solutions LLC,IPP CHP,,,4,2012,,2012,,,,12.5,12.5,12.5,33.2906,-81.6831,0
+981,State Line Energy,IN,Lake,3,Conventional Steam Coal,ST,State Line Energy LLC,IPP Non-CHP,,,3,2012,,2012,,,,124.9,124.9,124.9,41.7072,-87.5217,0
+981,State Line Energy,IN,Lake,3A,Conventional Steam Coal,ST,State Line Energy LLC,IPP Non-CHP,,,3,2012,,2012,,,,100,,,41.7072,-87.5217,0
+981,State Line Energy,IN,Lake,4,Conventional Steam Coal,ST,State Line Energy LLC,IPP Non-CHP,,,3,2012,,2012,,,,209.4,209.4,209.4,41.7072,-87.5217,0
+981,State Line Energy,IN,Lake,4A,Conventional Steam Coal,ST,State Line Energy LLC,IPP Non-CHP,,,3,2012,,2012,,,,179.5,,,41.7072,-87.5217,0
+10640,Stockton Cogen,CA,San Joaquin,GEN1,Conventional Steam Coal,ST,Air Products Energy Enterprises LP,IPP CHP,,,3,2012,,2012,,,,60,53.7,53.7,37.9119,-121.2611,0
+863,Hutsonville,IL,Crawford,3,Conventional Steam Coal,ST,Ameren Energy Medina Valley,IPP Non-CHP,,,12,2011,,2012,,,,75,75,76,39.1333,-87.6597,0
+863,Hutsonville,IL,Crawford,4,Conventional Steam Coal,ST,Ameren Energy Medina Valley,IPP Non-CHP,,,12,2011,,2012,,,,75,76,78,39.1333,-87.6597,0
+864,Meredosia,IL,Morgan,1,Conventional Steam Coal,ST,Ameren Energy Medina Valley,IPP Non-CHP,,,12,2011,,2012,,,,57.5,52,52,39.82333,-90.56722,0
+864,Meredosia,IL,Morgan,2,Conventional Steam Coal,ST,Ameren Energy Medina Valley,IPP Non-CHP,,,12,2011,,2012,,,,57.5,53,53,39.82333,-90.56722,0
+864,Meredosia,IL,Morgan,3,Conventional Steam Coal,ST,Ameren Energy Medina Valley,IPP Non-CHP,,,12,2011,,2012,,,,239.3,203,215,39.82333,-90.56722,0
+2526,GMMM Westover,NY,Broome,8,Conventional Steam Coal,ST,"GMMM Holdings 1, LLC",IPP CHP,,,3,2011,,2011,,,,75,84,84,42.1117,-75.9747,0
+1613,Somerset Station,MA,Bristol,6,Conventional Steam Coal,ST,Somerset Power LLC,IPP Non-CHP,,,1,2011,,2011,,,,100,109.1,108.5,41.737864,-71.14546,0
+2864,FirstEnergy R E Burger,OH,Belmont,4,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,12,2010,,2011,,,,156.2,156,156,39.91,-80.76083,0
+2864,FirstEnergy R E Burger,OH,Belmont,5,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,12,2010,,2011,,,,156.2,156,156,39.91,-80.76083,0
+2468,Raton,NM,Colfax,5,Conventional Steam Coal,ST,Raton Public Service Company,Electric Utility,,,1,2010,,2010,,,,7.5,6.9,6.9,36.892457,-104.4414,0
+2526,GMMM Westover,NY,Broome,7,Conventional Steam Coal,ST,"GMMM Holdings 1, LLC",IPP CHP,,,12,2009,,2010,,,,43.8,43.7,43.7,42.1117,-75.9747,0
+10111,DTE Pontiac North LLC,MI,Oakland,GEN1,Conventional Steam Coal,ST,DTE Pontiac North LLC,IPP CHP,,,5,2009,,2010,,,,28.9,19,26.9,42.660324,-83.29831,0
+1372,Henderson I,KY,Henderson,5,Conventional Steam Coal,ST,Henderson City Utility Comm,Electric Utility,,,9,2008,,2009,,,,11.5,10,10,37.8425,-87.59111,0
+1372,Henderson I,KY,Henderson,6,Conventional Steam Coal,ST,Henderson City Utility Comm,Electric Utility,,,9,2008,,2009,,,,32.3,26,26,37.8425,-87.59111,0
+2529,AES Hickling LLC,NY,Steuben,1,Conventional Steam Coal,ST,AES Hickling LLC,IPP Non-CHP,,,5,2008,,2009,,,,30,30,30,42.123056,-76.98306,0
+2529,AES Hickling LLC,NY,Steuben,2,Conventional Steam Coal,ST,AES Hickling LLC,IPP Non-CHP,,,5,2008,,2009,,,,40,40,40,42.123056,-76.98306,0
+2629,Lovett,NY,Rockland,5,Conventional Steam Coal,ST,"GenOn New York, LLC",IPP Non-CHP,,,4,2008,,2008,,,,200.6,191,185.5,41.257778,-73.97972,0
+2531,AES Jennison LLC,NY,Chenango,1,Conventional Steam Coal,ST,AES Jennison LLC,IPP Non-CHP,,,1,2008,,2008,,,,30,30,30,42.26,-75.48694,0
+2531,AES Jennison LLC,NY,Chenango,2,Conventional Steam Coal,ST,AES Jennison LLC,IPP Non-CHP,,,1,2008,,2008,,,,30,30,30,42.26,-75.48694,0
+55858,Desert Power LP,UT,Tooele,GEN7,Conventional Steam Coal,ST,Desert Power LP,IPP CHP,,,12,2007,,2008,,,,43,40,40.4,40.918333,-112.7333,0
+2549,C R Huntley Generating Station,NY,Erie,65,Conventional Steam Coal,ST,NRG Huntley Operations Inc,IPP Non-CHP,,,6,2007,,2008,,,,100,100,100,42.97,-78.93,0
+2549,C R Huntley Generating Station,NY,Erie,66,Conventional Steam Coal,ST,NRG Huntley Operations Inc,IPP Non-CHP,,,6,2007,,2008,,,,100,100,100,42.97,-78.93,0
+2629,Lovett,NY,Rockland,4,Conventional Steam Coal,ST,"GenOn New York, LLC",IPP Non-CHP,,,5,2007,,2008,,,,179.5,172,165.3,41.257778,-73.97972,0
+2549,C R Huntley Generating Station,NY,Erie,63,Conventional Steam Coal,ST,NRG Huntley Operations Inc,IPP Non-CHP,,,4,2006,,2006,,,,80,80,80,42.97,-78.93,0
+2549,C R Huntley Generating Station,NY,Erie,64,Conventional Steam Coal,ST,NRG Huntley Operations Inc,IPP Non-CHP,,,4,2006,,2006,,,,100,100,100,42.97,-78.93,0
+2840,Conesville,OH,Coshocton,1,Conventional Steam Coal,ST,AEP Generation Resources Inc,IPP Non-CHP,,,12,2005,,2006,,,,148,115,125,40.1842,-81.8811,0
+2840,Conesville,OH,Coshocton,2,Conventional Steam Coal,ST,AEP Generation Resources Inc,IPP Non-CHP,,,12,2005,,2006,,,,136,115,125,40.1842,-81.8811,0
+10401,Pepeekeo Power Plant,HI,Hawaii,GEN1,Conventional Steam Coal,ST,Hilo Coast Processing Co,IPP Non-CHP,,,12,2004,,2005,,,,23.8,22,22,19.845556,-155.0875,0
+50407,Mobile Energy Services LLC,AL,Mobile,GEN3,Conventional Steam Coal,ST,DTE Energy Services,IPP CHP,,,4,2004,,2004,,,,12.5,11.6,11.8,30.736487,-88.05164,0
+2867,FirstEnergy Toronto,OH,Jefferson,5,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,12,2003,,2004,,,,35,42,42,40.4825,-80.60444,0
+2867,FirstEnergy Toronto,OH,Jefferson,6,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,12,2003,,2004,,,,69,65,65,40.4825,-80.60444,0
+2867,FirstEnergy Toronto,OH,Jefferson,7,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,12,2003,,2004,,,,69,65,65,40.4825,-80.60444,0
+10626,Kannapolis Energy Partners,NC,Cabarrus,GEN2,Conventional Steam Coal,ST,Kannapolis Energy Partners LLC,IPP CHP,,,7,2003,,2004,,,,7.5,7.5,7.5,35.5,-80.61667,0
+10626,Kannapolis Energy Partners,NC,Cabarrus,GEN3,Conventional Steam Coal,ST,Kannapolis Energy Partners LLC,IPP CHP,,,7,2003,,2004,,,,15,9,15,35.5,-80.61667,0
+1859,Bayside,MI,Grand Traverse,1,Conventional Steam Coal,ST,City of Traverse City - (MI),Electric Utility,,,12,2002,,2003,,,,2.5,3.1,3.1,44.765833,-85.625,0
+1859,Bayside,MI,Grand Traverse,3,Conventional Steam Coal,ST,City of Traverse City - (MI),Electric Utility,,,12,2002,,2003,,,,7.5,9.5,9.5,44.765833,-85.625,0
+1859,Bayside,MI,Grand Traverse,4,Conventional Steam Coal,ST,City of Traverse City - (MI),Electric Utility,,,12,2002,,2003,,,,14,13.7,13.7,44.765833,-85.625,0
+2835,FirstEnergy Ashtabula,OH,Ashtabula,6,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,12,2002,,2003,,,,46,44,44,41.9086,-80.7697,0
+2835,FirstEnergy Ashtabula,OH,Ashtabula,7,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,12,2002,,2003,,,,46,44,44,41.9086,-80.7697,0
+2835,FirstEnergy Ashtabula,OH,Ashtabula,8,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,12,2002,,2003,,,,46,44,44,41.9086,-80.7697,0
+2835,FirstEnergy Ashtabula,OH,Ashtabula,9,Conventional Steam Coal,ST,FirstEnergy Generation Corp,IPP Non-CHP,,,12,2002,,2003,,,,46,44,44,41.9086,-80.7697,0

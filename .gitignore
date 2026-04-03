@@ -1,0 +1,55 @@
+log.txt
+gens_user_defined_out.csv
+gen_database_updated_test.csv
+*.gdx
+*.lst
+gens_fixme.csv
+ATB/inputs/
+/NEMS_database_processing/Outputs/
+/AEO_Updates/outputs/
+/AEO_Updates/output/AEO_HIGHMACRO_2021_electricity_consumption.csv
+/AEO_Updates/output/AEO_HIGHOGS_2021_ng_prices.csv
+/AEO_Updates/output/AEO_LOWMACRO_2021_electricity_consumption.csv
+/AEO_Updates/output/AEO_REF2021_2021_electricity_consumption.csv
+/AEO_Updates/output/AEO_REF2021_2021_ng_prices.csv
+/ATB/figures/
+
+# pyc files
+*.pyc
+*__pycache__
+
+# jupyter notebook checkpoints
+*.ipynb_checkpoints*/
+
+# lst and g00 files
+*.lst
+*.g00
+
+# ds_store files
+*.DS_Store
+
+# R stuff
+*.Rhistory
+*.RData
+
+# Julia stuff
+Manifest.toml
+
+# IDE stuff
+*.vscode
+
+# GAMS project files
+*.gpr
+
+# IDE files
+*.vscode
+
+# NREL HPC files
+slurm*.out
+
+# local downloaded files
+.cache
+
+# plots
+**/plots
+zones/*/*.gpkg

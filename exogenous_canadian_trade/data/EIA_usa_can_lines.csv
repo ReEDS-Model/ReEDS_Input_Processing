@@ -1,0 +1,32 @@
+Origin,Destination,Company,LineName,CanadianSite,AmericanSite,County,voltage,num_lines,line_ID
+British Columbia,Washington,British Columbia Hydro and Power Authority,Ingledow-Blaine (5L51) IPL_500,Douglas,Blaine,Whatcom,500.0,2,Douglas-Blaine_500
+Ontario,Michigan,Hydro One Networks Inc.,Keith-Waterman J5D IPL_230,Sandwich,Detroit,Wayne,230.0,1,Sandwich-Detroit_230
+Ontario,New York,Hydro One Networks Inc.,Sir Adam Beck-Niagara PA3O1/PA302 IPL/ EC-17_345,Queenston,"Niagara, Devils Hole, Lewiston",Niagara,345.0,2,"Queenston-Niagara, Devils Hole, Lewiston_345"
+Ontario,New York,Hydro One Networks Inc.,Sir Adam Beck-Niagara PA3O1/PA302 IPL/ EC-17_230,Queenston,"Niagara, Devils Hole, Lewiston",Niagara,230.0,1,"Queenston-Niagara, Devils Hole, Lewiston_230"
+Ontario,New York,Hydro One Networks Inc.,Sir Adam Beck-Niagara PA3O1/PA302 IPL/ EC-17_115,Queenston,"Niagara, Devils Hole, Lewiston",Niagara,115.0,1,"Queenston-Niagara, Devils Hole, Lewiston_115"
+Ontario,New York,Hydro One Networks Inc.,Sir Adam Beck-Niagara PA3O1/PA302 IPL/ EC-17_69,Queenston,"Niagara, Devils Hole, Lewiston",Niagara,69.0,2,"Queenston-Niagara, Devils Hole, Lewiston_69"
+Ontario,New York,Canadian Niagara Power Inc.,Rainbow Bridge IPL_12,Niagara Falls,Rainbow Bridge,Niagara,12.0,1,Niagara Falls-Rainbow Bridge_12
+Ontario,New York,Canadian Niagara Power Inc.,Peace Bridge IPL_115,Old Fort Erie,Buffalo (Peace Bridge),Niagara,115.0,1,Old Fort Erie-Buffalo (Peace Bridge)_115
+Ontario,New York,Hydro One Networks Inc.,Cornwall-Massena L33P/L34P IPL_230,Cornwall Island,"Massena, Long Sault",Saint Lawrence,230.0,2,"Cornwall Island-Massena, Long Sault_230"
+Quebec,New York,Quebec Hydro - Hydro-Quebec,Chateauguay-Massena IPL_765,Dundee,Massena,Saint Lawrence,765.0,1,Dundee-Massena_765
+Quebec,Vermont,Quebec Hydro - Hydro-Quebec,Bedford-Vermont IPL_120,Saint-Armand,Highgate (Franklin),Franklin,120.0,1,Saint-Armand-Highgate (Franklin)_120
+Quebec,Vermont,Quebec Hydro - Hydro-Quebec,Derby Line IPL_120,Stanstead,Derby,Orleans,120.0,1,Stanstead-Derby_120
+Quebec,Vermont,Quebec Hydro - Hydro-Quebec,Des Cantons IPL_450,Dixville,Norton,Essex,450.0,1,Dixville-Norton_450
+New Brunswick,Maine,New Brunswick Power Transmission Corporation,Edmundston-Madawaska IPL_138,Edmundston,Twin River Paper,Aroostook,138.0,1,Edmundston-Twin River Paper_138
+New Brunswick,Maine,New Brunswick Power Transmission Corporation,Beechwood-Flo‘S Inn IPL_138,Andover,Madawaska/Aroostook,Aroostook,138.0,1,Andover-Madawaska/Aroostook_138
+New Brunswick,Maine,Algonquin Tinker Gen Co.,Circuit 6901 Tinker Plant_69,Turner Settlement,Fort Fairfield,Aroostook,69.0,1,Turner Settlement-Fort Fairfield_69
+New Brunswick,Maine,Algonquin Tinker Gen Co.,Circuit 6904 Tinker Plant_69,Tinker,Limestone,Aroostook,69.0,1,Tinker-Limestone_69
+New Brunswick,Maine,New Brunswick Power Transmission Corporation,Keswick-Orrington IPL_345,Fosterville,Houlton,Aroostook,345.0,1,Fosterville-Houlton_345
+New Brunswick,Maine,New Brunswick Power Transmission Corporation,Saint James-Baileyville IPL_345,Saint James,Baileyville,Washington,345.0,1,Saint James-Baileyville_345
+New Brunswick,Maine,New Brunswick Power Transmission Corporation,Milltown Calais IPL_69,St. Stephen,Calais,Aroostook,69.0,1,St. Stephen-Calais_69
+British Columbia,Washington,Teck Metals Ltd.,Waneta IPL_230,Nelway,Nelway,Pend Oreille,230.0,2,Nelway-Nelway_230
+Alberta,Montana,Montana Alberta Tie,Coutts-Cutbank IPL_230,Coutts,Cutbank,Glacier,230.0,1,Coutts-Cutbank_230
+Saskatchewan,North Dakota,Saskatchewan Power Corporation,Boundary Dam-Tioga IPL_230,Estevan,Tioga,Divide,230.0,1,Estevan-Tioga_230
+Manitoba,North Dakota,Manitoba Hydro-Electric Board - Régie de l'hydro-électricité du Manitoba,Smith Hill-Rugby IPL_230,Smith Hill,Rugby,Rolette,230.0,1,Smith Hill-Rugby_230
+Manitoba,North Dakota,Manitoba Hydro-Electric Board - Régie de l'hydro-électricité du Manitoba,Letellier-Prairie IPL_230,West Lynne,Red River,Rolette,230.0,1,West Lynne-Red River_230
+Manitoba,Minnesota,Manitoba Hydro-Electric Board - Régie de l'hydro-électricité du Manitoba,Dorsey-Chisago County IPL_500,Middlebro,Roseau County,Roseau,500.0,1,Middlebro-Roseau County_500
+Manitoba,Minnesota,Manitoba Hydro-Electric Board - Régie de l'hydro-électricité du Manitoba,Richer-Shannon IPL_230,Middlebro,Roseau County,Roseau,230.0,1,Middlebro-Roseau County_230
+Ontario,Minnesota,Hydro One Networks Inc.,Fort Frances IPL_115,Fort Frances,International Falls,Koochiching,115.0,2,Fort Frances-International Falls_115
+Ontario,Michigan,Hydro One Networks Inc.,Sarnia Scott-Bunce Creek B3N IPL_230,FroomField,Marysville,Saint Clair,230.0,1,FroomField-Marysville_230
+Ontario,Michigan,Hydro One Networks Inc.,Lambton-St. Clair L51D IPL_235,Courtright,St. Claire,Saint Clair,235.0,1,Courtright-St. Claire_235
+Ontario,Michigan,Hydro One Networks Inc.,Lambton-St. Clair L4D IPL_345,Courtright,St. Claire,Saint Clair,345.0,1,Courtright-St. Claire_345
