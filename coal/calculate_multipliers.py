@@ -21,6 +21,7 @@ AEO_ver = 2025                                      # Only for 'cost_multiplier'
 
 dir = os.getcwd()
 savepath = os.path.join(dir,"outputs")
+os.makedirs(savepath, exist_ok=True)
 
 # Read county map:
 county_data = reeds.spatial.get_map('county', source='tiger')
