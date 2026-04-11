@@ -10,7 +10,7 @@ FL,FL,FRCC,FRCC,SERC_F,eastern,Seminole_Electric_Coop_Inc
 GA,GA,SERTP,SERTP,SERC_SE,eastern,Southern_Co_Services_Inc
 IA,IA,MISO,MISO_North,MISO,eastern,MISO
 ID,ID,NorthernGrid,NorthernGrid_East,WECC_NW,western,Idaho_Power_Co
-IL,IL,PJM,PJM_West,PJM,eastern,PJM
+IL,IL,MISO,MISO_Central,MISO,eastern,MISO
 IN,IN,MISO,MISO_Central,MISO,eastern,MISO
 KS,KS,SPP,SPP_South,SPP,eastern,SPP
 KY,KY,PJM,PJM_East,PJM,eastern,PJM
