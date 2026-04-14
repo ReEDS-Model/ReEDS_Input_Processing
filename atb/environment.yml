@@ -1,0 +1,27 @@
+name: atb-processing
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - click=8.1.6
+  - et_xmlfile>=1.1.0
+  - exceptiongroup=1.1.2
+  - iniconfig=2.0.0
+  - lxml=4.9.3
+  - numpy=1.26.4
+  - openpyxl=3.1.2
+  - packaging=23.1
+  - pandas=2.2.2
+  - pluggy=1.2.0
+  - pytest=7.4.0
+  - python-dateutil=2.9.0.post0
+  - pytz
+  - six=1.16.0
+  - tomli=2.0.1
+  - tzdata
+  - xlwings=0.31.3
+  - pyyaml
+  - pip
+  - pip:
+      - nrel-pysam==5.1.0

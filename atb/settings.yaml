@@ -1,0 +1,443 @@
+# Settings for processing ATB files
+
+## User settings ##
+
+# ATB year to process
+atbyear: 2024
+# specify ATB input source: 'file' or 'url'
+  # 'file', uses a local copy of the filename below located in the input_data folder;
+  # 'url', fetches the ATBe file published on OEDI
+atb_source: url
+# name of ATB flat file use for processing
+filename: "atb_2025_flat_file_20250916.csv"
+url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2024/v3.0.0/ATBe.csv
+# path to ReEDS-2.0 repo for saving results and reading previous year files
+reedspath: /Users/ssharma2/Documents/GitHub/ReEDS-2.0_B
+# if True copies updated ATB files to correct locations in repo specified by reedspath
+copy_to_reeds: True
+# dollar year that ATB results are provided in
+dollaryear: 2022
+# earliest possible start date for ReEDS (used to backfill data)
+reeds_start_year: 2010
+# paired entries mapping ATB parameter names into the names used in ReEDS
+param_names:
+  OCC: capcost
+  Fixed O&M: fom
+  Variable O&M: vom
+  CF: cf_improvement
+  Heat Rate: heatrate
+  Round-Trip Efficiency: rte
+# units for ATB parameters; these are carried over to ReEDS
+units:
+  capcost: $/kW
+  fom: $/kW/yr
+  vom: $/MWh
+  heatrate: MMBtu/MWh
+# specifies any columns related to cost (used to determine columns to inflate from historic data)
+cost_cols:
+  - capcost
+  - fom
+  - vom
+# decimals in output files
+decimals: 6
+# the ATB technology used as the base tech for computing differences in the weighted average cost of capital
+wacc_base_tech: "NaturalGas_FE"
+
+## Technology format ##
+
+## see comments below for details on entries
+## note the indent when adding new techs
+
+techs:
+  # name of the technology in ReEDS; used in the filename and to rename the tech column unless a mapping for 'DisplayName' is present
+  upv:
+    # technology group in the ATB data that corresponds to this ReEDS tech
+    Technology: UtilityPV
+    # technology sub-class in the ATB data that corresponds to this ReEDS tech; can also be multiple paired entries
+    DisplayName: Utility PV - Class 4
+    # columns in the ATB file to rename; each pairing should be "ATB col name: ReEDS col name"
+    subset_rows:
+      Case: Market
+      CRPYears: 30
+    renamecols:
+      variable: t
+    # columns to use as index when pivoting the data
+    indexcols:
+      - Scenario
+      - t
+    # list of columns (in order) to output in the final data for ReEDS
+    cols:
+      - t
+      - capcost
+      - fom
+      - vom
+      - cf_improvement
+    # option to normalize capacity factor data to a reference point
+    # specify year (t) and scenario for normalization
+    cfbase:
+      t: 2035
+      Scenario: Moderate
+    # name of technology group used in ReEDS for financial parameters
+    financialname: PV
+    # any custom functions used to process the data
+    functions:
+      - normalize_cf
+  
+  wind-ons:
+    Technology: LandbasedWind
+    DisplayName: Land-Based Wind - Class 4 - Technology 1
+    reeds_name: ons-wind
+    subset_rows:
+      Case: Market
+      CRPYears: 30
+    renamecols:
+      variable: t
+      "Overnight Cap Cost $/kW": capcost
+      "Fixed O&M $/(kW-yr)": fom
+      "Var O&M $/MWh": vom
+      "Turbine": turbine
+      "Year": t
+      "CF_mult": cf_improvement
+    # adds a column with data to the ReEDS output; paired entry with "col name: value"
+    addcols:
+      turbine: 115hh_170rd
+    indexcols:
+      - Scenario
+      - t
+      - turbine
+    cols:
+      - turbine
+      - t
+      - capcost
+      - fom
+      - vom
+      - cf_improvement
+    cfbase:
+      t: 2035
+      Scenario: Moderate
+    financialname: ONSWIND
+    functions:
+      - normalize_cf
+
+  wind-ofs:
+    Technology: OffShoreWind
+    DisplayName:
+      Offshore Wind - Class 4: fixed
+      Offshore Wind - Class 11: floating
+    reeds_name: ofs-wind
+    subset_rows:
+      Case: Market
+      CRPYears: 30 
+    addcols:
+      rsc_mult: 1
+    renamecols:
+      DisplayName: turbine
+      variable: t
+      "Overnight Cap Cost $/kW": capcost
+      "Fixed O&M $/(kW-yr)": fom
+      "Var O&M $/MWh": vom
+      "Turbine": turbine
+      "Year": t
+      "CF_mult": cf_improvement
+    indexcols:
+      - Scenario
+      - t
+      - turbine
+      - rsc_mult
+    cols:
+      - turbine
+      - t
+      - capcost
+      - fom
+      - vom
+      - cf_improvement
+      - rsc_mult
+    cfbase:
+      t: 2035
+      Scenario: Moderate
+      # preserves additional columns when normalizing capacity factors
+      keepcols:
+        - turbine
+    financialname: OFSWIND
+    functions:
+      - normalize_cf
+
+  battery:
+    Technology: Utility-Scale Battery Storage
+    DisplayName:
+      Utility-Scale Battery Storage - 2Hr: battery_li
+      # note: 2-hour battery is a placeholder for calculating the power and energy costs
+      # see the 'format_continuous_battery' function
+    subset_rows:
+      Case: Market
+      CRPYears: 30
+    renamecols:
+      DisplayName: i
+      variable: t
+    indexcols:
+      - Scenario
+      - t
+      - i
+    cols:
+      - i
+      - t
+      - capcost
+      - capcost_energy
+      - fom
+      - fom_energy
+      - vom
+      - rte
+    financialname: BATTERY
+    functions:
+      - backfill_data
+
+  csp:
+    Technology: CSP
+    DisplayName:
+      # mapping to csp2 since that corresponds to ATB storage + solar multiple assumption
+      # 'add_csp_techs' function below expands to add other csp techs (see also 'csp_cost_ratios.csv')
+      CSP - Class 2: csp2
+    subset_rows:
+      Case: Market
+      CRPYears: 30 
+    renamecols:
+      variable: t
+      DisplayName: type
+    indexcols:
+      - Scenario
+      - t
+      - type
+    cols:
+      - type 
+      - t
+      - capcost
+      - fom
+      - vom
+    financialname: CSP
+    functions:
+      - add_csp_techs
+      - backfill_data
+
+  coal:
+    Technology: Coal_FE
+    DisplayName:
+      Coal-new: Coal-new
+      Coal-IGCC: Coal-IGCC
+    subset_rows:
+      Case: Market
+      CRPYears: 30
+      Scenario: Moderate
+    renamecols:
+      DisplayName: i
+      variable: t
+    indexcols:
+      - Scenario
+      - i
+      - t
+    cols:
+      - i
+      - t
+      - capcost
+      - fom
+      - vom
+      - heatrate
+    functions:
+      - add_coal_techs
+      - backfill_data
+
+  coal-ccs:
+    Technology: Coal_FE
+    DisplayName:
+      Coal-95%-CCS: coal-CCS_mod
+    subset_rows:
+      Case: Market
+      CRPYears: 30
+    renamecols:
+      DisplayName: i
+      variable: t
+    indexcols:
+      - Scenario
+      - i
+      - t
+    cols:
+      - i
+      - t
+      - capcost
+      - fom
+      - vom
+      - heatrate
+    functions:
+      - backfill_data
+
+  gas:
+    Technology: NaturalGas_FE
+    DisplayName:
+      NG 2-on-1 Combined Cycle (F-Frame): Gas-CC
+      NG Combustion Turbine (F-Frame): Gas-CT
+      NG 1-on-1 Combined Cycle (H-Frame): Gas-CC_H_1x1
+      NG 2-on-1 Combined Cycle (H-Frame): Gas-CC_H_2x1
+    subset_rows:
+      Case: Market
+      CRPYears: 30
+      Scenario: Moderate
+    renamecols:
+      DisplayName: i
+      variable: t
+    indexcols:
+      - Scenario
+      - i
+      - t
+    cols:
+      - i
+      - t
+      - capcost
+      - fom
+      - vom
+      - heatrate
+    functions:
+      - backfill_data
+
+  gas-ccs:
+    Technology: NaturalGas_FE
+    DisplayName:
+      NG 2-on-1 Combined Cycle (F-Frame) 95% CCS: Gas-CC-CCS_mod
+      NG 1-on-1 Combined Cycle (H-Frame) 95% CCS: Gas-CC_H_1x1-CCS_mod
+      NG 2-on-1 Combined Cycle (H-Frame) 95% CCS: Gas-CC_H_2x1-CCS_mod
+    subset_rows:
+      Case: Market
+      CRPYears: 30
+    renamecols:
+      DisplayName: i
+      variable: t
+    indexcols:
+      - Scenario
+      - i
+      - t
+    cols:
+      - i
+      - t
+      - capcost
+      - fom
+      - vom
+      - heatrate
+    functions:
+      - backfill_data
+
+  fuelcell:
+    Technology: NaturalGas_FE
+    DisplayName:
+      NG Fuel Cell: NG-Fuel-Cell
+    subset_rows:
+      Case: Market
+      CRPYears: 30
+    renamecols:
+      DisplayName: i
+      variable: t
+    indexcols:
+      - Scenario
+      - i
+      - t
+    cols:
+      - i
+      - t
+      - capcost
+      - fom
+      - vom
+      - heatrate
+    functions:
+      - backfill_data
+  
+  nuclear:
+    Technology: Nuclear
+    DisplayName:
+      Nuclear - Large: Nuclear
+    subset_rows:
+      Case: Market
+      CRPYears: 30
+    renamecols:
+      DisplayName: i
+      variable: t
+    indexcols:
+      - Scenario
+      - i
+      - t
+    cols:
+      - i
+      - t
+      - capcost
+      - fom
+      - vom
+      - heatrate
+    functions:
+      - backfill_data
+
+  nuclear-smr:
+    Technology: Nuclear
+    DisplayName:
+      Nuclear - Small: Nuclear-SMR
+    subset_rows:
+      Case: Market
+      CRPYears: 30
+    renamecols:
+      DisplayName: i
+      variable: t
+    indexcols:
+      - Scenario
+      - i
+      - t
+    cols:
+      - i
+      - t
+      - capcost
+      - fom
+      - vom
+      - heatrate
+    functions:
+      - backfill_data
+      
+  biopower:
+    Technology: Biopower
+    DisplayName:
+      Biopower - Dedicated: biopower
+    subset_rows:
+      Case: Market
+      CRPYears: 30
+    renamecols:
+      DisplayName: i
+      variable: t
+    indexcols:
+      - Scenario
+      - i
+      - t
+    cols:
+      - i
+      - t
+      - capcost
+      - fom
+      - vom
+      - heatrate
+    functions:
+      - backfill_data
+
+  beccs:
+    Technology: Biopower
+    DisplayName:
+      Biopower - 95% CCS: beccs_mod
+    subset_rows:
+      Case: R&D + TC
+      CRPYears: 30
+    renamecols:
+      DisplayName: i
+      variable: t
+    indexcols:
+      - Scenario
+      - i
+      - t
+    cols:
+      - i
+      - t
+      - capcost
+      - fom
+      - vom
+      - heatrate
+    filename_historical: "beccs_reference.csv"

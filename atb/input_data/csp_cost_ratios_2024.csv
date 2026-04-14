@@ -1,0 +1,7 @@
+﻿type,duration,solar_multiple,cost_per_kw,ratio,base_tech
+csp1,14,2.7,7693,1.047,0
+csp2,10,2.4,7347,1,1
+csp3,8,1.3,6079,0.827,0
+csp4,6,1,5733,0.78,0
+,,,,,
+,,,,,
