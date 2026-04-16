@@ -1,0 +1,73 @@
+{
+  "aeo_year": 2025,
+  "start_year": 2010,
+  "end_year": 2050,
+  "paths": {
+    "output_dir": "outputs of alpha regression",
+    "input_dir": "inputs for alpha regression"
+  },
+  "scenarios": {
+    "beta_regression": {
+      "start_year": 2024,
+      "end_year": 2050,
+      "include": [
+        "lm2025",
+        "hm2025",
+        "highZTC",
+        "lowZTC",
+        "alttrnp",
+        "nocaa111",
+        "ref2025"
+      ],
+      "exclude_aliases": [
+        "highogs",
+        "highprice",
+        "lowprice",
+        "lowogs"
+      ]
+    },
+    "alpha_regression": {
+      "fetch": [
+        "ref{aeo_year}",
+        "highogs",
+        "lowogs"
+      ],
+      "outputs": {
+        "reference": [
+          "ref{aeo_year}"
+        ],
+        "HOG": [
+          "highogs"
+        ],
+        "LOG": [
+          "lowogs"
+        ]
+      }
+    }
+  },
+  "api": {
+    "base_url": "https://api.eia.gov/v2",
+    "key_env_var": "EIA_API_KEY",
+    "key_fallback": "",
+    "verify_ssl": false,
+    "timeout_seconds": 60,
+    "max_retries": 4,
+    "backoff_seconds": 1
+  },
+  "ng": {
+    "regions": [
+      "New England",
+      "Middle Atlantic",
+      "East North Central",
+      "West North Central",
+      "South Atlantic",
+      "East South Central",
+      "West South Central",
+      "Mountain",
+      "Pacific"
+    ],
+    "price_deflator_to_2004": 0.602782,
+    "regional_beta_path": "inputs for alpha regression/cd_beta0.csv",
+    "cd_beta0_allsector_path": "inputs for alpha regression/cd_beta0_allsector.csv"
+  }
+}

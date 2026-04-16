@@ -1,0 +1,11 @@
+scope,region,beta,r2,r2_full,n_obs
+national,ALL,0.080017,0.727887,0.847220,1701
+regional,New_England,3.875323,0.587849,0.867459,189
+regional,Mid_Atlantic,0.151497,0.191732,0.850741,189
+regional,East_North_Central,0.033492,0.037937,0.842476,189
+regional,West_North_Central,0.856915,0.452614,0.852631,189
+regional,South_Atlantic,0.175498,0.407799,0.840697,189
+regional,East_South_Central,0.139571,0.135091,0.853755,189
+regional,West_South_Central,-0.054900,0.048903,0.721250,189
+regional,Mountain,0.670353,0.575211,0.854568,189
+regional,Pacific,1.341567,0.669742,0.855878,189
