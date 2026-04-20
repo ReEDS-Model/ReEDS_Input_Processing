@@ -704,6 +704,47 @@ def apply_reference_history_to_all_scenarios(
     return out
 
 
+def _append_year_to_history_csv(
+    csv_path: Path,
+    year: int,
+    data_frame: pd.DataFrame,
+    scenario_id: str,
+    value_col: str,
+) -> None:
+    """Append a single year from the reference scenario to a history CSV if missing."""
+    if not csv_path.exists():
+        return
+    existing = pd.read_csv(csv_path)
+    year_col = "year" if "year" in existing.columns else "t"
+    if year_col not in existing.columns:
+        return
+    if year in existing[year_col].values:
+        return  # Already present
+
+    row_data = data_frame[
+        (data_frame["scenario_id"] == scenario_id)
+        & (data_frame["year"] == year)
+    ].copy()
+    if row_data.empty:
+        LOGGER.warning("No data for year %d to append to %s.", year, csv_path.name)
+        return
+
+    row_data["region_out"] = row_data["cendiv"].map(cendiv_output_label)
+    wide = row_data.pivot_table(
+        index="year", columns="region_out", values=value_col, aggfunc="mean",
+    ).reset_index().rename(columns={"year": year_col})
+
+    for col in existing.columns:
+        if col not in wide.columns:
+            wide[col] = float("nan")
+    wide = wide[existing.columns]
+
+    updated = pd.concat([existing, wide], ignore_index=True)
+    updated = updated.sort_values(year_col).reset_index(drop=True)
+    updated.to_csv(csv_path, index=False, float_format="%.5f")
+    LOGGER.info("Appended year %d to %s.", year, csv_path.name)
+
+
 # ============================================================================
 # Beta Loading
 # ============================================================================
@@ -1210,6 +1251,26 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
         config=config,
         base_dir=base_dir,
     )
+
+    # ---- Step 8: Append projection_start_year to history CSVs ----
+    ref_rows = output_scenarios[
+        output_scenarios["file_suffix"] == "reference"
+    ]
+    if not ref_rows.empty:
+        ref_sid = str(ref_rows.iloc[0]["scenario_id"])
+        hist_dir = resolve_path(
+            base_dir,
+            config["paths"].get("input_dir", config["paths"]["output_dir"]),
+        )
+        for stem, vcol, df in [
+            ("ng_AEO", "ng_price", price_raw),
+            ("ng_demand_AEO", "demand_elec_quads", demand_elec),
+            ("ng_tot_demand_AEO", "demand_total_quads", demand_total),
+        ]:
+            _append_year_to_history_csv(
+                hist_dir / f"{stem}_{HISTORY_SUFFIX}.csv",
+                projection_start_year, df, ref_sid, vcol,
+            )
 
 
 # ============================================================================
