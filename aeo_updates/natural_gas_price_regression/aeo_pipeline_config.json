@@ -1,5 +1,5 @@
 {
-  "aeo_year": 2025,
+  "aeo_year": 2026,
   "start_year": 2010,
   "end_year": 2050,
   "paths": {
@@ -8,16 +8,18 @@
   },
   "scenarios": {
     "beta_regression": {
-      "start_year": 2024,
+      "start_year": 2025,
       "end_year": 2050,
       "include": [
-        "lm2025",
-        "hm2025",
+        "hm2026",
+        "lm2026",
         "highZTC",
         "lowZTC",
+        "higheldmd",
+        "altelec",
         "alttrnp",
-        "nocaa111",
-        "ref2025"
+        "electrnp",
+        "cb2026"
       ],
       "exclude_aliases": [
         "highogs",
@@ -28,13 +30,13 @@
     },
     "alpha_regression": {
       "fetch": [
-        "ref{aeo_year}",
+        "cb{aeo_year}",
         "highogs",
         "lowogs"
       ],
       "outputs": {
         "reference": [
-          "ref{aeo_year}"
+          "cb{aeo_year}"
         ],
         "HOG": [
           "highogs"
