@@ -27,9 +27,7 @@ Higher county resolution `outputs/county_weights_150kmExpDecay.csv` is the outpu
 `figures/` gives figures of the weights files for each run, 
 
 ## Other documentation:
-`cendiv_weights.pptx` has figures of the weights file, using different input spatial resolution and varying decay lengths.  
-
-`Supplement_other_method_weighting.xlsx`  is a supplementary file, referenced in the `cendiv_weights.pptx` that explains another method of weighting we tried, but ended up not selecting.
+`Supplement_other_method_weighting.xlsx`  is a supplementary file that explains another method of weighting we tried, but ended up not selecting.
 
 
 
