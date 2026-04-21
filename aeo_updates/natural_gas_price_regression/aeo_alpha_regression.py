@@ -944,56 +944,20 @@ def write_ng_outputs(
         alpha_wide.to_csv(fn_alpha, index=False, float_format="%.6f")
         written_files.extend([fn_price, fn_elec, fn_total, fn_alpha])
 
-    # --- Beta output files ---
-
-    # Preserve the ordering from the source beta file if possible
-    beta_order = list(region_order)
-    try:
-        beta_src = resolve_path(base_dir, ng_cfg["regional_beta_path"])
-        if beta_src.exists():
-            src_df = pd.read_csv(beta_src)
-            cendiv_col = next(
-                (c for c in src_df.columns
-                 if normalize_token(c).endswith("cendiv")),
-                None,
-            )
-            if cendiv_col:
-                src_order = []
-                for label in src_df[cendiv_col].tolist():
-                    cendiv = output_label_to_cendiv(str(label))
-                    if cendiv in beta_regional and cendiv not in src_order:
-                        src_order.append(cendiv)
-                if len(src_order) == len(region_order):
-                    beta_order = src_order
-    except Exception as exc:
-        LOGGER.warning("Could not use regional beta source ordering: %s", exc)
-
-    # cd_beta0.csv: electric sector betas
-    beta_df = pd.DataFrame({
-        "*cendiv": [cendiv_output_label(c) for c in beta_order],
-        "value": [beta_regional[c] for c in beta_order],
-    })
-    beta_file = out_dir / "cd_beta0.csv"
-    beta_df.to_csv(beta_file, index=False, float_format="%.6f")
-    written_files.append(beta_file)
-
-    # cd_beta0_allsector.csv: all-sector betas (copied from input if available)
-    allsector_src = resolve_path(base_dir, ng_cfg["cd_beta0_allsector_path"])
-    allsector_dst = out_dir / "cd_beta0_allsector.csv"
-    if allsector_src.exists():
-        shutil.copy2(allsector_src, allsector_dst)
-    else:
-        LOGGER.warning(
-            "Configured cd_beta0_allsector source not found (%s). "
-            "Writing cd_beta0 values instead.",
-            allsector_src,
-        )
-        beta_df = pd.DataFrame({
-            "*cendiv": [cendiv_output_label(c) for c in region_order],
-            "value": [beta_regional[c] for c in region_order],
-        })
-        beta_df.to_csv(allsector_dst, index=False, float_format="%.6f")
-    written_files.append(allsector_dst)
+    # --- Beta output files (copy from input) ---
+    input_dir = resolve_path(
+        base_dir,
+        config["paths"].get("input_dir", config["paths"]["output_dir"]),
+    )
+    beta_files = ["cd_beta0.csv", "cd_beta0_allsector.csv", "national_beta.csv"]
+    for beta_name in beta_files:
+        src = resolve_case_insensitive(input_dir / beta_name)
+        dst = out_dir / beta_name
+        if src.exists():
+            shutil.copy2(src, dst)
+            written_files.append(dst)
+        else:
+            LOGGER.warning("%s not found at %s; skipping copy.", beta_name, src)
 
     LOGGER.info("Wrote NG outputs to %s (%d files)", out_dir, len(written_files))
 
