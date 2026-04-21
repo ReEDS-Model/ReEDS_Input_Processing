@@ -1,0 +1,34 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Visualization outputs (PNGs, PDFs)
+*.png
+*.pdf
+
+# Validation and visualization results (all generated output)
+results validation/
+
+# Raw API data dumps (reproducible from EIA API)
+outputs of alpha regression/raw_aeo_data/
+outputs of beta regression/raw_aeo_data/
+
+# Beta raw data visualization subfolder
+outputs of beta regression/bata raw data visualization/
+
+# Beta regression intermediate outputs (keep cd_beta0.csv, national_beta.csv, beta_regression_summary.csv)
+outputs of beta regression/regression_points.csv
+outputs of beta regression/alpha_from_beta_by_scenario.csv
+outputs of beta regression/alpha_from_beta_regression.csv
+outputs of beta regression/alpha from beta regression/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Stale nested duplicate directory
+AEO_Updates/
+
+# Old scripts (replaced by visualization.py)
+results_visualization.py
+results_validation.py
+beta_raw_data_visualization.py
