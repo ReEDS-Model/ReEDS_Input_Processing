@@ -47,7 +47,6 @@ Output Files (per scenario)
 - ng_demand_AEO_{year}_{scenario}.csv : Electric sector demand (Quads)
 - ng_tot_demand_AEO_{year}_{scenario}.csv : Total sector demand (Quads)
 - cd_beta0.csv                      : Electric sector regional betas
-- cd_beta0_allsector.csv            : All-sector regional betas
 
 Usage
 -----
@@ -757,9 +756,6 @@ def load_regional_betas(beta_path: Path,
     The beta file (cd_beta0.csv) contains electric-sector-only betas,
     representing the price sensitivity to regional electric sector demand:
         Beta_regional(r) in units of 2004$/MMBtu per Quad
-
-    A separate file (cd_beta0_allsector.csv) contains betas for total
-    economy-wide NG demand, used when modeling all-sector price feedback.
     """
     require(beta_path.exists(),
             f"Regional beta file not found: {beta_path}")
@@ -906,7 +902,6 @@ def write_ng_outputs(
 
     Shared output files:
         - cd_beta0.csv            : Electric sector regional betas
-        - cd_beta0_allsector.csv  : All-sector regional betas (copied from input)
     """
     ng_cfg = config["ng"]
     aeo_year = int(config["aeo_year"])
@@ -949,7 +944,7 @@ def write_ng_outputs(
         base_dir,
         config["paths"].get("input_dir", config["paths"]["output_dir"]),
     )
-    beta_files = ["cd_beta0.csv", "cd_beta0_allsector.csv", "national_beta.csv"]
+    beta_files = ["cd_beta0.csv", "national_beta.csv"]
     for beta_name in beta_files:
         src = resolve_case_insensitive(input_dir / beta_name)
         dst = out_dir / beta_name
