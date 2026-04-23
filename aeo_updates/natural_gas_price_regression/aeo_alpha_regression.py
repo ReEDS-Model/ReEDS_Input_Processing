@@ -1157,9 +1157,13 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
 
     # ---- Step 6: Compute alpha values ----
     LOGGER.info("Step 6: Computing NG alpha values...")
-    beta_path = resolve_path(base_dir, ng_cfg["regional_beta_path"])
+    input_dir = resolve_path(
+        base_dir,
+        config["paths"].get("input_dir", config["paths"]["output_dir"]),
+    )
+    beta_path = resolve_case_insensitive(input_dir / "cd_beta0.csv")
     beta_regional = load_regional_betas(beta_path, region_order)
-    national_beta_path = resolve_case_insensitive(beta_path.parent / "national_beta.csv")
+    national_beta_path = resolve_case_insensitive(input_dir / "national_beta.csv")
     require(
         national_beta_path.exists(),
         f"National beta file not found: {national_beta_path}",

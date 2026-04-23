@@ -66,7 +66,6 @@
       "Mountain",
       "Pacific"
     ],
-    "price_deflator_to_2004": 0.602782,
-    "regional_beta_path": "inputs for alpha regression/cd_beta0.csv"
+    "price_deflator_to_2004": 0.602782
   }
 }
