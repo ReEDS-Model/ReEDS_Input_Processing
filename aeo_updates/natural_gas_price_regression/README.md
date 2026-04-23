@@ -78,14 +78,14 @@ Set explicit scenarios in `aeo_pipeline_config.json` under `scenarios`:
 
 Use canonical IDs (for example `ref{aeo_year}`, `highogs`, `lowogs`) for a clear setup.
 
-## One-command batch (Windows)
+## One-command run (all platforms)
 
-```bat
-run_ng_pipeline.bat
+```bash
+python run_ng_pipeline.py
 ```
 
 Optional custom config:
 
-```bat
-run_ng_pipeline.bat my_config.json
+```bash
+python run_ng_pipeline.py --config my_config.json
 ```
