@@ -28,8 +28,8 @@ repo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(repo_path)
 import preprocessing
 
-## https://github.nrel.gov/ReEDS/ReEDS-2.0
-reeds_path = os.path.expanduser('~/github/ReEDS-2.0')
+## https://github.com/ReEDS-Model/ReEDS
+reeds_path = os.path.expanduser('~/github/ReEDS')
 site.addsitedir(reeds_path)
 import reeds
 from reeds import plots
