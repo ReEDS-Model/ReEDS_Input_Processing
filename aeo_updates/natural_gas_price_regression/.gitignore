@@ -9,18 +9,19 @@ __pycache__/
 # Validation and visualization results (all generated output)
 results validation/
 
-# Raw API data dumps (reproducible from EIA API)
+# Alpha regression outputs (all CSVs are generated, reproducible)
+outputs of alpha regression/*.csv
 outputs of alpha regression/raw_aeo_data/
+
+# Beta regression outputs (all generated, reproducible)
+outputs of beta regression/*.csv
 outputs of beta regression/raw_aeo_data/
-
-# Beta raw data visualization subfolder
 outputs of beta regression/bata raw data visualization/
-
-# Beta regression intermediate outputs (keep cd_beta0.csv, national_beta.csv, beta_regression_summary.csv)
-outputs of beta regression/regression_points.csv
-outputs of beta regression/alpha_from_beta_by_scenario.csv
-outputs of beta regression/alpha_from_beta_regression.csv
 outputs of beta regression/alpha from beta regression/
+
+# Intermediate beta inputs (copied by sync_beta_to_alpha_inputs.py, not source data)
+inputs for alpha regression/cd_beta0.csv
+inputs for alpha regression/national_beta.csv
 
 # Notebook checkpoints
 .ipynb_checkpoints/
