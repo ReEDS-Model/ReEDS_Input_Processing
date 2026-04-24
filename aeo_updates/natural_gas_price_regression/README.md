@@ -2,6 +2,8 @@
 
 This folder has the natural gas update workflow for ReEDS.
 
+Files to update in the ReEDS repository are described in "outputs of alpha regression/README.md".
+
 ## Model Note
 
 `alpha` differs by step:
