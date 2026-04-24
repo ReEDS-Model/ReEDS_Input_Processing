@@ -18,10 +18,9 @@ The scraper will grab the following data from EIA's API:
 
 This can be run as is. You will want to adjust the default AEO year.
 Sometimes the scenario names change from one year to the next, so if a scenario is not populated, its name has likely changed.
+In the AEO 2026, "Uranium" became "Nuclear Fuel", but only for real prices (nominal prices still use Uranium)--so you can check for similar name changes if you run into an error.
 
-These results will be written out as csv files. 
-Note that the write directory is not specified and hence the files will be output to the directory from where the file is run.
-The output directory may be altered as required.
+These results will be written out as csv files to the outputs directory (it will be created if it does not already exist).
 
 If more data sets are desired, search for the API url here: https://www.eia.gov/opendata/qb.php?category=371
 
