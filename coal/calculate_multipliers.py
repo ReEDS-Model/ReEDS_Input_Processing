@@ -8,14 +8,15 @@ from geopandas import GeoDataFrame
 from shapely.geometry import Point
 
 # Get NEMS database from ReEDS-2.0 repo
-reeds_path = os.path.expanduser('~/Documents/Github/ReEDS/ReEDS-2.0')
+#reeds_path = os.path.expanduser('~/Documents/Github/ReEDS/ReEDS-2.0')
+reeds_path = os.path.expanduser('~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS')
 sys.path.append(reeds_path)
 import reeds
 
 # Main switches
 data_to_generate = 'emission_rate'                # Generate cost multiplier by cendiv ('cost_multiplier')
                                                     # or coal emission rate by fip ('emission_rate')
-recent_years_used = 15                              # Only for 'cost_multiplier', the number of EIA923 years used
+recent_years_used = 5                              # Only for 'cost_multiplier', the number of EIA923 years used
                                                     # to estimate post-2024 cost multiplier                                     
 AEO_ver = 2025                                      # Only for 'cost_multiplier', AEO version to estimate cost multiplier
 
@@ -33,7 +34,7 @@ state_fips = pd.read_csv(
     index_col='state_fips',
 ).rename(columns={'state':'STATE', 'state_code':'STCODE'})[['STATE', 'STCODE']]
 county_data = county_data.merge(state_fips, left_on='STATEFP', right_index=True, how='left')
-county_data2 = county_data.to_crs("EPSG:4326")
+county_data2 = county_data.to_crs("EPSG:5070")
 
 def main(data_to_generate, recent_years_used, AEO_ver):
 
@@ -69,7 +70,7 @@ def main(data_to_generate, recent_years_used, AEO_ver):
             dfunits_joint = gpd.sjoin(county_data, gdfunits, predicate="contains")
             
             # Assign remaining FIPS to nearest coal plant
-            fips_with_coal_plants = dfunits_joint.to_crs("EPSG:4326")
+            fips_with_coal_plants = dfunits_joint.to_crs("EPSG:5070")
 
             # Assign remaining FIPS to nearest coal plant
             fips_with_coal_plants = fips_with_coal_plants.rename(columns={'index_left': 'old_left_index', 'index_right': 'old_right_index'})
@@ -168,7 +169,7 @@ def main(data_to_generate, recent_years_used, AEO_ver):
         emission_rate = emission_rate[emission_rate['N2O']>0]
 
         gdf_emission_rate = df2gdf(emission_rate.assign(T_LONG=-emission_rate.LON.abs()), lat='LAT', lon='LON')
-        gdf_emission_rate = gdf_emission_rate.to_crs("EPSG:4326")
+        gdf_emission_rate = gdf_emission_rate.to_crs("EPSG:5070")
 
         fips_emission_rate = gpd.sjoin_nearest(gdf_emission_rate, county_data2, how='right')
         fips_emission_rate = fips_emission_rate.drop_duplicates(subset=['rb'], keep='first')
@@ -234,6 +235,7 @@ def main(data_to_generate, recent_years_used, AEO_ver):
         fips_emission_rate = fips_emission_rate.rename(columns={'rb':'r'})
         
         # Save emission rate data by FIPS
+        os.makedirs(os.path.join(dir,'outputs'), exist_ok=True)
         fips_emission_rate.to_csv(os.path.join(dir,'outputs', 'emitrate_coal_mult.csv'), index=False)
 
 
@@ -267,7 +269,7 @@ def get_latlonlabels(df, lat=None, lon=None, columns=None):
 
     return latlabel, lonlabel
 
-def df2gdf(dfin, crs='EPSG:4326', lat=None, lon=None):
+def df2gdf(dfin, crs='EPSG:5070', lat=None, lon=None):
     """Convert a pandas dataframe with lat/lon columns to a geopandas dataframe of points"""
     ### Imports
     import os
@@ -280,7 +282,7 @@ def df2gdf(dfin, crs='EPSG:4326', lat=None, lon=None):
     latlabel, lonlabel = get_latlonlabels(df, lat=lat, lon=lon)
     df['geometry'] = df.apply(
         lambda row: shapely.geometry.Point(row[lonlabel], row[latlabel]), axis=1)
-    df = gpd.GeoDataFrame(df, crs='EPSG:4326').to_crs(crs)
+    df = gpd.GeoDataFrame(df, crs='EPSG:5070').to_crs(crs)
 
     return df
 
