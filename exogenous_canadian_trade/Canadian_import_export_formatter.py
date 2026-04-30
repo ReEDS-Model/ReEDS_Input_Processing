@@ -151,4 +151,4 @@ Imports.set_index('r', inplace = True)
 
 Imports.round(1).to_csv(os.path.join(Output_folder, 'can_imports.csv'))
 
-print(f"Run complete. See outputs folder for outputs which are inputs to ReEDS-2.0.")
+print(f"Run complete. See outputs folder for outputs which are inputs to ReEDS.")

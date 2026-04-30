@@ -3,7 +3,7 @@ import sys
 import pandas as pd
 from itertools import product
 import altair as alt
-reeds_path = os.path.expanduser('~/Documents/Github/ReEDS/ReEDS-2.0')
+reeds_path = os.path.expanduser('~/Documents/Github/ReEDS/ReEDS')
 sys.path.append(reeds_path)
 
 '''
