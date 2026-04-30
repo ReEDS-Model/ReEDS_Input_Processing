@@ -48,7 +48,7 @@ station_name_location_map = {
 }
 
 def main():
-    reeds_path = os.path.expanduser('~/github/ReEDS-2.0')
+    reeds_path = os.path.expanduser('~/github/ReEDS')
     outdir_path = os.path.join(reeds_path, 'inputs', 'storage')
     dfcounty = gpd.read_file(
         os.path.join(

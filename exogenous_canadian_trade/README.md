@@ -2,7 +2,7 @@ These updates were done 05/31/2024 by Wesley Cole and Max Vanatta and 02/28/2025
 
 The GSw_Canada switch for cases in ReEDS allow for:
 0: No Canadian trade
-1: Seasonal balancing of Canadian electricity trade which uses the annual balances (can_exports.csv and can_imports.csv in outputs folder, which contains inputs to ReEDS-2.0) and seasonal fractions (can_exports_szn_frac.csv and can_imports_szn_frac.csv in outputs folder). Operated simnilar to Hydro.
+1: Seasonal balancing of Canadian electricity trade which uses the annual balances (can_exports.csv and can_imports.csv in outputs folder, which contains inputs to ReEDS) and seasonal fractions (can_exports_szn_frac.csv and can_imports_szn_frac.csv in outputs folder). Operated similar to Hydro.
 2: (not implemented in Current ReEDS 2.0) Strict hourly limits defined by can_trade_8760.h5
 
 To generate updated input files for option 1 using Canadian_import_export_formatter.py:

@@ -3,7 +3,7 @@
 #SBATCH --time=4:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --mail-user=pbrown@nrel.gov
+#SBATCH --mail-user=pbrown@nlr.gov
 #SBATCH --mail-type=FAIL
 #SBATCH --mem=246000
 #SBATCH --output=/projects/reedsweto/pbrown/logs/slurm-%j.out

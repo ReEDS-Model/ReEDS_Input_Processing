@@ -21,8 +21,8 @@ dir = os.getcwd()
 reeds_path = gdbnewname = sys.argv[1]
 
 # For debugging
-# reeds_path = '~/Documents/Github/ReEDS/ReEDS-2.0/'              # local
-# reeds_path = '/kfs2/projects/stdscen/stdscens_fy25/ReEDS-2.0/' # kestrel
+# reeds_path = '~/Documents/Github/ReEDS/'              # local
+# reeds_path = '/kfs2/projects/stdscen/stdscens_fy25/ReEDS/' # kestrel
 
 reeds_path = os.path.expanduser(reeds_path)
 sys.path.append(reeds_path)

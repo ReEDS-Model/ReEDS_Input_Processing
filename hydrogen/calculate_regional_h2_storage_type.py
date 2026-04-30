@@ -5,8 +5,8 @@ import sys
 os.environ['USE_PYGEOS'] = '0'
 import geopandas as gpd
 
-#reedspath = os.path.expanduser('~/github/ReEDS-2.0/')
-reedspath = os.path.expanduser('~/Documents/Github/ReEDS/ReEDS-2.0/')
+#reedspath = os.path.expanduser('~/github/ReEDS/')
+reedspath = os.path.expanduser('~/Documents/Github/ReEDS/ReEDS/')
 reedspath = os.path.expanduser(reedspath)
 sys.path.append(reedspath)
 import reeds
