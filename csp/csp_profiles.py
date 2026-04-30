@@ -12,8 +12,8 @@ import geopandas as gpd
 import shapely
 os.environ['PROJ_NETWORK'] = 'OFF'
 
-reedspath = os.path.expanduser('~/github/ReEDS-2.0/')
-reedspath2 = os.path.expanduser('~/github2/ReEDS-2.0/')
+reedspath = os.path.expanduser('~/github/ReEDS/')
+reedspath2 = os.path.expanduser('~/github2/ReEDS/')
 remotepath = '/Volumes/ReEDS'
 scpath = os.path.join(remotepath,'Supply_Curve_Data')
 repopath = os.path.dirname(os.path.dirname(__file__))
