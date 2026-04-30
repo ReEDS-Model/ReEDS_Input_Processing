@@ -8,8 +8,8 @@ import math
 import json
 import argparse
 
-# Get reedsplots from ReEDS-2.0 repo
-reeds_path = os.path.expanduser('~/Documents/Github/ReEDS/ReEDS-2.0')
+# Get reedsplots from ReEDS repo
+reeds_path = os.path.expanduser('~/Documents/Github/ReEDS/ReEDS')
 sys.path.append(reeds_path)
 from reeds import plots
 plots.plotparams()
