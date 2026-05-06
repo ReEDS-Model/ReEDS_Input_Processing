@@ -9,12 +9,12 @@ This script creates the demand projection files for AEO scenarios. It uses histo
 
 ### AEO_scraper.ipynb
 The scraper will grab the following data from EIA's API: 
-* Electricity growth by region for high, low, and reference economic growth. 
+* Electricity growth by region for high, low, and Counterfactual Baseline economic growth. 
 * Natural gas prices by region for high, low, and reference oil and gas growth.
 * Total natural gas use by region for high, low, and reference oil and gas resource
 * Natural gas use for electricity by region for high, low, and reference oil and gas resource.
-* Coal prices by region for the reference scenario.
-* Uranium prices for the US for the reference scenario.
+* Coal prices by region for the Counterfactual Baseline scenario.
+* Uranium/Nuclear Fuel prices for the US for the Counterfactual Baseline scenario.
 
 This can be run as is. You will want to adjust the default AEO year.
 Sometimes the scenario names change from one year to the next, so if a scenario is not populated, its name has likely changed.
