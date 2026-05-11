@@ -90,6 +90,10 @@ NG_SERIES_NAMES = {
 # ============================================================================
 
 def _norm(value: Any) -> str:
+    """Normalize a string for case-insensitive matching by stripping
+    all non-alphanumeric characters and lowercasing.
+    E.g. 'High Oil and Gas Supply' -> 'highoilandgassupply'.
+    """
     if value is None:
         return ""
     return re.sub(r"[^a-z0-9]+", "",
@@ -97,6 +101,9 @@ def _norm(value: Any) -> str:
 
 
 def _region_label(region_name: str) -> str:
+    """Map an EIA region name (e.g. 'New England') to the ReEDS label
+    (e.g. 'New_England'). Raises ValueError if no match is found.
+    """
     if region_name in REGION_TO_LABEL:
         return REGION_TO_LABEL[region_name]
     norm = _norm(region_name)
@@ -118,6 +125,8 @@ def _calc_r2(y: np.ndarray, y_hat: np.ndarray) -> float:
 # ============================================================================
 
 class EiaClient:
+    """Thin wrapper around the EIA AEO API v2 with retry logic and SSL config."""
+
     def __init__(self, api_cfg: dict[str, Any], api_key: str):
         self.base_url = api_cfg["base_url"].rstrip("/")
         self.verify_ssl = bool(api_cfg.get("verify_ssl", True))
@@ -399,7 +408,7 @@ def save_outputs(
     model_r2: float,
     first_model_year: int,
 ) -> None:
-    """Write beta tables and regression diagnostics."""
+    """Write beta tables, regression diagnostics, and alpha candidates to CSV."""
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # cd_beta0.csv
@@ -528,6 +537,9 @@ def save_outputs(
 # ============================================================================
 
 def run(config: dict[str, Any], base_dir: Path) -> None:
+    """Main pipeline: discover scenarios, fetch data from EIA API,
+    run joint beta regression, and write all outputs.
+    """
     ng_cfg = config["ng"]
     aeo_year = int(config["aeo_year"])
     deflator = float(ng_cfg["price_deflator_to_2004"])
