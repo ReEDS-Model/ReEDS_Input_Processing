@@ -113,15 +113,6 @@ def _calc_r2(y: np.ndarray, y_hat: np.ndarray) -> float:
     return 1 - ss_res / ss_tot if ss_tot > 0 else 0.0
 
 
-def _parse_optional_int(value: Any, config_key: str) -> int | None:
-    if value is None:
-        return None
-    try:
-        return int(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"Config key '{config_key}' must be an integer.") from exc
-
-
 # ============================================================================
 # EIA API Client
 # ============================================================================
@@ -571,12 +562,10 @@ def run(config: dict[str, Any], base_dir: Path) -> None:
 
     exclude_aliases = [str(x).strip() for x in beta_scen_cfg.get("exclude_aliases", [])]
 
-    beta_start_year = _parse_optional_int(
-        beta_scen_cfg.get("start_year"), "scenarios.beta_regression.start_year"
-    )
-    beta_end_year = _parse_optional_int(
-        beta_scen_cfg.get("end_year"), "scenarios.beta_regression.end_year"
-    )
+    _sy = beta_scen_cfg.get("start_year")
+    _ey = beta_scen_cfg.get("end_year")
+    beta_start_year = int(_sy) if _sy is not None else None
+    beta_end_year = int(_ey) if _ey is not None else None
     if (beta_start_year is None) != (beta_end_year is None):
         raise ValueError(
             "Config keys 'scenarios.beta_regression.start_year' and "
