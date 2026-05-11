@@ -28,8 +28,3 @@ inputs for alpha regression/national_beta.csv
 
 # Stale nested duplicate directory
 AEO_Updates/
-
-# Old scripts (replaced by visualization.py)
-results_visualization.py
-results_validation.py
-beta_raw_data_visualization.py
