@@ -85,11 +85,6 @@ NG_SERIES_NAMES = {
     "demand_elec": "Energy Use : Electric Power : Natural Gas",
 }
 
-# Scenarios to EXCLUDE from regression (held out for alpha computation)
-EXCLUDE_SCENARIOS = {"highogs", "lowogs", "high oil and gas supply",
-                     "low oil and gas supply"}
-
-
 # ============================================================================
 # Helpers
 # ============================================================================
@@ -233,7 +228,7 @@ def discover_regression_scenarios(
             )
         return selected
 
-    excluded_tokens = {_norm(x) for x in (exclude_aliases or sorted(EXCLUDE_SCENARIOS))}
+    excluded_tokens = {_norm(x) for x in (exclude_aliases or [])}
     selected: list[str] = []
     excluded: list[str] = []
     for row in rows:
@@ -574,10 +569,7 @@ def run(config: dict[str, Any], base_dir: Path) -> None:
         raise ValueError("Config key 'scenarios.beta_regression.include' must be a list.")
     include_scenarios = [str(x).strip() for x in (include_cfg or []) if str(x).strip()]
 
-    exclude_cfg = beta_scen_cfg.get("exclude_aliases")
-    if exclude_cfg is not None and not isinstance(exclude_cfg, list):
-        raise ValueError("Config key 'scenarios.beta_regression.exclude_aliases' must be a list.")
-    exclude_aliases = [str(x).strip() for x in (exclude_cfg or []) if str(x).strip()]
+    exclude_aliases = [str(x).strip() for x in beta_scen_cfg.get("exclude_aliases", [])]
 
     beta_start_year = _parse_optional_int(
         beta_scen_cfg.get("start_year"), "scenarios.beta_regression.start_year"
