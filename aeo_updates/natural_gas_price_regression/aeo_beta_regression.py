@@ -19,8 +19,8 @@ Estimation uses a joint fixed-effects regression across all regions:
     Price_2004(r,t,s) = Alpha(r,t) + Beta_reg(r) * Q_reg(r,t,s) + Beta_nat * Q_nat(t,s)
 
 Alpha(r,t) is absorbed by demeaning each variable across scenarios within
-each (region, year) group. The joint OLS then estimates Beta_nat and all
-regional Beta_reg values simultaneously.
+each (region, year) group. The joint ordinary least squares (OLS) regression
+then estimates Beta_nat and all regional Beta_reg values simultaneously.
 
 Data: By default uses ALL available years for selected AEO scenarios
 EXCEPT High/Low O&G Supply (held out for alpha computation), but
@@ -317,7 +317,8 @@ def estimate_joint_betas(
         Price_2004(r,t,s) = Alpha(r,t) + Beta_reg(r)*Q_reg(r,t,s) + Beta_nat*Q_nat(t,s)
 
     Demeaning across scenarios within each (region, year) removes Alpha.
-    OLS on the demeaned system estimates Beta_nat and all Beta_reg simultaneously.
+    Ordinary least squares (OLS) on the demeaned system estimates Beta_nat
+    and all Beta_reg simultaneously.
 
     Returns: (beta_nat, beta_nat_r2, beta_reg_dict, regional_diagnostics,
               regression_data, model_r2)
@@ -346,7 +347,7 @@ def estimate_joint_betas(
     X = np.column_stack(x_cols)
     y = merged["dp"].to_numpy()
 
-    # OLS
+    # Ordinary least squares
     coeffs = np.linalg.lstsq(X, y, rcond=None)[0]
     beta_nat = float(coeffs[0])
     beta_reg = {region: float(coeffs[i + 1]) for i, region in enumerate(regions)}
