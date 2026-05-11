@@ -42,22 +42,8 @@ Once you have obtained your api key, create a new environment variable to store 
 
 ### Input Data Changes When Updating AEO Data
 #### Natural Gas Prices and Demand
-Natural gas prices and demand can be pulled using the EIA AEO data grabber. The spreadsheet "NG Prices Preprocessing for AEO Inputs.xlsx" is used to calculate the alphas using the preset betas. You need to paste in the NG prices and NG electricity sector demand into the relevant tabs. Historical data needs to be updated to the current dollar year. The deflator to convert the alphas back to 2004$ also need to be updated. The alphas are then put into a csv file to be added to the inputs/fuelprices folder of the ReEDS model repo.
-
-The prices and demand (both for the electricity sector and for all sectors) are also put into the relevant csv files in the inputs/fuelprices folder of the ReEDS model repo. Here are the NG input files that should be updated: 
-
-* ng_tot_demand_AEO_{year}_HOG.csv
-* ng_tot_demand_AEO_{year}_LOG.csv
-* ng_tot_demand_AEO_{year}_reference.csv
-* ng_demand_AEO_{year}_LOG.csv
-* ng_demand_AEO_{year}_HOG.csv
-* ng_demand_AEO_{year}_reference.csv
-* ng_AEO_{year}_LOG.csv
-* ng_AEO_{year}_HOG.csv
-* ng_AEO_{year}_reference.csv
-* alpha_AEO_{year}_LOG.csv
-* alpha_AEO_{year}_HOG.csv
-* alpha_AEO_{year}_reference.csv
+Natural gas prices and demand are updated using the files in natural_gas_price_regression.
+See the README.md in that folder for more information.
 
 #### Coal Prices
 Pulled using the EIA data grabber. Coal data are input into the coal_AEO_{year}_reference.csv.
