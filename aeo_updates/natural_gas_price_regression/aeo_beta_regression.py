@@ -47,20 +47,26 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
-import re
 import sys
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
-import requests
-from requests.adapters import HTTPAdapter
 
-from urllib3 import disable_warnings
-from urllib3.exceptions import InsecureRequestWarning
-from urllib3.util.retry import Retry
+from aeo_functions import (
+    NG_SERIES_NAMES as _SHARED_NG_SERIES_NAMES,
+    EiaClient,
+    normalize_token,
+    resolve_api_key,
+    resolve_config_path,
+    resolve_region_ids,
+    resolve_series_ids,
+    setup_logging,
+)
+
+# Backwards-compatible alias used throughout this module.
+_norm = normalize_token
 
 LOGGER = logging.getLogger("beta_regression")
 
@@ -71,25 +77,15 @@ LOGGER = logging.getLogger("beta_regression")
 # Populated at runtime from config["ng"]["cendiv_and_label"] by run().
 REGION_TO_LABEL: dict[str, str] = {}
 
+# Beta regression only consumes price + electric-sector demand.
 NG_SERIES_NAMES = {
-    "price": "Energy Prices : Electric Power : Natural Gas",
-    "demand_elec": "Energy Use : Electric Power : Natural Gas",
+    "price": _SHARED_NG_SERIES_NAMES["price"],
+    "demand_elec": _SHARED_NG_SERIES_NAMES["demand_elec"],
 }
 
 # ============================================================================
 # Helpers
 # ============================================================================
-
-def _norm(value: Any) -> str:
-    """Normalize a string for case-insensitive matching by stripping
-    all non-alphanumeric characters and lowercasing.
-    E.g. 'High Oil and Gas Supply' -> 'highoilandgassupply'.
-    """
-    if value is None:
-        return ""
-    return re.sub(r"[^a-z0-9]+", "",
-                  str(value).replace("\xa0", " ").strip().lower())
-
 
 def _region_label(region_name: str) -> str:
     """Map an EIA region name (e.g. 'New England') to the ReEDS label
@@ -112,56 +108,8 @@ def _calc_r2(y: np.ndarray, y_hat: np.ndarray) -> float:
 
 
 # ============================================================================
-# EIA API Client
+# EIA API Client (imported from aeo_functions)
 # ============================================================================
-
-class EiaClient:
-    """Thin wrapper around the EIA AEO API v2 with retry logic and SSL config."""
-
-    def __init__(self, api_cfg: dict[str, Any], api_key: str):
-        self.base_url = api_cfg["base_url"].rstrip("/")
-        self.verify_ssl = bool(api_cfg.get("verify_ssl", True))
-        self.timeout = int(api_cfg.get("timeout_seconds", 60))
-        self.api_key = api_key
-        if not self.verify_ssl:
-            disable_warnings(InsecureRequestWarning)
-        retries = Retry(
-            total=int(api_cfg.get("max_retries", 4)),
-            backoff_factor=float(api_cfg.get("backoff_seconds", 1.0)),
-            status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["GET"],
-            raise_on_status=False,
-        )
-        self.session = requests.Session()
-        self.session.mount("https://", HTTPAdapter(max_retries=retries))
-        self.session.mount("http://", HTTPAdapter(max_retries=retries))
-
-    def _get(self, path: str,
-             params: list[tuple[str, str]] | None = None) -> dict:
-        url = f"{self.base_url}/{path.lstrip('/')}"
-        query = [("api_key", self.api_key)] + (params or [])
-        resp = self.session.get(url, params=query,
-                                timeout=self.timeout, verify=self.verify_ssl)
-        resp.raise_for_status()
-        payload = resp.json()
-        if "response" not in payload:
-            raise ValueError(f"Unexpected payload from {path}")
-        return payload
-
-    def get_facets(self, aeo_year: int, facet: str) -> list[dict]:
-        return self._get(
-            f"/aeo/{aeo_year}/facet/{facet}")["response"]["facets"]
-
-    def get_data(self, aeo_year: int,
-                 params: list[tuple[str, str]]) -> pd.DataFrame:
-        payload = self._get(f"/aeo/{aeo_year}/data", params)
-        for w in payload["response"].get("warnings", []):
-            LOGGER.warning("EIA: %s | %s",
-                           w.get("warning"), w.get("description"))
-        data = payload["response"].get("data", [])
-        if not data:
-            raise ValueError(f"No data returned for AEO {aeo_year}")
-        return pd.DataFrame(data)
 
 
 # ============================================================================
@@ -270,11 +218,7 @@ def fetch_series(client: EiaClient, aeo_year: int, series_name: str,
     if start_year is not None and end_year is not None and start_year > end_year:
         raise ValueError(f"Invalid year window: start_year={start_year} > end_year={end_year}")
 
-    series_facets = client.get_facets(aeo_year, "seriesId")
-    series_ids = [str(item["id"]) for item in series_facets
-                  if _norm(item.get("name")) == _norm(series_name)]
-    if not series_ids:
-        raise ValueError(f"Series not found: {series_name}")
+    series_ids = resolve_series_ids(client, aeo_year, series_name)
 
     params: list[tuple[str, str]] = [("data[]", "value")]
     if start_year is not None and end_year is not None:
@@ -558,13 +502,7 @@ def run(config: dict[str, Any], base_dir: Path) -> None:
     regions = [REGION_TO_LABEL[r] for r in regions_config]
 
     # API key
-    api_key = os.getenv(
-        config["api"].get("key_env_var", "EIA_API_KEY"),
-        config["api"].get("key_fallback", ""),
-    ).strip()
-    if not api_key:
-        raise ValueError(
-            "Missing EIA API key. Set EIA_API_KEY or api.key_fallback.")
+    api_key = resolve_api_key(config)
     client = EiaClient(config["api"], api_key)
 
     scenarios_cfg = config.get("scenarios", {})
@@ -616,14 +554,9 @@ def run(config: dict[str, Any], base_dir: Path) -> None:
     )
 
     # Resolve region IDs
-    facets = client.get_facets(aeo_year, "regionId")
-    region_lookup = {_norm(item["name"]): str(item["id"]) for item in facets}
-    region_ids = []
-    for name in regions_config:
-        key = _norm(name)
-        if key not in region_lookup:
-            raise ValueError(f"Region not in EIA facets: {name}")
-        region_ids.append(region_lookup[key])
+    region_ids = list(
+        resolve_region_ids(client, aeo_year, regions_config).values()
+    )
 
     # Save raw facets for reference
     out_dir = base_dir / "outputs of beta regression"
@@ -713,14 +646,10 @@ def main() -> int:
     parser.add_argument("--aeo-year", type=int, default=None)
     args = parser.parse_args()
 
-    logging.basicConfig(level=getattr(logging, args.log_level),
-                        format="%(asctime)s | %(levelname)s | %(message)s")
+    setup_logging(args.log_level)
 
     script_dir = Path(__file__).resolve().parent
-    cfg_path = Path(args.config)
-    if not cfg_path.is_absolute():
-        cfg_path = (Path.cwd() / cfg_path if (Path.cwd() / cfg_path).exists()
-                    else script_dir / cfg_path)
+    cfg_path = resolve_config_path(args.config, script_dir)
 
     with cfg_path.open() as f:
         config = json.load(f)

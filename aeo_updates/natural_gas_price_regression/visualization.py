@@ -19,7 +19,6 @@ Run after:
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import re
 import sys
@@ -28,6 +27,17 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+
+from aeo_functions import (
+    CENDIV_CANONICAL,
+    load_config,
+    normalize_token,
+    require,
+    resolve_case_insensitive,
+    resolve_config_path,
+    resolve_path,
+    setup_logging,
+)
 
 try:
     import matplotlib
@@ -43,18 +53,6 @@ LOGGER = logging.getLogger("visualization")
 # Constants
 # ============================================================================
 
-CENDIV_CANONICAL = {
-    "newengland": "NewEngland",
-    "middleatlantic": "MiddleAtlantic",
-    "eastnorthcentral": "EastNorthCentral",
-    "westnorthcentral": "WestNorthCentral",
-    "southatlantic": "SouthAtlantic",
-    "eastsouthcentral": "EastSouthCentral",
-    "westsouthcentral": "WestSouthCentral",
-    "mountain": "Mountain",
-    "pacific": "Pacific",
-}
-
 # Populated at runtime from config["ng"]["cendiv_and_label"] by main().
 CENDIV_OUTPUT: dict[str, str] = {}
 
@@ -69,18 +67,6 @@ SCENARIO_COLOR = {
 # Shared helpers
 # ============================================================================
 
-def require(condition: bool, message: str) -> None:
-    if not condition:
-        raise ValueError(message)
-
-
-def normalize_token(value: Any) -> str:
-    return re.sub(
-        r"[^a-z0-9]+", "",
-        str(value).replace("\xa0", " ").strip().lower(),
-    )
-
-
 def any_to_cendiv(value: str) -> str:
     token = normalize_token(value)
     if token in CENDIV_CANONICAL:
@@ -94,39 +80,6 @@ def any_to_cendiv(value: str) -> str:
 def cendiv_output_label(cendiv: str) -> str:
     require(cendiv in CENDIV_OUTPUT, f"Unknown cendiv key: {cendiv}")
     return CENDIV_OUTPUT[cendiv]
-
-
-def resolve_case_insensitive(path: Path) -> Path:
-    if path.exists():
-        return path
-    path = path.resolve()
-    current = Path(path.anchor)
-    for part in path.parts[1:]:
-        if not current.exists():
-            return path
-        try:
-            matches = [p for p in current.iterdir() if p.name.lower() == part.lower()]
-        except PermissionError:
-            return path
-        if not matches:
-            return path
-        current = matches[0]
-    return current
-
-
-def resolve_path(base_dir: Path, configured_path: str) -> Path:
-    p = Path(configured_path)
-    if not p.is_absolute():
-        p = base_dir / p
-    return resolve_case_insensitive(p)
-
-
-def load_config(config_path: Path) -> dict[str, Any]:
-    require(config_path.exists(), f"Config not found: {config_path}")
-    with config_path.open("r", encoding="utf-8") as f:
-        cfg = json.load(f)
-    require(isinstance(cfg, dict), f"Config root must be an object: {config_path}")
-    return cfg
 
 
 def region_order_from_config(config: dict[str, Any]) -> list[str]:
@@ -1116,15 +1069,10 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    logging.basicConfig(level=getattr(logging, args.log_level),
-                        format="%(asctime)s | %(levelname)s | %(message)s")
+    setup_logging(args.log_level)
 
     script_dir = Path(__file__).resolve().parent
-    cfg_path = Path(args.config)
-    if not cfg_path.is_absolute():
-        cwd_candidate = resolve_case_insensitive((Path.cwd() / cfg_path).resolve())
-        script_candidate = resolve_case_insensitive((script_dir / cfg_path).resolve())
-        cfg_path = cwd_candidate if cwd_candidate.exists() else script_candidate
+    cfg_path = resolve_config_path(args.config, script_dir)
 
     config = load_config(cfg_path)
     base_dir = cfg_path.parent

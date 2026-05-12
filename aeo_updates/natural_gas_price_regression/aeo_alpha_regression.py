@@ -58,9 +58,7 @@ Example config: see aeo_pipeline_config.json
 from __future__ import annotations
 
 import argparse
-import json
 import logging
-import os
 import re
 import shutil
 import sys
@@ -68,11 +66,22 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3 import disable_warnings
-from urllib3.exceptions import InsecureRequestWarning
-from urllib3.util.retry import Retry
+
+from aeo_functions import (
+    CENDIV_CANONICAL,
+    NG_SERIES_NAMES,
+    EiaClient,
+    load_config,
+    normalize_token,
+    require,
+    resolve_api_key,
+    resolve_case_insensitive,
+    resolve_config_path,
+    resolve_path,
+    resolve_region_ids,
+    resolve_series_ids,
+    setup_logging,
+)
 
 LOGGER = logging.getLogger("aeo_pipeline")
 
@@ -80,30 +89,9 @@ LOGGER = logging.getLogger("aeo_pipeline")
 # Constants
 # ============================================================================
 
-# Mapping from normalized region names to canonical internal keys
-CENDIV_CANONICAL = {
-    "newengland": "NewEngland",
-    "middleatlantic": "MiddleAtlantic",
-    "eastnorthcentral": "EastNorthCentral",
-    "westnorthcentral": "WestNorthCentral",
-    "southatlantic": "SouthAtlantic",
-    "eastsouthcentral": "EastSouthCentral",
-    "westsouthcentral": "WestSouthCentral",
-    "mountain": "Mountain",
-    "pacific": "Pacific",
-    "unitedstates": "UnitedStates",
-}
-
 # Mapping from internal keys to ReEDS output format (underscore-separated).
 # Populated at runtime from config["ng"]["cendiv_and_label"] by run_ng_pipeline().
 CENDIV_OUTPUT: dict[str, str] = {}
-
-# EIA AEO series names for NG data
-NG_SERIES_NAMES = {
-    "price": "Energy Prices : Electric Power : Natural Gas",
-    "demand_elec": "Energy Use : Electric Power : Natural Gas",
-    "demand_total": "Energy Use : Total : Natural Gas",
-}
 
 # Required output scenarios and their EIA API aliases
 NG_OUTPUT_SCENARIOS = {
@@ -128,26 +116,6 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-def setup_logging(level: str) -> None:
-    logging.basicConfig(
-        level=getattr(logging, level.upper()),
-        format="%(asctime)s | %(levelname)s | %(message)s",
-    )
-
-
-def require(condition: bool, message: str) -> None:
-    """Assert a condition with a descriptive error message."""
-    if not condition:
-        raise ValueError(message)
-
-
-def normalize_token(value: Any) -> str:
-    """Normalize a string for case-insensitive, whitespace-insensitive matching."""
-    if value is None:
-        return ""
-    return re.sub(r"[^a-z0-9]+", "", str(value).replace("\xa0", " ").strip().lower())
-
-
 def canonical_cendiv(value: Any) -> str:
     """Convert a region name to its canonical internal key."""
     key = normalize_token(value)
@@ -168,155 +136,6 @@ def output_label_to_cendiv(label: str) -> str:
         if normalize_token(output.replace("_", " ")) == norm:
             return cendiv
     return canonical_cendiv(label)
-
-
-def resolve_case_insensitive(path: Path) -> Path:
-    """Resolve a path with case-insensitive matching on each component."""
-    if path.exists():
-        return path
-    path = path.resolve()
-    current = Path(path.anchor)
-    for part in path.parts[1:]:
-        if not current.exists():
-            return path
-        try:
-            matches = [p for p in current.iterdir()
-                       if p.name.lower() == part.lower()]
-        except PermissionError:
-            return path
-        if not matches:
-            return path
-        current = matches[0]
-    return current
-
-
-def resolve_path(base_dir: Path, configured_path: str) -> Path:
-    """Resolve a configured path relative to the base directory."""
-    p = Path(configured_path)
-    if not p.is_absolute():
-        p = base_dir / p
-    return resolve_case_insensitive(p)
-
-
-def load_config(config_path: Path) -> dict[str, Any]:
-    """Load and validate the JSON configuration file."""
-    require(config_path.exists(), f"Config not found: {config_path}")
-    with config_path.open("r", encoding="utf-8") as f:
-        cfg = json.load(f)
-    require(isinstance(cfg, dict), f"Config root must be an object: {config_path}")
-    return cfg
-
-
-def resolve_api_key(config: dict[str, Any]) -> str:
-    """Resolve the EIA API key from environment, config, or legacy fallback."""
-    api_cfg = config["api"]
-    env_var = api_cfg.get("key_env_var", "EIA_API_KEY")
-    env_key = os.getenv(env_var, "").strip()
-    if env_key:
-        return env_key
-    fallback = api_cfg.get("key_fallback", "").strip()
-    if fallback:
-        LOGGER.warning("Using key_fallback from config.")
-        return fallback
-    try:
-        from _eia_api_functions import api_key as legacy_api_key  # type: ignore
-        if legacy_api_key:
-            LOGGER.warning("Using API key from _eia_api_functions.py fallback.")
-            return str(legacy_api_key)
-    except Exception:
-        pass
-    raise ValueError(f"Missing EIA API key. Set {env_var} or api.key_fallback.")
-
-
-# ============================================================================
-# EIA API Client
-# ============================================================================
-
-class EiaClient:
-    """Client for fetching data from the EIA AEO API with retry logic."""
-
-    def __init__(self, api_cfg: dict[str, Any], api_key: str):
-        self.base_url = api_cfg["base_url"].rstrip("/")
-        self.verify_ssl = bool(api_cfg.get("verify_ssl", True))
-        self.timeout = int(api_cfg.get("timeout_seconds", 60))
-        self.api_key = api_key
-        if not self.verify_ssl:
-            disable_warnings(InsecureRequestWarning)
-        retries = Retry(
-            total=int(api_cfg.get("max_retries", 4)),
-            connect=int(api_cfg.get("max_retries", 4)),
-            read=int(api_cfg.get("max_retries", 4)),
-            status=int(api_cfg.get("max_retries", 4)),
-            backoff_factor=float(api_cfg.get("backoff_seconds", 1.0)),
-            status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["GET"],
-            raise_on_status=False,
-        )
-        self.session = requests.Session()
-        adapter = HTTPAdapter(max_retries=retries)
-        self.session.mount("https://", adapter)
-        self.session.mount("http://", adapter)
-
-    def get_json(self, path: str,
-                 params: list[tuple[str, str]] | None = None) -> dict[str, Any]:
-        full_path = path if path.startswith("/") else f"/{path}"
-        query = [("api_key", self.api_key)]
-        if params:
-            query.extend(params)
-        resp = self.session.get(
-            f"{self.base_url}{full_path}",
-            params=query,
-            timeout=self.timeout,
-            verify=self.verify_ssl,
-        )
-        resp.raise_for_status()
-        payload = resp.json()
-        require("response" in payload,
-                f"Unexpected payload from {path}: {payload}")
-        return payload
-
-    def get_facets(self, aeo_year: int, facet: str) -> list[dict[str, Any]]:
-        return self.get_json(
-            f"/aeo/{aeo_year}/facet/{facet}")["response"]["facets"]
-
-    def get_data(self, path: str,
-                 params: list[tuple[str, str]]) -> pd.DataFrame:
-        payload = self.get_json(path, params)
-        warnings = payload["response"].get("warnings", [])
-        for w in warnings:
-            LOGGER.warning("EIA warning: %s | %s",
-                           w.get("warning"), w.get("description"))
-        data = payload["response"].get("data", [])
-        require(data, f"No data from endpoint {path}")
-        return pd.DataFrame(data)
-
-
-# ============================================================================
-# EIA API Resolution Helpers
-# ============================================================================
-
-def resolve_region_ids(client: EiaClient, aeo_year: int,
-                       regions: list[str]) -> dict[str, str]:
-    """Map region display names to EIA region IDs."""
-    facets = client.get_facets(aeo_year, "regionId")
-    region_map = {normalize_token(item["name"]): str(item["id"])
-                  for item in facets}
-    out: dict[str, str] = {}
-    for name in regions:
-        key = normalize_token(name)
-        require(key in region_map, f"Region not found in EIA facets: {name}")
-        out[name] = region_map[key]
-    return out
-
-
-def resolve_series_ids(client: EiaClient, aeo_year: int,
-                       series_name: str) -> list[str]:
-    """Find EIA series IDs matching a given series name."""
-    facets = client.get_facets(aeo_year, "seriesId")
-    ids = [str(item["id"]) for item in facets
-           if normalize_token(item.get("name")) == normalize_token(series_name)]
-    require(ids, f"Series not found: {series_name}")
-    return ids
 
 
 def resolve_ng_scenarios(
@@ -1243,14 +1062,7 @@ def main() -> int:
     setup_logging(args.log_level)
 
     script_dir = Path(__file__).resolve().parent
-    cfg_path = Path(args.config)
-    if not cfg_path.is_absolute():
-        cwd_candidate = resolve_case_insensitive(
-            (Path.cwd() / cfg_path).resolve())
-        script_candidate = resolve_case_insensitive(
-            (script_dir / cfg_path).resolve())
-        cfg_path = (cwd_candidate if cwd_candidate.exists()
-                    else script_candidate)
+    cfg_path = resolve_config_path(args.config, script_dir)
 
     cfg = load_config(cfg_path)
     if args.aeo_year is not None:
