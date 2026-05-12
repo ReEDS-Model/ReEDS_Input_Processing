@@ -16,7 +16,7 @@ outputs of alpha regression/raw_aeo_data/
 # Beta regression outputs (all generated, reproducible)
 outputs of beta regression/*.csv
 outputs of beta regression/raw_aeo_data/
-outputs of beta regression/bata raw data visualization/
+outputs of beta regression/beta raw data visualization/
 outputs of beta regression/alpha from beta regression/
 
 # Intermediate beta inputs (copied by sync_beta_to_alpha_inputs.py, not source data)
