@@ -55,17 +55,8 @@ CENDIV_CANONICAL = {
     "pacific": "Pacific",
 }
 
-CENDIV_OUTPUT = {
-    "NewEngland": "New_England",
-    "MiddleAtlantic": "Mid_Atlantic",
-    "EastNorthCentral": "East_North_Central",
-    "WestNorthCentral": "West_North_Central",
-    "SouthAtlantic": "South_Atlantic",
-    "EastSouthCentral": "East_South_Central",
-    "WestSouthCentral": "West_South_Central",
-    "Mountain": "Mountain",
-    "Pacific": "Pacific",
-}
+# Populated at runtime from config["ng"]["cendiv_and_label"] by main().
+CENDIV_OUTPUT: dict[str, str] = {}
 
 SCENARIO_COLOR = {
     "reference": "#1f77b4",
@@ -139,7 +130,7 @@ def load_config(config_path: Path) -> dict[str, Any]:
 
 
 def region_order_from_config(config: dict[str, Any]) -> list[str]:
-    configured = config["ng"]["regions"]
+    configured = list(config["ng"]["cendiv_and_label"].keys())
     return [cendiv_output_label(any_to_cendiv(x)) for x in configured]
 
 
@@ -1137,6 +1128,12 @@ def main() -> int:
 
     config = load_config(cfg_path)
     base_dir = cfg_path.parent
+
+    # Load shared region mapping from config
+    global CENDIV_OUTPUT
+    CENDIV_OUTPUT = {
+        k.replace(" ", ""): v for k, v in config["ng"]["cendiv_and_label"].items()
+    }
 
     beta_out_dir = resolve_path(base_dir, args.beta_output_dir)
     alpha_out_dir = resolve_path(base_dir,

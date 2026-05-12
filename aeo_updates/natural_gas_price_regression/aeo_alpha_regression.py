@@ -94,18 +94,9 @@ CENDIV_CANONICAL = {
     "unitedstates": "UnitedStates",
 }
 
-# Mapping from internal keys to ReEDS output format (underscore-separated)
-CENDIV_OUTPUT = {
-    "NewEngland": "New_England",
-    "MiddleAtlantic": "Mid_Atlantic",
-    "EastNorthCentral": "East_North_Central",
-    "WestNorthCentral": "West_North_Central",
-    "SouthAtlantic": "South_Atlantic",
-    "EastSouthCentral": "East_South_Central",
-    "WestSouthCentral": "West_South_Central",
-    "Mountain": "Mountain",
-    "Pacific": "Pacific",
-}
+# Mapping from internal keys to ReEDS output format (underscore-separated).
+# Populated at runtime from config["ng"]["cendiv_and_label"] by run_ng_pipeline().
+CENDIV_OUTPUT: dict[str, str] = {}
 
 # EIA AEO series names for NG data
 NG_SERIES_NAMES = {
@@ -489,7 +480,7 @@ def resolve_output_scenarios(
 
 def resolve_ng_region_order(config: dict[str, Any]) -> list[str]:
     """Get the ordered list of census divisions from the config."""
-    configured = config["ng"]["regions"]
+    configured = list(config["ng"]["cendiv_and_label"].keys())
     order = [output_label_to_cendiv(x) for x in configured]
     require(len(order) == len(set(order)), "NG regions contains duplicates.")
     return order
@@ -978,6 +969,13 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
     client = EiaClient(config["api"], api_key)
 
     ng_cfg = config["ng"]
+
+    # Load shared region mapping from config
+    global CENDIV_OUTPUT
+    CENDIV_OUTPUT = {
+        k.replace(" ", ""): v for k, v in ng_cfg["cendiv_and_label"].items()
+    }
+
     aeo_year = int(config["aeo_year"])
     start_year = int(config["start_year"])
     end_year = int(config["end_year"])
@@ -1026,7 +1024,7 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
     output_scenarios.to_csv(raw_dir / "selected_scenarios_outputs.csv", index=False)
     scenario_ids = all_scenarios["scenario_id"].tolist()
     region_ids = list(
-        resolve_region_ids(client, aeo_year, ng_cfg["regions"]).values()
+        resolve_region_ids(client, aeo_year, list(ng_cfg["cendiv_and_label"].keys())).values()
     )
     pd.DataFrame(client.get_facets(aeo_year, "regionId")).to_csv(
         raw_dir / "region_facets.csv", index=False

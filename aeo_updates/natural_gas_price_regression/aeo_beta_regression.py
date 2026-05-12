@@ -68,17 +68,8 @@ LOGGER = logging.getLogger("beta_regression")
 # Constants
 # ============================================================================
 
-REGION_TO_LABEL = {
-    "New England": "New_England",
-    "Middle Atlantic": "Mid_Atlantic",
-    "East North Central": "East_North_Central",
-    "West North Central": "West_North_Central",
-    "South Atlantic": "South_Atlantic",
-    "East South Central": "East_South_Central",
-    "West South Central": "West_South_Central",
-    "Mountain": "Mountain",
-    "Pacific": "Pacific",
-}
+# Populated at runtime from config["ng"]["cendiv_and_label"] by run().
+REGION_TO_LABEL: dict[str, str] = {}
 
 NG_SERIES_NAMES = {
     "price": "Energy Prices : Electric Power : Natural Gas",
@@ -542,9 +533,14 @@ def run(config: dict[str, Any], base_dir: Path) -> None:
     run joint beta regression, and write all outputs.
     """
     ng_cfg = config["ng"]
+
+    # Load shared region mapping from config
+    global REGION_TO_LABEL
+    REGION_TO_LABEL = ng_cfg["cendiv_and_label"]
+
     aeo_year = int(config["aeo_year"])
     deflator = float(ng_cfg["price_deflator_to_2004"])
-    regions_config = ng_cfg["regions"]
+    regions_config = list(ng_cfg["cendiv_and_label"].keys())
     regions = [REGION_TO_LABEL[r] for r in regions_config]
 
     # API key
