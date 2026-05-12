@@ -283,3 +283,33 @@ def resolve_series_ids(client: EiaClient, aeo_year: int,
            if normalize_token(item.get("name")) == normalize_token(series_name)]
     require(bool(ids), f"Series not found: {series_name}")
     return ids
+
+
+# ============================================================================
+# AEO scenario discovery
+# ============================================================================
+
+def list_aeo_scenarios(client: EiaClient, aeo_year: int) -> list[dict[str, str]]:
+    """Return [{scenario_id, scenario_name}, ...] for an AEO year, dropping
+    legacy composite IDs (e.g. 'aeo2023ref') and blanks."""
+    rows: list[dict[str, str]] = []
+    for item in client.get_facets(aeo_year, "scenario"):
+        sid = str(item.get("id", "")).strip()
+        sname = str(item.get("name", "")).strip()
+        if not sid or normalize_token(sid).startswith("aeo"):
+            continue
+        rows.append({"scenario_id": sid, "scenario_name": sname})
+    require(bool(rows), "No AEO scenarios available after filtering legacy IDs.")
+    return rows
+
+
+def match_scenario(rows: list[dict[str, str]], alias: str, aeo_year: int) -> dict[str, str] | None:
+    """Match an alias (e.g. 'ref{aeo_year}', 'highogs', 'High Oil and Gas Supply')
+    to a scenario row by id or name (case/whitespace-insensitive). Returns None if no match.
+    """
+    token = normalize_token(str(alias).replace("{aeo_year}", str(aeo_year)))
+    for row in rows:
+        if (normalize_token(row["scenario_id"]) == token
+                or normalize_token(row["scenario_name"]) == token):
+            return row
+    return None

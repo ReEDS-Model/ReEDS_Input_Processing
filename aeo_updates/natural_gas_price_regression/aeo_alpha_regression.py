@@ -73,7 +73,9 @@ from aeo_functions import (
     EiaClient,
     cfg_list,
     cfg_section,
+    list_aeo_scenarios,
     load_config,
+    match_scenario,
     normalize_token,
     require,
     resolve_api_key,
@@ -151,55 +153,28 @@ def resolve_ng_scenarios(
     If include_scenarios is provided, only those scenarios are kept
     (matching by scenario id or scenario name, case-insensitive).
     """
-    facets = client.get_facets(aeo_year, "scenario")
-    rows: list[dict[str, str]] = []
-    for item in facets:
-        scenario_id = str(item.get("id", "")).strip()
-        scenario_name = str(item.get("name", "")).strip()
-        if not scenario_id:
-            continue
-        # Skip legacy composite IDs (e.g., "aeo2023ref")
-        if normalize_token(scenario_id).startswith("aeo"):
-            continue
-        rows.append({"scenario_id": scenario_id,
-                     "scenario_name": scenario_name})
-    require(rows, "No NG scenarios left after filtering legacy IDs.")
+    rows = list_aeo_scenarios(client, aeo_year)
 
     if include_scenarios:
         picked: list[dict[str, str]] = []
         missing: list[str] = []
+        seen_ids: set[str] = set()
         for raw in include_scenarios:
-            token = normalize_token(str(raw).replace("{aeo_year}", str(aeo_year)))
-            found = None
-            for row in rows:
-                sid = str(row["scenario_id"])
-                sname = str(row["scenario_name"])
-                if normalize_token(sid) == token or normalize_token(sname) == token:
-                    found = row
-                    break
+            found = match_scenario(rows, raw, aeo_year)
             if found is None:
                 missing.append(str(raw))
-                continue
-            if all(str(r["scenario_id"]) != str(found["scenario_id"]) for r in picked):
+            elif found["scenario_id"] not in seen_ids:
                 picked.append(found)
-        require(
-            not missing,
-            f"Configured alpha_regression.fetch scenarios not found: {missing}",
-        )
-        out = pd.DataFrame(picked)
-        LOGGER.info(
-            "Selected NG scenarios from config (%d): %s",
-            len(out),
-            out["scenario_id"].tolist(),
-        )
-        return out.reset_index(drop=True)
+                seen_ids.add(found["scenario_id"])
+        require(not missing,
+                f"Configured alpha_regression.fetch scenarios not found: {missing}")
+        out = pd.DataFrame(picked).reset_index(drop=True)
+    else:
+        out = (pd.DataFrame(rows)
+               .drop_duplicates(subset=["scenario_id"])
+               .sort_values("scenario_id")
+               .reset_index(drop=True))
 
-    out = (
-        pd.DataFrame(rows)
-        .drop_duplicates(subset=["scenario_id"])
-        .sort_values("scenario_id")
-        .reset_index(drop=True)
-    )
     LOGGER.info("Selected NG scenarios (%d): %s", len(out), out["scenario_id"].tolist())
     return out
 
@@ -208,56 +183,27 @@ def resolve_output_scenario_aliases(
     aeo_year: int,
     configured_outputs: Any,
 ) -> dict[str, list[str]]:
-    """Build output scenario alias map from config, with defaults."""
+    """Build output scenario alias map from config (defaults to NG_OUTPUT_SCENARIOS)."""
     if configured_outputs is None:
         raw_map: dict[str, list[str]] = NG_OUTPUT_SCENARIOS
-    elif isinstance(configured_outputs, dict):
+    else:
+        require(isinstance(configured_outputs, dict),
+                "alpha_regression.outputs must be an object mapping suffix -> list of aliases.")
         raw_map = {}
         for suffix, aliases in configured_outputs.items():
-            require(
-                isinstance(aliases, list),
-                f"alpha_regression.outputs['{suffix}'] must be a list.",
-            )
+            require(isinstance(aliases, list),
+                    f"alpha_regression.outputs['{suffix}'] must be a list.")
             raw_map[str(suffix)] = [str(a) for a in aliases]
-    elif isinstance(configured_outputs, list):
-        raw_map = {}
-        for row in configured_outputs:
-            require(
-                isinstance(row, dict),
-                "alpha_regression.outputs list entries must be objects.",
-            )
-            suffix = str(row.get("file_suffix", "")).strip()
-            require(suffix, "alpha_regression.outputs entry missing file_suffix.")
-            aliases = row.get("aliases", [])
-            require(
-                isinstance(aliases, list),
-                f"alpha_regression.outputs entry '{suffix}' aliases must be a list.",
-            )
-            vals = [str(a).strip() for a in aliases if str(a).strip()]
-            scenario_id = str(row.get("scenario_id", "")).strip()
-            if scenario_id:
-                vals.insert(0, scenario_id)
-            require(vals, f"alpha_regression.outputs entry '{suffix}' has no aliases.")
-            raw_map[suffix] = vals
-    else:
-        raise ValueError(
-            "alpha_regression.outputs must be either an object or a list of objects."
-        )
 
     out: dict[str, list[str]] = {}
     for suffix, aliases in raw_map.items():
         suffix_txt = str(suffix).strip()
         require(suffix_txt, "alpha_regression.outputs contains an empty file_suffix.")
-        clean_aliases = [str(a).strip() for a in aliases if str(a).strip()]
-        require(clean_aliases, f"alpha_regression.outputs['{suffix_txt}'] has no aliases.")
-        # Keep original strings for logs and output; matching happens via normalize_token.
-        out[suffix_txt] = clean_aliases
+        clean = [str(a).strip() for a in aliases if str(a).strip()]
+        require(clean, f"alpha_regression.outputs['{suffix_txt}'] has no aliases.")
+        out[suffix_txt] = clean
     require(out, "alpha_regression.outputs resolved to an empty mapping.")
-    LOGGER.info(
-        "Configured alpha output scenario map for AEO %d: %s",
-        aeo_year,
-        {k: v for k, v in out.items()},
-    )
+    LOGGER.info("Configured alpha output scenario map for AEO %d: %s", aeo_year, out)
     return out
 
 
@@ -269,31 +215,23 @@ def resolve_output_scenarios(
     """Match available scenarios to configured output scenario aliases."""
     require(not available_scenarios.empty,
             "No available scenarios to resolve NG output scenarios.")
-    rows: list[dict[str, str]] = []
+    rows_dict = available_scenarios.to_dict(orient="records")
+    matched: list[dict[str, str]] = []
     for suffix, aliases in output_aliases.items():
-        alias_tokens = {normalize_token(a.replace("{aeo_year}", str(aeo_year)))
-                        for a in aliases}
-        found_row = None
-        for row in available_scenarios.itertuples(index=False):
-            sid = str(row.scenario_id)
-            sname = str(row.scenario_name)
-            if (normalize_token(sid) in alias_tokens
-                    or normalize_token(sname) in alias_tokens):
-                found_row = row
-                break
-        require(found_row is not None,
+        found = next((r for alias in aliases
+                      if (r := match_scenario(rows_dict, alias, aeo_year)) is not None),
+                     None)
+        require(found is not None,
                 f"Could not resolve required NG output scenario: '{suffix}'")
-        rows.append({
-            "scenario_id": str(found_row.scenario_id),
-            "scenario_name": str(found_row.scenario_name),
+        matched.append({
+            "scenario_id": str(found["scenario_id"]),
+            "scenario_name": str(found["scenario_name"]),
             "file_suffix": str(suffix),
         })
-    out = pd.DataFrame(rows).reset_index(drop=True)
-    require(
-        out["scenario_id"].nunique() == len(out),
-        "alpha_regression.outputs resolved to duplicate scenario_id values. "
-        "Use distinct output scenarios.",
-    )
+    out = pd.DataFrame(matched).reset_index(drop=True)
+    require(out["scenario_id"].nunique() == len(out),
+            "alpha_regression.outputs resolved to duplicate scenario_id values. "
+            "Use distinct output scenarios.")
     LOGGER.info("Resolved NG output scenarios: %s",
                 out[["scenario_id", "file_suffix"]].to_dict(orient="records"))
     return out
@@ -560,27 +498,30 @@ def load_regional_betas(beta_path: Path,
     representing the price sensitivity to regional electric sector demand:
         Beta_regional(r) in units of 2004$/MMBtu per Quad
     """
-    require(beta_path.exists(),
-            f"Regional beta file not found: {beta_path}")
+    require(beta_path.exists(), f"Regional beta file not found: {beta_path}")
     df = pd.read_csv(beta_path)
-    cendiv_col = next(
-        (c for c in df.columns if normalize_token(c).endswith("cendiv")),
-        None,
-    )
-    value_col = next(
-        (c for c in df.columns if normalize_token(c) == "value"),
-        None,
-    )
+    cendiv_col = next((c for c in df.columns if normalize_token(c).endswith("cendiv")), None)
+    value_col = next((c for c in df.columns if normalize_token(c) == "value"), None)
     require(cendiv_col is not None and value_col is not None,
             "Regional beta file missing cendiv/value columns.")
+    df = df[[cendiv_col, value_col]].copy()
     df["cendiv"] = df[cendiv_col].map(output_label_to_cendiv)
     df["value"] = pd.to_numeric(df[value_col], errors="coerce")
-    df = df.dropna(subset=["cendiv", "value"]).copy()
-    betas = {row.cendiv: float(row.value)
-             for row in df[["cendiv", "value"]].itertuples(index=False)}
+    df = df.dropna(subset=["cendiv", "value"])
+    betas = dict(zip(df["cendiv"], df["value"].astype(float)))
     missing = [c for c in region_order if c not in betas]
     require(not missing, f"Regional beta file missing regions: {missing}")
     return betas
+
+
+def load_national_beta(beta_path: Path) -> float:
+    """Load the national beta value from national_beta.csv."""
+    require(beta_path.exists(), f"National beta file not found: {beta_path}")
+    df = pd.read_csv(beta_path)
+    require("beta" in df.columns, f"National beta file missing 'beta' column: {beta_path}")
+    vals = pd.to_numeric(df["beta"], errors="coerce").dropna()
+    require(not vals.empty, f"National beta file has no numeric beta value: {beta_path}")
+    return float(vals.iloc[0])
 
 
 # ============================================================================
@@ -714,33 +655,25 @@ def write_ng_outputs(
     written_files: list[Path] = []
 
     # --- Per-scenario output files ---
+    output_specs = [
+        ("ng_AEO",            price_raw,    "ng_price",            None),
+        ("ng_demand_AEO",     demand_elec,  "demand_elec_quads",   None),
+        ("ng_tot_demand_AEO", demand_total, "demand_total_quads",  None),
+        ("alpha_AEO",         alpha_2004,   "alpha_2004",          {"year": "t"}),
+    ]
     for row in scenario_table.itertuples(index=False):
         scenario_id = str(row.scenario_id)
         file_suffix = getattr(row, "file_suffix", None)
         require(bool(file_suffix),
                 f"Missing output suffix for NG scenario '{scenario_id}'")
         suffix = str(file_suffix)
-
-        price_wide = pivot_ng_series(
-            price_raw, scenario_id, "ng_price", region_order)
-        elec_wide = pivot_ng_series(
-            demand_elec, scenario_id, "demand_elec_quads", region_order)
-        total_wide = pivot_ng_series(
-            demand_total, scenario_id, "demand_total_quads", region_order)
-        alpha_wide = pivot_ng_series(
-            alpha_2004, scenario_id, "alpha_2004", region_order
-        ).rename(columns={"year": "t"})
-
-        fn_price = out_dir / f"ng_AEO_{aeo_year}_{suffix}.csv"
-        fn_elec = out_dir / f"ng_demand_AEO_{aeo_year}_{suffix}.csv"
-        fn_total = out_dir / f"ng_tot_demand_AEO_{aeo_year}_{suffix}.csv"
-        fn_alpha = out_dir / f"alpha_AEO_{aeo_year}_{suffix}.csv"
-
-        price_wide.to_csv(fn_price, index=False, float_format="%.6f")
-        elec_wide.to_csv(fn_elec, index=False, float_format="%.6f")
-        total_wide.to_csv(fn_total, index=False, float_format="%.6f")
-        alpha_wide.to_csv(fn_alpha, index=False, float_format="%.6f")
-        written_files.extend([fn_price, fn_elec, fn_total, fn_alpha])
+        for stem, frame, value_col, rename in output_specs:
+            wide = pivot_ng_series(frame, scenario_id, value_col, region_order)
+            if rename:
+                wide = wide.rename(columns=rename)
+            path = out_dir / f"{stem}_{aeo_year}_{suffix}.csv"
+            wide.to_csv(path, index=False, float_format="%.6f")
+            written_files.append(path)
 
     # --- Beta output files (copy from input) ---
     input_dir = resolve_path(
@@ -915,18 +848,11 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
         len(output_scenarios) == len(output_aliases),
         "One or more required output scenarios were dropped by coverage filtering.",
     )
-    validate_ng_coverage(
-        price_raw, scenario_ids, region_order,
-        validation_start_year, end_year, "NG price",
-    )
-    validate_ng_coverage(
-        demand_elec, scenario_ids, region_order,
-        validation_start_year, end_year, "NG electric demand",
-    )
-    validate_ng_coverage(
-        demand_total, scenario_ids, region_order,
-        validation_start_year, end_year, "NG total demand",
-    )
+    for label, frame in [("NG price", price_raw),
+                         ("NG electric demand", demand_elec),
+                         ("NG total demand", demand_total)]:
+        validate_ng_coverage(frame, scenario_ids, region_order,
+                             validation_start_year, end_year, label)
 
     # ---- Step 5: Convert prices to 2004$ ----
     LOGGER.info("Step 5: Converting prices to 2004$ (deflator=%.6f)...",
@@ -944,25 +870,10 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
     beta_path = resolve_case_insensitive(input_dir / "cd_beta0.csv")
     beta_regional = load_regional_betas(beta_path, region_order)
     national_beta_path = resolve_case_insensitive(input_dir / "national_beta.csv")
-    require(
-        national_beta_path.exists(),
-        f"National beta file not found: {national_beta_path}",
-    )
-    national_beta_df = pd.read_csv(national_beta_path)
-    require(
-        "beta" in national_beta_df.columns,
-        f"National beta file missing 'beta' column: {national_beta_path}",
-    )
-    beta_vals = pd.to_numeric(national_beta_df["beta"], errors="coerce").dropna()
-    require(
-        not beta_vals.empty,
-        f"National beta file has no numeric beta value: {national_beta_path}",
-    )
-    beta_national = float(beta_vals.iloc[0])
+    beta_national = load_national_beta(national_beta_path)
     LOGGER.info(
         "  Beta_national = %.10f (2004$/MMBtu per Quad, source=%s)",
-        beta_national,
-        national_beta_path,
+        beta_national, national_beta_path,
     )
     LOGGER.info(
         "  Beta_regional: %s",

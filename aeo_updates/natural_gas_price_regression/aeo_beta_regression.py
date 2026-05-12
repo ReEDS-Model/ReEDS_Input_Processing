@@ -59,6 +59,8 @@ from aeo_functions import (
     EiaClient,
     cfg_list,
     cfg_section,
+    list_aeo_scenarios,
+    match_scenario,
     normalize_token,
     resolve_api_key,
     resolve_config_path,
@@ -129,76 +131,41 @@ def discover_regression_scenarios(
 
     If include_scenarios is provided, only those scenarios are used
     (matching by scenario id or scenario name, case-insensitive).
-    Otherwise, all non-legacy scenarios are used except exclude_aliases.
+    Otherwise, all non-legacy scenarios are used.
+    Then exclude_aliases are removed (matching by id or name).
     """
-    facets = client.get_facets(aeo_year, "scenario")
-    rows: list[dict[str, str]] = []
-    for item in facets:
-        sid = str(item.get("id", "")).strip()
-        sname = str(item.get("name", "")).strip()
-        if not sid or _norm(sid).startswith("aeo"):
-            continue
-        rows.append({"scenario_id": sid, "scenario_name": sname})
+    rows = list_aeo_scenarios(client, aeo_year)
+    excluded_tokens = {_norm(x) for x in (exclude_aliases or [])}
+
+    def is_excluded(row: dict[str, str]) -> bool:
+        return (_norm(row["scenario_id"]) in excluded_tokens
+                or _norm(row["scenario_name"]) in excluded_tokens)
 
     if include_scenarios:
         selected: list[str] = []
         missing: list[str] = []
+        seen: set[str] = set()
         for raw in include_scenarios:
-            token = _norm(str(raw).replace("{aeo_year}", str(aeo_year)))
-            found = None
-            for row in rows:
-                sid = str(row["scenario_id"])
-                sname = str(row["scenario_name"])
-                if _norm(sid) == token or _norm(sname) == token:
-                    found = sid
-                    break
+            found = match_scenario(rows, raw, aeo_year)
             if found is None:
                 missing.append(str(raw))
-                continue
-            if found not in selected:
-                selected.append(found)
+            elif found["scenario_id"] not in seen and not is_excluded(found):
+                selected.append(found["scenario_id"])
+                seen.add(found["scenario_id"])
         if missing:
             raise ValueError(
                 f"Configured beta_regression.include scenarios not found: {missing}"
             )
         LOGGER.info("Regression scenarios from config (%d): %s", len(selected), selected)
-        if exclude_aliases:
-            excluded_tokens = {_norm(x) for x in exclude_aliases}
-            before = selected[:]
-            selected = [
-                s for s in selected
-                if _norm(s) not in excluded_tokens
-                and not any(
-                    _norm(r["scenario_name"]) in excluded_tokens
-                    for r in rows if str(r["scenario_id"]) == s
-                )
-            ]
-            removed = set(before) - set(selected)
-            if removed:
-                LOGGER.info("Excluded from include list: %s", sorted(removed))
-        if len(selected) < 3:
-            LOGGER.warning(
-                "Only %d scenarios in beta_regression.include - regression may be unreliable.",
-                len(selected),
-            )
-        return selected
+    else:
+        selected = [r["scenario_id"] for r in rows if not is_excluded(r)]
+        excluded = [f"{r['scenario_id']} ({r['scenario_name']})" for r in rows if is_excluded(r)]
+        LOGGER.info("Regression scenarios (%d): %s", len(selected), selected)
+        if excluded:
+            LOGGER.info("Excluded scenarios: %s", excluded)
 
-    excluded_tokens = {_norm(x) for x in (exclude_aliases or [])}
-    selected: list[str] = []
-    excluded: list[str] = []
-    for row in rows:
-        sid = str(row["scenario_id"])
-        sname = str(row["scenario_name"])
-        if _norm(sid) in excluded_tokens or _norm(sname) in excluded_tokens:
-            excluded.append(f"{sid} ({sname})")
-            continue
-        selected.append(sid)
-    LOGGER.info("Regression scenarios (%d): %s", len(selected), selected)
-    if excluded:
-        LOGGER.info("Excluded scenarios: %s", excluded)
     if len(selected) < 3:
-        LOGGER.warning("Only %d scenarios - regression may be unreliable.",
-                       len(selected))
+        LOGGER.warning("Only %d scenarios - regression may be unreliable.", len(selected))
     return selected
 
 
@@ -501,7 +468,7 @@ def run(config: dict[str, Any], base_dir: Path) -> None:
     aeo_year = int(config["aeo_year"])
     deflator = float(ng_cfg["price_deflator_to_2004"])
     regions_config = list(ng_cfg["cendiv_and_label"].keys())
-    regions = [REGION_TO_LABEL[r] for r in regions_config]
+    regions = list(REGION_TO_LABEL.values())
 
     # API key
     api_key = resolve_api_key(config)
@@ -511,16 +478,16 @@ def run(config: dict[str, Any], base_dir: Path) -> None:
     include_scenarios = [str(x).strip() for x in cfg_list(beta_scen_cfg, "include") if str(x).strip()]
     exclude_aliases = [str(x).strip() for x in beta_scen_cfg.get("exclude_aliases", [])]
 
-    _sy = beta_scen_cfg.get("start_year")
-    _ey = beta_scen_cfg.get("end_year")
-    beta_start_year = int(_sy) if _sy is not None else None
-    beta_end_year = int(_ey) if _ey is not None else None
-    if (beta_start_year is None) != (beta_end_year is None):
+    sy = beta_scen_cfg.get("start_year")
+    ey = beta_scen_cfg.get("end_year")
+    if (sy is None) != (ey is None):
         raise ValueError(
-            "Config keys 'scenarios.beta_regression.start_year' and "
-            "'scenarios.beta_regression.end_year' must be provided together."
+            "Config keys 'scenarios.beta_regression.start_year' and 'end_year' "
+            "must be provided together."
         )
-    if beta_start_year is not None and beta_end_year is not None:
+    beta_start_year = int(sy) if sy is not None else None
+    beta_end_year = int(ey) if ey is not None else None
+    if beta_start_year is not None:
         if beta_start_year > beta_end_year:
             raise ValueError(
                 "Config key 'scenarios.beta_regression': start_year cannot be greater than end_year."
@@ -554,34 +521,24 @@ def run(config: dict[str, Any], base_dir: Path) -> None:
 
     # Step 2: Fetch data
     LOGGER.info("Step 2: Fetching price and demand data...")
-    price_raw = fetch_series(
-        client, aeo_year, NG_SERIES_NAMES["price"],
-        scenario_ids, region_ids, "price",
-        raw_output_path=raw_dir / "raw_ng_price.csv",
-        start_year=beta_start_year,
-        end_year=beta_end_year,
-    )
-    demand_raw = fetch_series(
-        client, aeo_year, NG_SERIES_NAMES["demand_elec"],
-        scenario_ids, region_ids, "demand",
-        raw_output_path=raw_dir / "raw_ng_demand_elec.csv",
-        start_year=beta_start_year,
-        end_year=beta_end_year,
-    )
-    if price_raw.empty or demand_raw.empty:
-        raise ValueError(
-            "No data available for configured beta regression year range."
+    fetched: dict[str, pd.DataFrame] = {}
+    for series_key, value_col, raw_filename in [
+        ("price",       "price",  "raw_ng_price.csv"),
+        ("demand_elec", "demand", "raw_ng_demand_elec.csv"),
+    ]:
+        fetched[series_key] = fetch_series(
+            client, aeo_year, NG_SERIES_NAMES[series_key],
+            scenario_ids, region_ids, value_col,
+            raw_output_path=raw_dir / raw_filename,
+            start_year=beta_start_year, end_year=beta_end_year,
         )
-    LOGGER.info(
-        "Price years used: %s-%s",
-        int(price_raw["year"].min()),
-        int(price_raw["year"].max()),
-    )
-    LOGGER.info(
-        "Demand years used: %s-%s",
-        int(demand_raw["year"].min()),
-        int(demand_raw["year"].max()),
-    )
+    price_raw = fetched["price"]
+    demand_raw = fetched["demand_elec"]
+    if price_raw.empty or demand_raw.empty:
+        raise ValueError("No data available for configured beta regression year range.")
+    for label, frame in [("Price", price_raw), ("Demand", demand_raw)]:
+        LOGGER.info("%s years used: %s-%s", label,
+                    int(frame["year"].min()), int(frame["year"].max()))
 
     # Step 3: Estimate betas
     LOGGER.info("Step 3: Estimating betas (joint fixed-effects regression)...")
@@ -600,22 +557,23 @@ def run(config: dict[str, Any], base_dir: Path) -> None:
                  first_model_year=int(config["start_year"]))
 
     # Print summary
-    print("\n" + "=" * 60)
-    print("RESULTS")
-    print("=" * 60)
+    bar = "=" * 60
+    print(f"\n{bar}\nRESULTS\n{bar}")
     print(f"\nNational beta: {beta_nat:.15f}")
     print(f"Model R2:      {model_r2:.6f}")
-    print(f"\nRegional betas:")
+    print("\nRegional betas:")
     for region, beta in beta_reg.items():
-        diag = regional_diag.get(region, {})
-        print(f"  {region:25s}  {beta:.12f}  "
-              f"(partial R2={diag.get('r2_partial', float('nan')):.4f})")
+        r2 = regional_diag.get(region, {}).get("r2_partial", float("nan"))
+        print(f"  {region:25s}  {beta:.12f}  (partial R2={r2:.4f})")
     print(f"\nOutputs: {out_dir}")
     print("\nNext commands:")
-    print("  python sync_beta_to_alpha_inputs.py --config aeo_pipeline_config.json")
-    print("  python aeo_alpha_regression.py --config aeo_pipeline_config.json")
-    print("  python results_visualization.py --config aeo_pipeline_config.json")
-    print("=" * 60)
+    for cmd in [
+        "  python sync_beta_to_alpha_inputs.py --config aeo_pipeline_config.json",
+        "  python aeo_alpha_regression.py --config aeo_pipeline_config.json",
+        "  python results_visualization.py --config aeo_pipeline_config.json",
+    ]:
+        print(cmd)
+    print(bar)
 
 
 # ============================================================================

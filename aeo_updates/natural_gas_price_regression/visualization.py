@@ -317,18 +317,11 @@ def _coerce_numeric(df: pd.DataFrame, col: str) -> pd.DataFrame:
 
 def _load_beta_include_scenarios(config: dict[str, Any]) -> list[str]:
     aeo_year = config.get("aeo_year")
-    include = (config.get("scenarios", {})
-               .get("beta_regression", {})
-               .get("include", []))
+    include = (config.get("scenarios") or {}).get("beta_regression", {}).get("include", [])
     if not isinstance(include, list):
         raise ValueError("Expected list at scenarios.beta_regression.include")
-    resolved: list[str] = []
-    for item in include:
-        token = str(item)
-        if aeo_year is not None:
-            token = token.replace("{aeo_year}", str(aeo_year))
-        resolved.append(token)
-    return resolved
+    year_str = str(aeo_year) if aeo_year is not None else "{aeo_year}"
+    return [str(item).replace("{aeo_year}", year_str) for item in include]
 
 
 def _filter_to_beta_include(df: pd.DataFrame, include_tokens: list[str]) -> pd.DataFrame:
