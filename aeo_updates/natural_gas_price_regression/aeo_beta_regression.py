@@ -212,6 +212,20 @@ def discover_regression_scenarios(
                 f"Configured beta_regression.include scenarios not found: {missing}"
             )
         LOGGER.info("Regression scenarios from config (%d): %s", len(selected), selected)
+        if exclude_aliases:
+            excluded_tokens = {_norm(x) for x in exclude_aliases}
+            before = selected[:]
+            selected = [
+                s for s in selected
+                if _norm(s) not in excluded_tokens
+                and not any(
+                    _norm(r["scenario_name"]) in excluded_tokens
+                    for r in rows if str(r["scenario_id"]) == s
+                )
+            ]
+            removed = set(before) - set(selected)
+            if removed:
+                LOGGER.info("Excluded from include list: %s", sorted(removed))
         if len(selected) < 3:
             LOGGER.warning(
                 "Only %d scenarios in beta_regression.include - regression may be unreliable.",
