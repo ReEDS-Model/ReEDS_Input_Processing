@@ -71,6 +71,8 @@ from aeo_functions import (
     CENDIV_CANONICAL,
     NG_SERIES_NAMES,
     EiaClient,
+    cfg_list,
+    cfg_section,
     load_config,
     normalize_token,
     require,
@@ -445,15 +447,6 @@ def validate_ng_coverage(
 # Historical Data Handling
 # ============================================================================
 
-def resolve_history_file(input_dir: Path, stem: str,
-                         history_suffix: str) -> Path:
-    """Locate a historical data CSV file."""
-    file_path = input_dir / f"{stem}_{history_suffix}.csv"
-    require(file_path.exists(),
-            f"History source file not found: {file_path}")
-    return file_path
-
-
 def load_history_wide_file(
     file_path: Path,
     value_col: str,
@@ -804,21 +797,9 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
     raw_dir = out_dir / "raw_aeo_data"
     raw_dir.mkdir(parents=True, exist_ok=True)
 
-    scenarios_cfg = config.get("scenarios", {})
-    if scenarios_cfg is None:
-        scenarios_cfg = {}
-    require(isinstance(scenarios_cfg, dict), "Config key 'scenarios' must be an object.")
-    alpha_scen_cfg = scenarios_cfg.get("alpha_regression", {})
-    if alpha_scen_cfg is None:
-        alpha_scen_cfg = {}
-    require(isinstance(alpha_scen_cfg, dict), "Config key 'scenarios.alpha_regression' must be an object.")
-
-    fetch_cfg = alpha_scen_cfg.get("fetch")
-    require(
-        fetch_cfg is None or isinstance(fetch_cfg, list),
-        "Config key 'scenarios.alpha_regression.fetch' must be a list when provided.",
-    )
-    fetch_scenarios = [str(x).strip() for x in (fetch_cfg or []) if str(x).strip()]
+    scenarios_cfg = cfg_section(config, "scenarios")
+    alpha_scen_cfg = cfg_section(scenarios_cfg, "alpha_regression")
+    fetch_scenarios = [str(x).strip() for x in cfg_list(alpha_scen_cfg, "fetch") if str(x).strip()]
     output_aliases = resolve_output_scenario_aliases(
         aeo_year,
         alpha_scen_cfg.get("outputs"),
@@ -851,27 +832,21 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
 
     # ---- Step 2: Fetch price and demand data from EIA API ----
     LOGGER.info("Step 2: Fetching AEO data from EIA API...")
-    price_raw = fetch_aeo_series_by_scenario(
-        client, aeo_year,
-        NG_SERIES_NAMES["price"],
-        scenario_ids, region_ids,
-        "ng_price", start_year, end_year,
-        raw_output_path=raw_dir / "aeo_raw_ng_price.csv",
-    )
-    demand_elec = fetch_aeo_series_by_scenario(
-        client, aeo_year,
-        NG_SERIES_NAMES["demand_elec"],
-        scenario_ids, region_ids,
-        "demand_elec_quads", start_year, end_year,
-        raw_output_path=raw_dir / "aeo_raw_ng_demand_electric_power.csv",
-    )
-    demand_total = fetch_aeo_series_by_scenario(
-        client, aeo_year,
-        NG_SERIES_NAMES["demand_total"],
-        scenario_ids, region_ids,
-        "demand_total_quads", start_year, end_year,
-        raw_output_path=raw_dir / "aeo_raw_ng_demand_total.csv",
-    )
+    fetch_specs = [
+        ("price",        "ng_price",            "aeo_raw_ng_price.csv"),
+        ("demand_elec",  "demand_elec_quads",   "aeo_raw_ng_demand_electric_power.csv"),
+        ("demand_total", "demand_total_quads",  "aeo_raw_ng_demand_total.csv"),
+    ]
+    fetched: dict[str, pd.DataFrame] = {}
+    for series_key, value_col, raw_filename in fetch_specs:
+        fetched[series_key] = fetch_aeo_series_by_scenario(
+            client, aeo_year, NG_SERIES_NAMES[series_key],
+            scenario_ids, region_ids, value_col, start_year, end_year,
+            raw_output_path=raw_dir / raw_filename,
+        )
+    price_raw = fetched["price"]
+    demand_elec = fetched["demand_elec"]
+    demand_total = fetched["demand_total"]
 
     # ---- Step 3: Backfill historical data ----
     LOGGER.info("Step 3: Backfilling historical data...")
@@ -887,33 +862,21 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
             base_dir,
             config["paths"].get("input_dir", config["paths"]["output_dir"]),
         )
+        history_specs = [
+            ("ng_AEO",            "ng_price",           price_raw),
+            ("ng_demand_AEO",     "demand_elec_quads",  demand_elec),
+            ("ng_tot_demand_AEO", "demand_total_quads", demand_total),
+        ]
         try:
-            history_price = load_history_wide_file(
-                resolve_history_file(input_dir, "ng_AEO", HISTORY_SUFFIX),
-                "ng_price", region_order,
-            )
-            history_elec = load_history_wide_file(
-                resolve_history_file(
-                    input_dir, "ng_demand_AEO", HISTORY_SUFFIX),
-                "demand_elec_quads", region_order,
-            )
-            history_total = load_history_wide_file(
-                resolve_history_file(
-                    input_dir, "ng_tot_demand_AEO", HISTORY_SUFFIX),
-                "demand_total_quads", region_order,
-            )
-            price_raw = apply_reference_history_to_all_scenarios(
-                price_raw, "ng_price", history_price,
-                scenario_ids, projection_start_year,
-            )
-            demand_elec = apply_reference_history_to_all_scenarios(
-                demand_elec, "demand_elec_quads", history_elec,
-                scenario_ids, projection_start_year,
-            )
-            demand_total = apply_reference_history_to_all_scenarios(
-                demand_total, "demand_total_quads", history_total,
-                scenario_ids, projection_start_year,
-            )
+            backfilled: list[pd.DataFrame] = []
+            for stem, value_col, frame in history_specs:
+                hist_path = input_dir / f"{stem}_{HISTORY_SUFFIX}.csv"
+                require(hist_path.exists(), f"History source file not found: {hist_path}")
+                hist = load_history_wide_file(hist_path, value_col, region_order)
+                backfilled.append(apply_reference_history_to_all_scenarios(
+                    frame, value_col, hist, scenario_ids, projection_start_year,
+                ))
+            price_raw, demand_elec, demand_total = backfilled
             validation_start_year = start_year
             LOGGER.info(
                 "Backfilled %d-%d from historical files in %s.",

@@ -82,52 +82,24 @@ def cendiv_output_label(cendiv: str) -> str:
     return CENDIV_OUTPUT[cendiv]
 
 
+def _to_region_label(value: Any) -> str:
+    """Shorthand for cendiv_output_label(any_to_cendiv(value))."""
+    return cendiv_output_label(any_to_cendiv(value))
+
+
 def region_order_from_config(config: dict[str, Any]) -> list[str]:
-    configured = list(config["ng"]["cendiv_and_label"].keys())
-    return [cendiv_output_label(any_to_cendiv(x)) for x in configured]
+    return [_to_region_label(x) for x in config["ng"]["cendiv_and_label"].keys()]
 
 
-def zero_ng_betas_in_first_model_year(
-    frame: pd.DataFrame,
-    first_model_year: int,
-    beta_reg_col: str = "beta_reg",
-    beta_nat_col: str = "beta_nat",
-) -> None:
-    first_year_mask = frame["year"] == first_model_year
-    frame.loc[first_year_mask, beta_reg_col] = 0.0
-    frame.loc[first_year_mask, beta_nat_col] = 0.0
+def _zero_first_year(frame: pd.DataFrame, first_model_year: int, *cols: str) -> None:
+    """Zero out one or more columns where year == first_model_year (in-place)."""
+    mask = frame["year"] == first_model_year
+    for col in cols:
+        frame.loc[mask, col] = 0.0
 
 
-def zero_ng_terms_in_first_model_year(
-    frame: pd.DataFrame,
-    first_model_year: int,
-    regional_term_col: str = "term_reg",
-    national_term_col: str = "term_nat",
-) -> None:
-    first_year_mask = frame["year"] == first_model_year
-    frame.loc[first_year_mask, regional_term_col] = 0.0
-    frame.loc[first_year_mask, national_term_col] = 0.0
-
-
-def sanitize_file_component(value: str) -> str:
-    return re.sub(r"[^A-Za-z0-9_.-]+", "_", value)
-
-
-def compute_r2(actual: pd.Series | np.ndarray, predicted: pd.Series | np.ndarray) -> float:
-    a = np.asarray(actual, dtype=float)
-    p = np.asarray(predicted, dtype=float)
-    mask = np.isfinite(a) & np.isfinite(p)
-    if not np.any(mask):
-        return float("nan")
-    a, p = a[mask], p[mask]
-    ss_res = float(np.sum(np.square(a - p)))
-    ss_tot = float(np.sum(np.square(a - np.mean(a))))
-    if ss_tot <= 0:
-        return float("nan")
-    return 1.0 - (ss_res / ss_tot)
-
-
-def compute_fit_metrics(actual: pd.Series | np.ndarray, predicted: pd.Series | np.ndarray) -> dict[str, float]:
+def compute_fit_metrics(actual: pd.Series | np.ndarray,
+                        predicted: pd.Series | np.ndarray) -> dict[str, float]:
     a = np.asarray(actual, dtype=float)
     p = np.asarray(predicted, dtype=float)
     mask = np.isfinite(a) & np.isfinite(p)
@@ -136,12 +108,14 @@ def compute_fit_metrics(actual: pd.Series | np.ndarray, predicted: pd.Series | n
                 "max_abs": float("nan"), "r2": float("nan")}
     a, p = a[mask], p[mask]
     err = a - p
+    ss_tot = float(np.sum(np.square(a - np.mean(a))))
+    r2 = 1.0 - float(np.sum(np.square(err))) / ss_tot if ss_tot > 0 else float("nan")
     return {
         "n_obs": float(len(a)),
         "mae": float(np.mean(np.abs(err))),
         "rmse": float(np.sqrt(np.mean(np.square(err)))),
         "max_abs": float(np.max(np.abs(err))),
-        "r2": compute_r2(a, p),
+        "r2": r2,
     }
 
 
@@ -180,20 +154,15 @@ def summarize_fit(
 def load_regional_beta_from_csv(source_path: Path) -> dict[str, float]:
     require(source_path.exists(), f"Missing regional beta file: {source_path}")
     df = pd.read_csv(source_path)
-    cendiv_col = next(
-        (c for c in df.columns if normalize_token(c).endswith("cendiv")), None)
-    value_col = next(
-        (c for c in df.columns if normalize_token(c) == "value"), None)
+    cendiv_col = next((c for c in df.columns if normalize_token(c).endswith("cendiv")), None)
+    value_col = next((c for c in df.columns if normalize_token(c) == "value"), None)
     require(cendiv_col is not None and value_col is not None,
             f"Missing cendiv/value columns in {source_path}")
-    beta_map: dict[str, float] = {}
-    for raw_label, raw_beta in zip(df[cendiv_col], df[value_col]):
-        beta_val = pd.to_numeric([raw_beta], errors="coerce")[0]
-        if pd.isna(beta_val):
-            continue
-        region_label = cendiv_output_label(any_to_cendiv(str(raw_label)))
-        beta_map[region_label] = float(beta_val)
-    return beta_map
+    df = df[[cendiv_col, value_col]].copy()
+    df[value_col] = pd.to_numeric(df[value_col], errors="coerce")
+    df = df.dropna(subset=[value_col])
+    return {_to_region_label(str(r)): float(v)
+            for r, v in zip(df[cendiv_col], df[value_col])}
 
 
 def load_national_beta_from_csv(source_path: Path) -> float:
@@ -242,8 +211,7 @@ def load_alpha_from_beta_step(beta_out_dir: Path) -> tuple[pd.DataFrame, Path, l
         out = df[["region", "year", "alpha_2004"]].copy()
         merge_cols = ["region", "year"]
 
-    out["region"] = out["region"].astype(str).map(
-        lambda x: cendiv_output_label(any_to_cendiv(x)))
+    out["region"] = out["region"].astype(str).map(_to_region_label)
     out["year"] = pd.to_numeric(out["year"], errors="coerce")
     out["alpha_2004"] = pd.to_numeric(out["alpha_2004"], errors="coerce")
     require(not out["year"].isna().any(), f"Non-numeric year in {source_path}")
@@ -636,7 +604,7 @@ def generate_alpha_plots(
         merged["beta_reg"] = merged["region"].map(beta_regional)
         merged["term_reg"] = merged["beta_reg"] * merged["demand_elec_quads"]
         merged["term_nat"] = beta_national * merged["q_nat"]
-        zero_ng_terms_in_first_model_year(merged, first_model_year)
+        _zero_first_year(merged, first_model_year, "term_reg", "term_nat")
 
         ncols = 3
         nrows = int(np.ceil(len(region_order) / ncols))
@@ -670,7 +638,7 @@ def generate_alpha_plots(
         fig.suptitle(f"Price decomposition: {scenario_id}\n"
                      "Price = Alpha + Beta_reg*Q_reg + Beta_nat*Q_nat", fontsize=15)
         fig.tight_layout(rect=[0, 0.04, 1, 0.95])
-        safe_id = sanitize_file_component(scenario_id)
+        safe_id = re.sub(r"[^A-Za-z0-9_.-]+", "_", scenario_id)
         fig.savefig(plots_dir / f"alpha_price_decomposition_{safe_id}.png",
                     dpi=220, bbox_inches="tight")
         plt.close(fig)
@@ -717,7 +685,7 @@ def load_beta_regression_points(beta_out_dir: Path) -> tuple[pd.DataFrame, Path]
     require(not (need - set(df.columns)), f"Missing columns in {path}: {sorted(need - set(df.columns))}")
     out = df[list(need)].copy()
     out["scenario_id"] = out["scenario_id"].astype(str)
-    out["region"] = out["region"].astype(str).map(lambda x: cendiv_output_label(any_to_cendiv(x)))
+    out["region"] = out["region"].astype(str).map(_to_region_label)
     for c in ["year", "demand", "demand_nat", "price_2004", "dp", "dp_hat"]:
         out[c] = pd.to_numeric(out[c], errors="coerce")
     require(not out[["year", "demand", "demand_nat", "price_2004", "dp", "dp_hat"]].isna().any().any(),
@@ -747,7 +715,7 @@ def build_step1_beta_validation_frame(
     frame = frame.merge(alpha1_frame, on=alpha1_merge_cols, how="left")
     require(not frame["alpha1"].isna().any(),
             "Missing alpha1 rows in step-1 validation.")
-    zero_ng_betas_in_first_model_year(frame, first_model_year)
+    _zero_first_year(frame, first_model_year, "beta_reg", "beta_nat")
     frame["predicted_2004"] = (frame["alpha1"]
                                + frame["beta_reg"] * frame["demand_elec_quads"]
                                + frame["beta_nat"] * frame["q_nat"])
@@ -954,7 +922,7 @@ def run_validation(
     frame["actual_2004"] = frame["ng_price"] * deflator
     frame["beta_reg"] = frame["region"].map(beta_reg_map)
     frame["beta_nat"] = beta_nat
-    zero_ng_betas_in_first_model_year(frame, first_model_year)
+    _zero_first_year(frame, first_model_year, "beta_reg", "beta_nat")
     frame["predicted_2004"] = (frame["alpha_2004"]
                                + frame["beta_reg"] * frame["demand_elec_quads"]
                                + frame["beta_nat"] * frame["q_nat"])

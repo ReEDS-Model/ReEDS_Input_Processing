@@ -57,6 +57,8 @@ import pandas as pd
 from aeo_functions import (
     NG_SERIES_NAMES as _SHARED_NG_SERIES_NAMES,
     EiaClient,
+    cfg_list,
+    cfg_section,
     normalize_token,
     resolve_api_key,
     resolve_config_path,
@@ -505,22 +507,8 @@ def run(config: dict[str, Any], base_dir: Path) -> None:
     api_key = resolve_api_key(config)
     client = EiaClient(config["api"], api_key)
 
-    scenarios_cfg = config.get("scenarios", {})
-    if scenarios_cfg is None:
-        scenarios_cfg = {}
-    if not isinstance(scenarios_cfg, dict):
-        raise ValueError("Config key 'scenarios' must be an object.")
-    beta_scen_cfg = scenarios_cfg.get("beta_regression", {})
-    if beta_scen_cfg is None:
-        beta_scen_cfg = {}
-    if not isinstance(beta_scen_cfg, dict):
-        raise ValueError("Config key 'scenarios.beta_regression' must be an object.")
-
-    include_cfg = beta_scen_cfg.get("include")
-    if include_cfg is not None and not isinstance(include_cfg, list):
-        raise ValueError("Config key 'scenarios.beta_regression.include' must be a list.")
-    include_scenarios = [str(x).strip() for x in (include_cfg or []) if str(x).strip()]
-
+    beta_scen_cfg = cfg_section(cfg_section(config, "scenarios"), "beta_regression")
+    include_scenarios = [str(x).strip() for x in cfg_list(beta_scen_cfg, "include") if str(x).strip()]
     exclude_aliases = [str(x).strip() for x in beta_scen_cfg.get("exclude_aliases", [])]
 
     _sy = beta_scen_cfg.get("start_year")
@@ -532,15 +520,12 @@ def run(config: dict[str, Any], base_dir: Path) -> None:
             "Config keys 'scenarios.beta_regression.start_year' and "
             "'scenarios.beta_regression.end_year' must be provided together."
         )
-    if beta_start_year is not None and beta_end_year is not None and beta_start_year > beta_end_year:
-        raise ValueError(
-            "Config key 'scenarios.beta_regression': start_year cannot be greater than end_year."
-        )
     if beta_start_year is not None and beta_end_year is not None:
-        LOGGER.info(
-            "Beta regression year range from config: %s-%s",
-            beta_start_year, beta_end_year,
-        )
+        if beta_start_year > beta_end_year:
+            raise ValueError(
+                "Config key 'scenarios.beta_regression': start_year cannot be greater than end_year."
+            )
+        LOGGER.info("Beta regression year range from config: %s-%s", beta_start_year, beta_end_year)
     else:
         LOGGER.info("Beta regression year range: all available AEO years.")
 

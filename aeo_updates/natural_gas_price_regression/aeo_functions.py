@@ -140,6 +140,26 @@ def load_config(config_path: Path) -> dict[str, Any]:
     return cfg
 
 
+def cfg_section(cfg: dict[str, Any], key: str) -> dict[str, Any]:
+    """Get a sub-dict from cfg. Treats missing or null as empty dict.
+    Raises ValueError if present-but-not-an-object.
+    """
+    val = cfg.get(key)
+    if val is None:
+        return {}
+    require(isinstance(val, dict), f"Config key '{key}' must be an object.")
+    return val
+
+
+def cfg_list(cfg: dict[str, Any], key: str) -> list[Any]:
+    """Get a list from cfg. Missing/null becomes []. Raises if wrong type."""
+    val = cfg.get(key)
+    if val is None:
+        return []
+    require(isinstance(val, list), f"Config key '{key}' must be a list.")
+    return val
+
+
 # ============================================================================
 # API key resolution
 # ============================================================================
