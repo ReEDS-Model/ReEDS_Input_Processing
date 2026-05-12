@@ -1,4 +1,4 @@
-﻿"""
+"""
 AEO Natural Gas Price Preprocessing Pipeline for ReEDS Inputs
 =============================================================
 
@@ -12,8 +12,8 @@ ReEDS models regional natural gas prices using a linear supply curve
 framework. The regional delivered price of natural gas in each census
 division is decomposed into three components:
 
-    Price(r,t,s) = Alpha(r,t,s) + Beta_regional(r) Ã— Demand_regional(r,t,s)
-                                 + Beta_national Ã— Demand_national(t,s)
+    Price(r,t,s) = Alpha(r,t,s) + Beta_regional(r) × Demand_regional(r,t,s)
+                                 + Beta_national × Demand_national(t,s)
 
 Where:
     - Price(r,t,s)         : AEO NG price for region r, year t, scenario s (2024$/MMBtu)
@@ -25,8 +25,8 @@ Where:
 
 Alpha is solved as the residual after removing demand-driven price effects:
 
-    Alpha(r,t,s) = Price(r,t,s) Ã— deflator - Beta_regional(r) Ã— Demand_regional(r,t,s)
-                                            - Beta_national Ã— Demand_national(t,s)
+    Alpha(r,t,s) = Price(r,t,s) × deflator - Beta_regional(r) × Demand_regional(r,t,s)
+                                            - Beta_national × Demand_national(t,s)
 
 Alpha is solved at scenario level and indexed by (region, year, scenario),
 so each scenario keeps its own residual alpha path.
