@@ -448,7 +448,7 @@ def generate_raw_scatter_grid(
         for s in scenarios
     ]
     fig.supxlabel("Natural Gas Demand (quads)", fontsize=11)
-    fig.supylabel("Natural Gas Price (2024 $/MMBtu)", fontsize=11)
+    fig.supylabel("Natural Gas Price (AEO $/MMBtu)", fontsize=11)
     fig.suptitle(
         "Raw AEO NG Data: Demand vs Price\n"
         "(Scatter + Linear Regression by Year and Region; negative slopes highlighted)",
