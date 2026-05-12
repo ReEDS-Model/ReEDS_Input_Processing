@@ -331,10 +331,11 @@ def save_outputs(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # cd_beta0.csv
-    pd.DataFrame({
+    beta_df = pd.DataFrame({
         "*cendiv": list(beta_reg.keys()),
         "value": list(beta_reg.values()),
-    }).to_csv(out_dir / "cd_beta0.csv", index=False, float_format="%.6f")
+    }).sort_values("*cendiv").reset_index(drop=True)
+    beta_df.to_csv(out_dir / "cd_beta0.csv", index=False, float_format="%.6f")
 
     # national_beta.csv
     pd.DataFrame([{
@@ -346,7 +347,7 @@ def save_outputs(
         "scope": "national", "region": "ALL", "beta": beta_nat,
         "r2": beta_nat_r2, "r2_full": model_r2, "n_obs": len(reg_data),
     }]
-    for region, beta in beta_reg.items():
+    for region, beta in sorted(beta_reg.items()):
         diag = regional_diag.get(region, {})
         rows.append({
             "scope": "regional", "region": region, "beta": beta,

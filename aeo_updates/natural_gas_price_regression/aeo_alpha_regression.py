@@ -1,4 +1,4 @@
-"""
+﻿"""
 AEO Natural Gas Price Preprocessing Pipeline for ReEDS Inputs
 =============================================================
 
@@ -618,7 +618,7 @@ def pivot_ng_series(
         index="year", columns="region_out",
         values=value_col, aggfunc="mean",
     )
-    ordered_cols = [cendiv_output_label(c) for c in region_order]
+    ordered_cols = sorted(cendiv_output_label(c) for c in region_order)
     pivot = pivot.reindex(columns=ordered_cols)
     pivot = pivot.sort_index().reset_index()
     return pivot
