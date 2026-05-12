@@ -39,34 +39,41 @@ export EIA_API_KEY=your_api_key_here
 
 1. Edit `aeo_pipeline_config.json` with your settings.
 
-2. Run **beta regression first**.
+2. Run the full pipeline:
 
 ```bash
+python run_ng_pipeline.py
+```
+
+Optional custom config:
+
+```bash
+python run_ng_pipeline.py --config my_config.json
+```
+
+<details>
+<summary>Advanced: run steps individually</summary>
+
+```bash
+# 1. Beta regression
 python aeo_beta_regression.py --config aeo_pipeline_config.json
-```
 
-3. Sync beta outputs into alpha inputs.
-
-```bash
+# 2. Sync beta outputs into alpha inputs
 python sync_beta_to_alpha_inputs.py --config aeo_pipeline_config.json
-```
 
-4. Run **alpha regression**.
-
-```bash
+# 3. Alpha regression
 python aeo_alpha_regression.py --config aeo_pipeline_config.json
-```
 
-5. Generate all diagnostic plots and validation.
-
-```bash
+# 4. Visualization and validation
 python visualization.py --config aeo_pipeline_config.json
 ```
 
-Skip individual parts with flags:
+Skip individual visualization parts with flags:
 ```bash
 python visualization.py --skip-raw-scatter --skip-validation
 ```
+
+</details>
 
 Default output folder: `results validation` (all plots and validation CSVs).
 
@@ -79,15 +86,3 @@ Set explicit scenarios in `aeo_pipeline_config.json` under `scenarios`:
 - `scenarios.alpha_regression.outputs`: mapping from output suffix (`reference`, `HOG`, `LOG`, etc.) to scenario aliases.
 
 Use canonical IDs (for example `ref{aeo_year}`, `highogs`, `lowogs`) for a clear setup.
-
-## One-command run (all platforms)
-
-```bash
-python run_ng_pipeline.py
-```
-
-Optional custom config:
-
-```bash
-python run_ng_pipeline.py --config my_config.json
-```
