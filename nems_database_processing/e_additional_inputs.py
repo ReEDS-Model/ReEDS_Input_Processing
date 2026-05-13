@@ -239,8 +239,9 @@ dfout.rename(columns={'nems': 'in_nems', 'eia860': 'in_eia860M'}, inplace=True)
 dfout['in_nems'] = dfout['in_nems'].astype(int)
 dfout['in_eia860M'] = dfout['in_eia860M'].astype(int)
 
-# Replace all character '#' in T_PNM as 'no. '
+# Replace all character '#' in T_PNM and T_UID as 'no. '
 dfout['T_PNM'] = dfout['T_PNM'].str.replace('#', 'no. ')
+dfout['T_UID'] = dfout['T_UID'].str.replace('#', 'no. ')
 
 # Remove reeds_ba & resource_region columns:
 dfout.drop('reeds_ba', inplace = True, axis = 1)
