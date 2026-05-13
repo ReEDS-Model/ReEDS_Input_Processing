@@ -10,8 +10,6 @@ For units that are unmatched (typically offshore wind), they are mapped to the n
 import sys
 import os
 import pandas as pd
-import numpy as np
-import math
 import geopandas as gpd
 from geopandas import GeoDataFrame
 from shapely.geometry import Point
@@ -131,6 +129,9 @@ def main():
                      (nems_county_final['TSTATE']=='FL') & (nems_county_final['tech']=='hydro') & (nems_county_final['reeds_ba']=='p91'),
                      ['FIPS','county','reeds_ba']] = ['p12039','Gadsden County','p101']
     nems_county_final["Unique ID"] = nems_county_final.index
+    
+    # =========================================================================
+    # Save output file:
 
     # Check if all entries in the database have been mapped with appropriate FIPS codes
     # In this case, proceed to update tech classes
@@ -139,37 +140,10 @@ def main():
         print('\nAll {} entries in the unit database have been mapped with FIPS codes!'\
             .format(len(nems_county_final)))
         
-        #%%--------------------------------------------------------------------------------
-        #  Update upv, wind, and geothermal classes
-        #----------------------------------------------------------------------------------
-        print('Begin mapping upv, wind, and geothermal units to their appropriate capacity factors/temps')
-        nems_county_final['reV_mean_resource_temp'] = np.nan
-        nems_county_final['sc_point_gid'] = np.nan
-        # Get directory for supply curve data from either nrelnas (only option for now) or zenodo (coming soon)
-        if sys.platform == 'win32':
-            remotepath = '/nrelnas01/ReEDS/Supply_Curve_Data'
-        elif sys.platform == 'darwin':
-            remotepath = '/Volumes/ReEDS/Supply_Curve_Data'         #TODO: Move supply curves to zenodo
-
-        # match directory between reV and ReEDS technologies
-        tech_match = {
-            "upv": ["upv","pvb_pv","csp-wp","csp-ns"],      # upv matches upv, pv, pvb_pv, csp-ns and csp-wp
-            "wind-ons": ["wind-ons"], 
-            "wind-ofs": ["wind-ofs"],        
-            "geohydro": ["geohydro_allkm", "geothermal"]
-        }
-
-        # Assign resource classes for each technology in tech_list
-        for tech_reV in list(tech_match.keys()):
-            for tech_element in tech_match[tech_reV]:
-                nems_county_tech_class = assign_class_tech(nems_county_final,tech_reV,tech_element,remotepath)
-                nems_county_tech_class.to_csv((os.path.join(dir, "Outputs","df_assigned_"+tech_element+".csv"))) 
-
         # =========================================================================
         # Save output file:
-        nems_county_tech_class.drop(columns=['Unique ID'],inplace=True)
         print('Unit database updated:')
-        nems_county_tech_class.to_csv(os.path.join(dir,'Outputs', gdboutname), index=False)
+        nems_county_final.to_csv(os.path.join(dir,'Outputs', gdboutname), index=False)
         # =========================================================================
 
     # If some entries in the database do not have matching FIPS, print out message to fix this issue
@@ -177,92 +151,8 @@ def main():
         print('\nSome {} entries in the unit database still do not have matching FIPS codes.'\
             .format(len(nems_no_FIPS)))
         print('Please fix this issue by adding these units to user_adjusted_units_missing_lon_lats.csv')
+    # =========================================================================    
 
-
-#%% ===========================================================================
-### --- FUNCTIONS ---
-### ===========================================================================
-
-## Calculate the great-circle distance between two points on the Earth (in kilometers) using the Haversine formula.
-def haversine(lat1, lon1, lat2, lon2):
-    R = 6371  # Earth radius in km
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    d_phi = math.radians(lat2 - lat1)
-    d_lambda = math.radians(lon2 - lon1)
-    a = math.sin(d_phi / 2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2)**2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    return R * c
-
-## Find the nearest point in points_df to the reference latitude and longitude.
-## Returns the point's ID and the distance.
-def find_nearest_point(reference_lat, reference_lon, points_df):
-    points_df['distance'] = points_df.apply(
-        lambda row: haversine(reference_lat, reference_lon, row['latitude'], row['longitude']),
-        axis=1
-    )
-    nearest_point = points_df.loc[points_df['distance'].idxmin()]
-    return nearest_point['sc_point_gid'], nearest_point['distance']
-## Prepare the supply curve data for a given technology.
-## Loads the appropriate supply curve file, assigns nearest supply curve id, and returns a capacity factor AC for all technologies except,
-## geohydro, which use a resource temperature with point IDs, class, latitude, and longitude
-def prep_supply_curve(tech,tech_element,remotepath):
-    rev_file = pd.read_csv(os.path.join(reeds_path,'inputs/supply_curve/rev_paths.csv'))
-    print('Preparing supply curves for ' + tech_element)
-    # For geohydro and egs, the access case are reference and class definition based on site mean resource temperature.
-    if tech in ['geohydro']:
-        rev_file_part=rev_file[(rev_file['tech'] == tech) & (rev_file['access_case'] == 'reference')]
-        class_def='mean_resource_temp'
-    # For upv and onshore wind, the access case is open and class definition is based on resource.
-    else:
-        rev_file_part=rev_file[(rev_file['tech'] == tech) & (rev_file['access_case'] == 'open')]
-
-    # For geohydro and egs, the access case are reference and class definition based on site mean resource temperature.
-    if tech in ['geohydro']:
-        class_def='mean_resource_temp'
-    # For upv and onshore wind, the access case is open and class definition is based on resource.
-    else:
-        class_def='capacity_factor_ac'
-
-    # Load the supply curve file for the technology
-    df = pd.read_csv(os.path.join(remotepath,rev_file_part['sc_path'].iloc[0],f"{tech}_{rev_file_part['access_case'].iloc[0]}_ba","results",f"{tech}_supply_curve_raw.csv" ))
-
-    # Select relevant columns and convert longitude to negative if needed
-    df_sc=df[['sc_point_gid','latitude','longitude','state','county',class_def]].copy()
-    df_sc['longitude'] = df_sc['longitude'] * -1  # Convert longitude to negative if needed
-    # Assign resource class to each point
-    df_sc.to_csv(os.path.join(dir, "Outputs","df_sc_"+tech+".csv"))
-    return(df_sc)
-
-def assign_class_tech(df,tech_reV,tech_element,remotepath):
-    # Filter generators for the given technology
-    df_exist = df[df['tech'].str.contains(tech_element, case=False, na=False)]
-    df_exist = df_exist[['tech','TSTATE', 'county', 'T_LAT', 'T_LONG', 'T_PID', 'Unique ID']].reset_index(drop=True).copy()
-
-    df_exist['T_LONG'] = df_exist['T_LONG'].abs()  # Ensure longitude is positive for distance calculation
-    df_sc_point = prep_supply_curve(tech_reV,tech_element,remotepath)
-    for i in range(len(df_exist)):
-        print('{} out of {} {} units'.format(i, len(df_exist), tech_reV))  # Progress indicator
-        # Find unique ID of this point:
-        unique_id = df_exist['Unique ID'][i]
-        print(unique_id)
-        # Find nearest supply curve point
-        nearest_id, nearest_distance = find_nearest_point(df_exist['T_LAT'][i], abs(df_exist['T_LONG'][i]), df_sc_point)
-
-        if tech_reV in ['geohydro', 'egs']:
-            # Find the mean temp of the nearest_id:
-            mean_temp = df_sc_point[df_sc_point['sc_point_gid']==nearest_id]['mean_resource_temp'].iloc[0]
-            # Assign the mean temp to the unit in NEMS database using unique ID:
-            df.loc[df['Unique ID'] == unique_id, 'reV_mean_resource_temp'] = mean_temp
-
-        # Make sure the right tech_rev is matched and the right T_PID is matched:
-        assert(tech_element in df[df['Unique ID'] == df_exist.loc[i, 'Unique ID']]['tech'].iloc[0])
-        assert(df_exist[df_exist['Unique ID'] == unique_id]['T_PID'].iloc[0] == df[df['Unique ID']==unique_id]['T_PID'].iloc[0])
-        
-        # Assign sc_point_gid as the nearest_id:
-        df.loc[df['Unique ID'] == unique_id, 'sc_point_gid'] = nearest_id
-    return df    
-
- # %% ===========================================================================
 
 main()
 
