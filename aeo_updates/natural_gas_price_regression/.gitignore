@@ -1,0 +1,30 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Visualization outputs (PNGs, PDFs)
+*.png
+*.pdf
+
+# Validation and visualization results (all generated output)
+results validation/
+
+# Alpha regression outputs (all CSVs are generated, reproducible)
+outputs of alpha regression/*.csv
+outputs of alpha regression/raw_aeo_data/
+
+# Beta regression outputs (all generated, reproducible)
+outputs of beta regression/*.csv
+outputs of beta regression/raw_aeo_data/
+outputs of beta regression/beta raw data visualization/
+outputs of beta regression/alpha from beta regression/
+
+# Intermediate beta inputs (copied by sync_beta_to_alpha_inputs.py, not source data)
+inputs for alpha regression/cd_beta0.csv
+inputs for alpha regression/national_beta.csv
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Stale nested duplicate directory
+AEO_Updates/
