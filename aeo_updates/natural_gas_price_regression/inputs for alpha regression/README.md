@@ -4,7 +4,7 @@ This directory contains input files used by the alpha regression step.
 
 ## Historical CSVs (manual inputs)
 
-The following files are copied from the main ReEDS repository and provide historical data to backfill years (2010 – most recent year) that are not covered by AEO projections:
+The following files are copied from the main [ReEDS repository](https://github.com/ReEDS-Model/ReEDS) and provide historical data to backfill years (2010 – most recent year) that are not covered by AEO projections:
 
 - `ng_AEO_historical.csv` — Historical NG prices
 - `ng_demand_AEO_historical.csv` — Historical electric sector NG demand
