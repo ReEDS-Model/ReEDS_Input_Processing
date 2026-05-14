@@ -5,7 +5,7 @@ This module processes data from the Annual Energy Outlook (AEO) published by the
 ## Key Scripts
 
 ### AEO_Load_Projections.py
-This script creates the demand projection files for AEO scenarios. It uses historical retail sales and behind-the-meter PV generation data from EIA to calibrate historical state-level demand, and then carries that forward using demand ratios calculated from the AEO scenarios.
+This script creates state-level demand multiplier files for AEO scenarios. For historical years (2010–lastyear), state-level demand is derived from EIA retail electricity sales and behind-the-meter PV generation via the EIA API. For projected years (lastyear+1 through 2050), demand growth is computed from AEO electricity consumption CSVs (outputs/ folder, by census division, in quads) combined with regional rooftop PV generation from an EIA-provided Excel file (residential + commercial, by census division). These are added to reconstruct gross electricity demand, then normalized to the first AEO projected year so the historical and projected series join cleanly.
 
 ### AEO_scraper.ipynb
 The scraper will grab the following data from EIA's API: 
@@ -65,19 +65,15 @@ Pulled using the EIA data grabber. Coal data are input into the coal_AEO_{year}_
 Pulled using the EIA data grabber. Uranium prices are input into uranium_AEO_{year}_reference.csv.
 
 #### Demand Growth
-Pulled using the EIA AEO data grabber. The demand growth data reports electricity consumption after rooftop PV has supplied a portion of the load, so we need to add the rooftop PV consumption back into this demand. Total rooftop PV consumption is in Table 17, "Renewable Energy Consumption by Sector and Source." We received regional (census division) numbers from EIA by asking Kevin Jarzomski (Kevin.Jarzomski@eia.gov), who sent us the file "AEO2025_bldgs_pv_gen_ref_high_low_economic_growth_2025-04-17.xlsx."[^1]
-Electricity demand and rooftop PV consumption were put into the
-"Electricity Demand Preprocessing for AEO Inputs.xlsx" spreadsheet,
-"Adding DGPV to Demand" tab, and added together to create the demand
-growth projections.
+Pulled using the EIA AEO data grabber. The demand growth data reports electricity consumption after rooftop PV has supplied a portion of the load, so we need to add the rooftop PV consumption back into this demand. We received regional (census division) rooftop PV numbers (residential + commercial) from EIA by asking Kevin Jarzomski (Kevin.Jarzomski@eia.gov), who sent us the file "AEO2026_bldgs_pv_gen_cb_high_low_economic_growth_2026-04-27.xlsx."[^1]
 
-The growth numbers are ratios of the specified year to 2010, i.e.
-Demand~year~ / Demand~2010~.
+The projections through 2050 are created using AEO_Load_Projections.py, which reads the AEO electricity consumption CSVs from the outputs/ folder and the EIA-provided DGPV Excel file directly. The script calibrates historical years (2010–lastyear) to EIA retail sales data via the EIA API, then applies census-division demand growth ratios from the AEO scenarios for projected years.
 
-The projections through 2050 are created using AEO_Load_Projections.py,
-which calibrates historical years to sales, and then carries the
-census-division projection forward through 2050. It is set up to pull
-the most recent EIA data using the EIA API.
+The output multipliers are ratios of demand in the specified year to demand in 2010, i.e. Demand~year~ / Demand~2010~. Output files are written to the Outputs/ folder:
+
+* demand_AEO_{year}_baseline.csv (Counterfactual Baseline scenario)
+* demand_AEO_{year}_low.csv (Low Economic Growth scenario)
+* demand_AEO_{year}_high.csv (High Economic Growth scenario)
 
 #### Capital Costs
 You can get the Table 123 data from table 55 at
