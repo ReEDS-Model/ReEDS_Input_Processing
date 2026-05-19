@@ -2,16 +2,15 @@
 
 This directory contains input files used by the alpha regression step.
 
-## Historical CSVs (manual inputs)
+## Manual inputs
 
-The following files are copied from the main [ReEDS repository](https://github.com/ReEDS-Model/ReEDS) and provide historical data to backfill years (2010 – most recent year) that are not covered by AEO projections:
-
-- `ng_AEO_historical.csv` — Historical NG prices by census division, in nominal USD/MMBtu of the AEO release dollar year at the time each row was appended (e.g., values appended from AEO 2025 are in 2024 USD/MMBtu). The alpha regression deflates these to 2004 USD/MMBtu using the `price_deflator_to_2004` value in the pipeline config.
-- `ng_demand_AEO_historical.csv` — Historical electric-sector NG demand by census division, in quads (quadrillion BTU).
-- `ng_tot_demand_AEO_historical.csv` — Historical total (all-sector) NG demand by census division, in quads (quadrillion BTU).
 - `st_cendiv.csv` — State to Census Division mapping.
 
-Each pipeline run automatically appends the current AEO's calibration year (e.g., AEO 2025 appends 2024) to these historical CSVs, so the next AEO version has seamless year coverage with no manual update needed.
+## Historical NG price and demand data
+
+Historical years are no longer maintained in this directory. `aeo_alpha_regression.py` pulls the full year range (`start_year` – `end_year` from `aeo_pipeline_config.json`, e.g., 2010 – 2050) directly from the EIA AEO API in a single request. Because history and projections come from the same AEO release, every year is in the same dollar year (e.g., AEO 2025 → 2024 USD/MMBtu), and the `price_deflator_to_2004` value in the config correctly converts the entire series to 2004 USD/MMBtu.
+
+If the AEO API returns fewer historical years than `start_year` requests, the pipeline logs a warning and validates from the first available year onward.
 
 ## Auto-generated files
 
