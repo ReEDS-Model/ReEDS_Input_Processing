@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 
-sys.path.append(os.path.expanduser('~/github/ReEDS-2.0'))
+sys.path.append(os.path.expanduser('~/github/ReEDS'))
 import reeds
 
 repo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))

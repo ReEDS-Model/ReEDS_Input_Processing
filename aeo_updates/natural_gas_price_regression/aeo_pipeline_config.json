@@ -57,18 +57,17 @@
     "backoff_seconds": 1
   },
   "ng": {
-    "regions": [
-      "New England",
-      "Middle Atlantic",
-      "East North Central",
-      "West North Central",
-      "South Atlantic",
-      "East South Central",
-      "West South Central",
-      "Mountain",
-      "Pacific"
-    ],
-    "price_deflator_to_2004": 0.586750,
-    "regional_beta_path": "inputs for alpha regression/cd_beta0.csv"
+    "cendiv_and_label": {
+      "New England": "New_England",
+      "Middle Atlantic": "Mid_Atlantic",
+      "East North Central": "East_North_Central",
+      "West North Central": "West_North_Central",
+      "South Atlantic": "South_Atlantic",
+      "East South Central": "East_South_Central",
+      "West South Central": "West_South_Central",
+      "Mountain": "Mountain",
+      "Pacific": "Pacific"
+    },
+    "price_deflator_to_2004": 0.586750
   }
 }

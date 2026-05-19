@@ -41,9 +41,9 @@ Hydrosheet_CES_usecols  = "A:D"
 Hydrosheet_CES_skiprows = 39
 Hydrosheet_CES_nrows    = 16
 
-### Input voluntary RPS data which is downloaded from NREL Green Power Data
+### Input voluntary RPS data which is downloaded from NLR Green Power Data
 ### If update the input file, please make sure the below table parameters are updated accordingly.
-### https://www.nrel.gov/analysis/green-power
+### https://www.nlr.gov/analysis/green-power
 ### -----------------------------------------------------------------------------
 
 # These data are used to calculate voluntary RPS fraction and will be appended to `rps_fraction.csv`

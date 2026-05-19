@@ -12,11 +12,11 @@ This repo includes scripts and inputs to preprocess interconnection queues that 
 ![interconnection queue inputs](interconnection_queue_inputs.png)
 
 # Input files and params to run process_interconnection_queues.py
-All the input files to run the scripts are located in `inputs` folder, including original queue data from LBNL (most recently `lbnl_ix_queue_data_file_thru2024.xlsx`) and county2zone file (read from ReEDS-2.0 repo) to match ReEDS counties to appropriate bas.
+All the input files to run the scripts are located in `inputs` folder, including original queue data from LBNL (most recently `lbnl_ix_queue_data_file_thru2024.xlsx`) and county2zone file (read from ReEDS repo) to match ReEDS counties to appropriate bas.
 
 # Output
 - Located in the `outputs` folder
-- Final file that will be used to run ReEDS-2.0: `interconnection_queues.csv`
+- Final file that will be used to run ReEDS: `interconnection_queues.csv`
 - Previous version files are also kept there
 
 # Comparison figures
