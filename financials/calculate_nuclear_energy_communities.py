@@ -96,7 +96,7 @@ def get_nuclear_energy_counties(year, msa_county_map, ct_county_crosswalk):
 
 def main():
     print("Starting calculation...")
-    reeds_path = os.path.expanduser('~/github/ReEDS-2.0')
+    reeds_path = os.path.expanduser('~/github/ReEDS')
 
     # Source:
     # https://www.census.gov/programs-surveys/cbp/technical-documentation/reference/metro-area-geography-reference.html

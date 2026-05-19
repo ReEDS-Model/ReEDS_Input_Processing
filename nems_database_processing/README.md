@@ -34,5 +34,5 @@ All located in `Inputs` folder:
 * `tech_to_cooling_tech_map.csv`
 
 # Output file:
-Located in `Outputs` folder. This is the final file that will be used to run ReEDS-2.0:
+Located in `Outputs` folder. This is the final file that will be used to run ReEDS:
 * `ReEDS_generator_database_final_EIA-NEMS.csv`

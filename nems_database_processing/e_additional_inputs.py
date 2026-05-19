@@ -35,7 +35,7 @@ gdbinputname = 'd_to_e.csv'
 gdbfinalname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
 
 dfin = pd.read_csv(os.path.join('Outputs',gdbinputname), low_memory=False)
-#dfin = pd.read_csv("/Users/apham/Documents/GitHub/ReEDS-2.0_Input_Processing/NEMS_database_processing/Outputs/d_to_e.csv")
+#dfin = pd.read_csv("/Users/apham/Documents/GitHub/ReEDS_Input_Processing/NEMS_database_processing/Outputs/d_to_e.csv")
 
 # Add nuclear retirement bins
 # Bin 1 indicates that the plant is at greater risk of retirement, which is due
@@ -45,7 +45,7 @@ dfin = pd.read_csv(os.path.join('Outputs',gdbinputname), low_memory=False)
 # requesting a license to operate to 80 years.
 
 nukebins = pd.read_csv(os.path.join('Inputs','NuclearBins.csv'))
-#nukebins = pd.read_csv(os.path.join('/Users/apham/Documents/GitHub/ReEDS-2.0_Input_Processing/NEMS_database_processing/Inputs','NuclearBins.csv'))
+#nukebins = pd.read_csv(os.path.join('/Users/apham/Documents/GitHub/ReEDS_Input_Processing/NEMS_database_processing/Inputs','NuclearBins.csv'))
 
 nukebins.rename(columns={'PLANT_NAME':'T_PNM'}, inplace=True)
 

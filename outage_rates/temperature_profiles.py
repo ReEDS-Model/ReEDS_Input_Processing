@@ -1,5 +1,5 @@
 """
-- Must be run on the NREL HPC
+- Must be run on the NLR HPC
 - Add rex to your environment first using `pip install nrel-rex==0.2.85`
 """
 
@@ -13,8 +13,8 @@ import h5py
 from rex import NSRDBX
 from tqdm import tqdm
 
-reeds_path = os.path.expanduser('~/github/ReEDS-2.0')
-reeds_path = '/projects/reedsweto/pbrown/github/ReEDS-2.0'
+reeds_path = os.path.expanduser('~/github/ReEDS')
+reeds_path = '/projects/reedsweto/pbrown/github/ReEDS'
 
 site.addsitedir(os.path.join(reeds_path))
 import reeds
