@@ -36,8 +36,9 @@ The deflator converts from the AEO's native dollar year (e.g., 2024$) to
 
 Data Sources
 ------------
-- Prices and demand projections: EIA AEO API (3 scenarios: Reference, High/Low O&G)
-- Historical backfill: Local CSV files for pre-projection years
+- Prices and demand (all years): EIA AEO API (3 scenarios: Reference, High/Low O&G).
+  Historical years are pulled from the same AEO release as the projections,
+  so the entire series is in a single consistent dollar year.
 - Betas: Pre-computed regional and national sensitivity coefficients
 
 Output Files (per scenario)
@@ -103,8 +104,6 @@ NG_OUTPUT_SCENARIOS = {
     "HOG": ["highogs", "High Oil and Gas Supply"],
     "LOG": ["lowogs", "Low Oil and Gas Supply"],
 }
-
-HISTORY_SUFFIX = "historical"
 
 
 # ============================================================================
@@ -382,110 +381,6 @@ def validate_ng_coverage(
 
 
 # ============================================================================
-# Historical Data Handling
-# ============================================================================
-
-def load_history_wide_file(
-    file_path: Path,
-    value_col: str,
-    region_order: list[str],
-) -> pd.DataFrame:
-    """
-    Load a wide-format historical CSV and melt to long format.
-
-    Expected CSV format: year/t column + one column per region (output labels).
-    Returns: DataFrame with [cendiv, year, <value_col>].
-    """
-    require(file_path.exists(),
-            f"History source file not found: {file_path}")
-    df = pd.read_csv(file_path)
-    year_col = ("year" if "year" in df.columns
-                else ("t" if "t" in df.columns else None))
-    require(year_col is not None,
-            f"History file missing 'year' or 't' column: {file_path}")
-    df = df.rename(columns={year_col: "year"})
-    for col in df.columns:
-        if col != "year":
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-    melted = (df.melt(id_vars=["year"], var_name="region_out",
-                      value_name=value_col)
-              .dropna(subset=[value_col]).copy())
-    melted["cendiv"] = melted["region_out"].map(output_label_to_cendiv)
-    melted["year"] = pd.to_numeric(melted["year"], errors="coerce").astype(int)
-    melted = melted[melted["cendiv"].isin(region_order)].copy()
-    return melted[["cendiv", "year", value_col]]
-
-
-def apply_reference_history_to_all_scenarios(
-    frame: pd.DataFrame,
-    value_col: str,
-    history_frame: pd.DataFrame,
-    scenario_ids: list[str],
-    projection_start_year: int,
-) -> pd.DataFrame:
-    """
-    Backfill pre-projection years with historical data.
-
-    Historical data is replicated identically across all scenarios,
-    since AEO scenarios share the same historical period.
-    """
-    hist = history_frame[history_frame["year"] < projection_start_year].copy()
-    if hist.empty:
-        return frame
-    replicated = pd.concat(
-        [hist.assign(scenario_id=sid) for sid in scenario_ids],
-        ignore_index=True,
-    )
-    future = frame[frame["year"] >= projection_start_year].copy()
-    out = pd.concat([future, replicated], ignore_index=True)
-    out = out.groupby(
-        ["scenario_id", "cendiv", "year"], as_index=False
-    )[value_col].mean()
-    return out
-
-
-def _append_year_to_history_csv(
-    csv_path: Path,
-    year: int,
-    data_frame: pd.DataFrame,
-    scenario_id: str,
-    value_col: str,
-) -> None:
-    """Append a single year from the reference scenario to a history CSV if missing."""
-    if not csv_path.exists():
-        return
-    existing = pd.read_csv(csv_path)
-    year_col = "year" if "year" in existing.columns else "t"
-    if year_col not in existing.columns:
-        return
-    if year in existing[year_col].values:
-        return  # Already present
-
-    row_data = data_frame[
-        (data_frame["scenario_id"] == scenario_id)
-        & (data_frame["year"] == year)
-    ].copy()
-    if row_data.empty:
-        LOGGER.warning("No data for year %d to append to %s.", year, csv_path.name)
-        return
-
-    row_data["region_out"] = row_data["cendiv"].map(cendiv_output_label)
-    wide = row_data.pivot_table(
-        index="year", columns="region_out", values=value_col, aggfunc="mean",
-    ).reset_index().rename(columns={"year": year_col})
-
-    for col in existing.columns:
-        if col not in wide.columns:
-            wide[col] = float("nan")
-    wide = wide[existing.columns]
-
-    updated = pd.concat([existing, wide], ignore_index=True)
-    updated = updated.sort_values(year_col).reset_index(drop=True)
-    updated.to_csv(csv_path, index=False, float_format="%.5f")
-    LOGGER.info("Appended year %d to %s.", year, csv_path.name)
-
-
-# ============================================================================
 # Beta Loading
 # ============================================================================
 
@@ -703,12 +598,13 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
 
     1. Connect to EIA API and discover available scenarios
     2. Fetch price & demand series for all scenarios and regions
-    3. Backfill historical data for pre-projection years
-    4. Validate completeness of all data
-    5. Convert prices from AEO dollar year to 2004$ using the deflator
-    6. Compute alpha values using the supply curve inversion:
+       (all years, history + projection, come from the AEO API in a
+       single consistent dollar year)
+    3. Validate completeness of all data
+    4. Convert prices from AEO dollar year to 2004$ using the deflator
+    5. Compute alpha values using the supply curve inversion:
            Alpha = Price_2004 - Beta_reg Ã— Q_reg - Beta_nat Ã— Q_nat
-    7. Write output CSV files for ReEDS consumption
+    6. Write output CSV files for ReEDS consumption
     """
     api_key = resolve_api_key(config)
     client = EiaClient(config["api"], api_key)
@@ -781,50 +677,24 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
     demand_elec = fetched["demand_elec"]
     demand_total = fetched["demand_total"]
 
-    # ---- Step 3: Backfill historical data ----
-    LOGGER.info("Step 3: Backfilling historical data...")
-    projection_start_year = int(min(
+    # Historical years are returned by the AEO API in the same dollar year as
+    # the projections, so no local-CSV backfill is needed. Validate against
+    # whatever year range the API actually returned (clamped to start_year).
+    fetched_min_year = int(min(
         price_raw["year"].min(),
         demand_elec["year"].min(),
         demand_total["year"].min(),
     ))
-    validation_start_year = projection_start_year
-
-    if start_year < projection_start_year:
-        input_dir = resolve_path(
-            base_dir,
-            config["paths"].get("input_dir", config["paths"]["output_dir"]),
+    validation_start_year = max(start_year, fetched_min_year)
+    if fetched_min_year > start_year:
+        LOGGER.warning(
+            "AEO %d returned data starting at %d; configured start_year=%d. "
+            "Validating from %d onward.",
+            aeo_year, fetched_min_year, start_year, validation_start_year,
         )
-        history_specs = [
-            ("ng_AEO",            "ng_price",           price_raw),
-            ("ng_demand_AEO",     "demand_elec_quads",  demand_elec),
-            ("ng_tot_demand_AEO", "demand_total_quads", demand_total),
-        ]
-        try:
-            backfilled: list[pd.DataFrame] = []
-            for stem, value_col, frame in history_specs:
-                hist_path = input_dir / f"{stem}_{HISTORY_SUFFIX}.csv"
-                require(hist_path.exists(), f"History source file not found: {hist_path}")
-                hist = load_history_wide_file(hist_path, value_col, region_order)
-                backfilled.append(apply_reference_history_to_all_scenarios(
-                    frame, value_col, hist, scenario_ids, projection_start_year,
-                ))
-            price_raw, demand_elec, demand_total = backfilled
-            validation_start_year = start_year
-            LOGGER.info(
-                "Backfilled %d-%d from historical files in %s.",
-                start_year, projection_start_year - 1, input_dir,
-            )
-        except Exception as exc:
-            LOGGER.warning(
-                "Could not backfill NG history (%s). "
-                "Using available years %d-%d only.",
-                exc, projection_start_year, end_year,
-            )
-            validation_start_year = projection_start_year
 
-    # ---- Step 4: Filter and validate data completeness ----
-    LOGGER.info("Step 4: Validating data completeness...")
+    # ---- Step 3: Filter and validate data completeness ----
+    LOGGER.info("Step 3: Validating data completeness...")
     all_scenarios, series_frames = filter_complete_ng_scenarios(
         scenario_table=all_scenarios,
         series_frames={
@@ -854,15 +724,15 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
         validate_ng_coverage(frame, scenario_ids, region_order,
                              validation_start_year, end_year, label)
 
-    # ---- Step 5: Convert prices to 2004$ ----
-    LOGGER.info("Step 5: Converting prices to 2004$ (deflator=%.6f)...",
+    # ---- Step 4: Convert prices to 2004$ ----
+    LOGGER.info("Step 4: Converting prices to 2004$ (deflator=%.6f)...",
                 float(ng_cfg["price_deflator_to_2004"]))
     deflator = float(ng_cfg["price_deflator_to_2004"])
     price_2004 = price_raw.copy()
     price_2004["price_2004"] = price_2004["ng_price"] * deflator
 
-    # ---- Step 6: Compute alpha values ----
-    LOGGER.info("Step 6: Computing NG alpha values...")
+    # ---- Step 5: Compute alpha values ----
+    LOGGER.info("Step 5: Computing NG alpha values...")
     input_dir = resolve_path(
         base_dir,
         config["paths"].get("input_dir", config["paths"]["output_dir"]),
@@ -892,8 +762,8 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
         validation_start_year, end_year, "NG alpha",
     )
 
-    # ---- Step 7: Write output files ----
-    LOGGER.info("Step 7: Writing output files...")
+    # ---- Step 6: Write output files ----
+    LOGGER.info("Step 6: Writing output files...")
     write_ng_outputs(
         scenario_table=output_scenarios,
         price_raw=price_raw,
@@ -905,26 +775,6 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
         config=config,
         base_dir=base_dir,
     )
-
-    # ---- Step 8: Append projection_start_year to history CSVs ----
-    ref_rows = output_scenarios[
-        output_scenarios["file_suffix"] == "reference"
-    ]
-    if not ref_rows.empty:
-        ref_sid = str(ref_rows.iloc[0]["scenario_id"])
-        hist_dir = resolve_path(
-            base_dir,
-            config["paths"].get("input_dir", config["paths"]["output_dir"]),
-        )
-        for stem, vcol, df in [
-            ("ng_AEO", "ng_price", price_raw),
-            ("ng_demand_AEO", "demand_elec_quads", demand_elec),
-            ("ng_tot_demand_AEO", "demand_total_quads", demand_total),
-        ]:
-            _append_year_to_history_csv(
-                hist_dir / f"{stem}_{HISTORY_SUFFIX}.csv",
-                projection_start_year, df, ref_sid, vcol,
-            )
 
 
 # ============================================================================
