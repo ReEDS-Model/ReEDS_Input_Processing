@@ -13,53 +13,16 @@ Copied files:
 from __future__ import annotations
 
 import argparse
-import json
 import shutil
 import sys
 from pathlib import Path
-from typing import Any
 
-
-def require(condition: bool, message: str) -> None:
-    """Raise ValueError when condition is false."""
-    if not condition:
-        raise ValueError(message)
-
-
-def resolve_case_insensitive(path: Path) -> Path:
-    """Resolve a path with case-insensitive matching on each component."""
-    if path.exists():
-        return path
-    path = path.resolve()
-    current = Path(path.anchor)
-    for part in path.parts[1:]:
-        if not current.exists():
-            return path
-        try:
-            matches = [p for p in current.iterdir() if p.name.lower() == part.lower()]
-        except PermissionError:
-            return path
-        if not matches:
-            return path
-        current = matches[0]
-    return current
-
-
-def resolve_path(base_dir: Path, configured_path: str) -> Path:
-    """Resolve a configured path relative to base_dir."""
-    p = Path(configured_path)
-    if not p.is_absolute():
-        p = base_dir / p
-    return resolve_case_insensitive(p)
-
-
-def load_config(config_path: Path) -> dict[str, Any]:
-    """Load JSON config file."""
-    require(config_path.exists(), f"Config not found: {config_path}")
-    with config_path.open("r", encoding="utf-8") as f:
-        cfg = json.load(f)
-    require(isinstance(cfg, dict), f"Config root must be an object: {config_path}")
-    return cfg
+from aeo_functions import (
+    load_config,
+    require,
+    resolve_config_path,
+    resolve_path,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -95,11 +58,7 @@ def main() -> int:
     args = parse_args()
 
     script_dir = Path(__file__).resolve().parent
-    cfg_path = Path(args.config)
-    if not cfg_path.is_absolute():
-        cwd_candidate = resolve_case_insensitive((Path.cwd() / cfg_path).resolve())
-        script_candidate = resolve_case_insensitive((script_dir / cfg_path).resolve())
-        cfg_path = cwd_candidate if cwd_candidate.exists() else script_candidate
+    cfg_path = resolve_config_path(args.config, script_dir)
 
     config = load_config(cfg_path)
     base_dir = cfg_path.parent

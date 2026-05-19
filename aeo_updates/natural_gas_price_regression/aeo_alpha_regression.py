@@ -12,8 +12,8 @@ ReEDS models regional natural gas prices using a linear supply curve
 framework. The regional delivered price of natural gas in each census
 division is decomposed into three components:
 
-    Price(r,t,s) = Alpha(r,t,s) + Beta_regional(r) Ã— Demand_regional(r,t,s)
-                                 + Beta_national Ã— Demand_national(t,s)
+    Price(r,t,s) = Alpha(r,t,s) + Beta_regional(r) × Demand_regional(r,t,s)
+                                 + Beta_national × Demand_national(t,s)
 
 Where:
     - Price(r,t,s)         : AEO NG price for region r, year t, scenario s (2024$/MMBtu)
@@ -25,8 +25,8 @@ Where:
 
 Alpha is solved as the residual after removing demand-driven price effects:
 
-    Alpha(r,t,s) = Price(r,t,s) Ã— deflator - Beta_regional(r) Ã— Demand_regional(r,t,s)
-                                            - Beta_national Ã— Demand_national(t,s)
+    Alpha(r,t,s) = Price(r,t,s) × deflator - Beta_regional(r) × Demand_regional(r,t,s)
+                                            - Beta_national × Demand_national(t,s)
 
 Alpha is solved at scenario level and indexed by (region, year, scenario),
 so each scenario keeps its own residual alpha path.
@@ -58,9 +58,7 @@ Example config: see aeo_pipeline_config.json
 from __future__ import annotations
 
 import argparse
-import json
 import logging
-import os
 import re
 import shutil
 import sys
@@ -68,11 +66,26 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3 import disable_warnings
-from urllib3.exceptions import InsecureRequestWarning
-from urllib3.util.retry import Retry
+
+from aeo_functions import (
+    CENDIV_CANONICAL,
+    NG_SERIES_NAMES,
+    EiaClient,
+    cfg_list,
+    cfg_section,
+    list_aeo_scenarios,
+    load_config,
+    match_scenario,
+    normalize_token,
+    require,
+    resolve_api_key,
+    resolve_case_insensitive,
+    resolve_config_path,
+    resolve_path,
+    resolve_region_ids,
+    resolve_series_ids,
+    setup_logging,
+)
 
 LOGGER = logging.getLogger("aeo_pipeline")
 
@@ -80,39 +93,9 @@ LOGGER = logging.getLogger("aeo_pipeline")
 # Constants
 # ============================================================================
 
-# Mapping from normalized region names to canonical internal keys
-CENDIV_CANONICAL = {
-    "newengland": "NewEngland",
-    "middleatlantic": "MiddleAtlantic",
-    "eastnorthcentral": "EastNorthCentral",
-    "westnorthcentral": "WestNorthCentral",
-    "southatlantic": "SouthAtlantic",
-    "eastsouthcentral": "EastSouthCentral",
-    "westsouthcentral": "WestSouthCentral",
-    "mountain": "Mountain",
-    "pacific": "Pacific",
-    "unitedstates": "UnitedStates",
-}
-
-# Mapping from internal keys to ReEDS output format (underscore-separated)
-CENDIV_OUTPUT = {
-    "NewEngland": "New_England",
-    "MiddleAtlantic": "Mid_Atlantic",
-    "EastNorthCentral": "East_North_Central",
-    "WestNorthCentral": "West_North_Central",
-    "SouthAtlantic": "South_Atlantic",
-    "EastSouthCentral": "East_South_Central",
-    "WestSouthCentral": "West_South_Central",
-    "Mountain": "Mountain",
-    "Pacific": "Pacific",
-}
-
-# EIA AEO series names for NG data
-NG_SERIES_NAMES = {
-    "price": "Energy Prices : Electric Power : Natural Gas",
-    "demand_elec": "Energy Use : Electric Power : Natural Gas",
-    "demand_total": "Energy Use : Total : Natural Gas",
-}
+# Mapping from internal keys to ReEDS output format (underscore-separated).
+# Populated at runtime from config["ng"]["cendiv_and_label"] by run_ng_pipeline().
+CENDIV_OUTPUT: dict[str, str] = {}
 
 # Required output scenarios and their EIA API aliases
 NG_OUTPUT_SCENARIOS = {
@@ -122,6 +105,12 @@ NG_OUTPUT_SCENARIOS = {
 }
 
 HISTORY_SUFFIX = "historical"
+
+# Deflator from the historical CSV dollar year (2024$) to 2004$.
+# The historical CSVs in 'inputs for alpha regression/' are stored in 2024 USD.
+# This value should only change if the historical CSVs are regenerated in a
+# different dollar year.
+HISTORICAL_PRICE_DEFLATOR_TO_2004 = 0.602782
 
 
 # ============================================================================
@@ -135,26 +124,6 @@ def parse_args() -> argparse.Namespace:
                    choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     p.add_argument("--aeo-year", type=int, default=None)
     return p.parse_args()
-
-
-def setup_logging(level: str) -> None:
-    logging.basicConfig(
-        level=getattr(logging, level.upper()),
-        format="%(asctime)s | %(levelname)s | %(message)s",
-    )
-
-
-def require(condition: bool, message: str) -> None:
-    """Assert a condition with a descriptive error message."""
-    if not condition:
-        raise ValueError(message)
-
-
-def normalize_token(value: Any) -> str:
-    """Normalize a string for case-insensitive, whitespace-insensitive matching."""
-    if value is None:
-        return ""
-    return re.sub(r"[^a-z0-9]+", "", str(value).replace("\xa0", " ").strip().lower())
 
 
 def canonical_cendiv(value: Any) -> str:
@@ -179,155 +148,6 @@ def output_label_to_cendiv(label: str) -> str:
     return canonical_cendiv(label)
 
 
-def resolve_case_insensitive(path: Path) -> Path:
-    """Resolve a path with case-insensitive matching on each component."""
-    if path.exists():
-        return path
-    path = path.resolve()
-    current = Path(path.anchor)
-    for part in path.parts[1:]:
-        if not current.exists():
-            return path
-        try:
-            matches = [p for p in current.iterdir()
-                       if p.name.lower() == part.lower()]
-        except PermissionError:
-            return path
-        if not matches:
-            return path
-        current = matches[0]
-    return current
-
-
-def resolve_path(base_dir: Path, configured_path: str) -> Path:
-    """Resolve a configured path relative to the base directory."""
-    p = Path(configured_path)
-    if not p.is_absolute():
-        p = base_dir / p
-    return resolve_case_insensitive(p)
-
-
-def load_config(config_path: Path) -> dict[str, Any]:
-    """Load and validate the JSON configuration file."""
-    require(config_path.exists(), f"Config not found: {config_path}")
-    with config_path.open("r", encoding="utf-8") as f:
-        cfg = json.load(f)
-    require(isinstance(cfg, dict), f"Config root must be an object: {config_path}")
-    return cfg
-
-
-def resolve_api_key(config: dict[str, Any]) -> str:
-    """Resolve the EIA API key from environment, config, or legacy fallback."""
-    api_cfg = config["api"]
-    env_var = api_cfg.get("key_env_var", "EIA_API_KEY")
-    env_key = os.getenv(env_var, "").strip()
-    if env_key:
-        return env_key
-    fallback = api_cfg.get("key_fallback", "").strip()
-    if fallback:
-        LOGGER.warning("Using key_fallback from config.")
-        return fallback
-    try:
-        from _eia_api_functions import api_key as legacy_api_key  # type: ignore
-        if legacy_api_key:
-            LOGGER.warning("Using API key from _eia_api_functions.py fallback.")
-            return str(legacy_api_key)
-    except Exception:
-        pass
-    raise ValueError(f"Missing EIA API key. Set {env_var} or api.key_fallback.")
-
-
-# ============================================================================
-# EIA API Client
-# ============================================================================
-
-class EiaClient:
-    """Client for fetching data from the EIA AEO API with retry logic."""
-
-    def __init__(self, api_cfg: dict[str, Any], api_key: str):
-        self.base_url = api_cfg["base_url"].rstrip("/")
-        self.verify_ssl = bool(api_cfg.get("verify_ssl", True))
-        self.timeout = int(api_cfg.get("timeout_seconds", 60))
-        self.api_key = api_key
-        if not self.verify_ssl:
-            disable_warnings(InsecureRequestWarning)
-        retries = Retry(
-            total=int(api_cfg.get("max_retries", 4)),
-            connect=int(api_cfg.get("max_retries", 4)),
-            read=int(api_cfg.get("max_retries", 4)),
-            status=int(api_cfg.get("max_retries", 4)),
-            backoff_factor=float(api_cfg.get("backoff_seconds", 1.0)),
-            status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["GET"],
-            raise_on_status=False,
-        )
-        self.session = requests.Session()
-        adapter = HTTPAdapter(max_retries=retries)
-        self.session.mount("https://", adapter)
-        self.session.mount("http://", adapter)
-
-    def get_json(self, path: str,
-                 params: list[tuple[str, str]] | None = None) -> dict[str, Any]:
-        full_path = path if path.startswith("/") else f"/{path}"
-        query = [("api_key", self.api_key)]
-        if params:
-            query.extend(params)
-        resp = self.session.get(
-            f"{self.base_url}{full_path}",
-            params=query,
-            timeout=self.timeout,
-            verify=self.verify_ssl,
-        )
-        resp.raise_for_status()
-        payload = resp.json()
-        require("response" in payload,
-                f"Unexpected payload from {path}: {payload}")
-        return payload
-
-    def get_facets(self, aeo_year: int, facet: str) -> list[dict[str, Any]]:
-        return self.get_json(
-            f"/aeo/{aeo_year}/facet/{facet}")["response"]["facets"]
-
-    def get_data(self, path: str,
-                 params: list[tuple[str, str]]) -> pd.DataFrame:
-        payload = self.get_json(path, params)
-        warnings = payload["response"].get("warnings", [])
-        for w in warnings:
-            LOGGER.warning("EIA warning: %s | %s",
-                           w.get("warning"), w.get("description"))
-        data = payload["response"].get("data", [])
-        require(data, f"No data from endpoint {path}")
-        return pd.DataFrame(data)
-
-
-# ============================================================================
-# EIA API Resolution Helpers
-# ============================================================================
-
-def resolve_region_ids(client: EiaClient, aeo_year: int,
-                       regions: list[str]) -> dict[str, str]:
-    """Map region display names to EIA region IDs."""
-    facets = client.get_facets(aeo_year, "regionId")
-    region_map = {normalize_token(item["name"]): str(item["id"])
-                  for item in facets}
-    out: dict[str, str] = {}
-    for name in regions:
-        key = normalize_token(name)
-        require(key in region_map, f"Region not found in EIA facets: {name}")
-        out[name] = region_map[key]
-    return out
-
-
-def resolve_series_ids(client: EiaClient, aeo_year: int,
-                       series_name: str) -> list[str]:
-    """Find EIA series IDs matching a given series name."""
-    facets = client.get_facets(aeo_year, "seriesId")
-    ids = [str(item["id"]) for item in facets
-           if normalize_token(item.get("name")) == normalize_token(series_name)]
-    require(ids, f"Series not found: {series_name}")
-    return ids
-
-
 def resolve_ng_scenarios(
     client: EiaClient,
     aeo_year: int,
@@ -339,55 +159,28 @@ def resolve_ng_scenarios(
     If include_scenarios is provided, only those scenarios are kept
     (matching by scenario id or scenario name, case-insensitive).
     """
-    facets = client.get_facets(aeo_year, "scenario")
-    rows: list[dict[str, str]] = []
-    for item in facets:
-        scenario_id = str(item.get("id", "")).strip()
-        scenario_name = str(item.get("name", "")).strip()
-        if not scenario_id:
-            continue
-        # Skip legacy composite IDs (e.g., "aeo2023ref")
-        if normalize_token(scenario_id).startswith("aeo"):
-            continue
-        rows.append({"scenario_id": scenario_id,
-                     "scenario_name": scenario_name})
-    require(rows, "No NG scenarios left after filtering legacy IDs.")
+    rows = list_aeo_scenarios(client, aeo_year)
 
     if include_scenarios:
         picked: list[dict[str, str]] = []
         missing: list[str] = []
+        seen_ids: set[str] = set()
         for raw in include_scenarios:
-            token = normalize_token(str(raw).replace("{aeo_year}", str(aeo_year)))
-            found = None
-            for row in rows:
-                sid = str(row["scenario_id"])
-                sname = str(row["scenario_name"])
-                if normalize_token(sid) == token or normalize_token(sname) == token:
-                    found = row
-                    break
+            found = match_scenario(rows, raw, aeo_year)
             if found is None:
                 missing.append(str(raw))
-                continue
-            if all(str(r["scenario_id"]) != str(found["scenario_id"]) for r in picked):
+            elif found["scenario_id"] not in seen_ids:
                 picked.append(found)
-        require(
-            not missing,
-            f"Configured alpha_regression.fetch scenarios not found: {missing}",
-        )
-        out = pd.DataFrame(picked)
-        LOGGER.info(
-            "Selected NG scenarios from config (%d): %s",
-            len(out),
-            out["scenario_id"].tolist(),
-        )
-        return out.reset_index(drop=True)
+                seen_ids.add(found["scenario_id"])
+        require(not missing,
+                f"Configured alpha_regression.fetch scenarios not found: {missing}")
+        out = pd.DataFrame(picked).reset_index(drop=True)
+    else:
+        out = (pd.DataFrame(rows)
+               .drop_duplicates(subset=["scenario_id"])
+               .sort_values("scenario_id")
+               .reset_index(drop=True))
 
-    out = (
-        pd.DataFrame(rows)
-        .drop_duplicates(subset=["scenario_id"])
-        .sort_values("scenario_id")
-        .reset_index(drop=True)
-    )
     LOGGER.info("Selected NG scenarios (%d): %s", len(out), out["scenario_id"].tolist())
     return out
 
@@ -396,56 +189,27 @@ def resolve_output_scenario_aliases(
     aeo_year: int,
     configured_outputs: Any,
 ) -> dict[str, list[str]]:
-    """Build output scenario alias map from config, with defaults."""
+    """Build output scenario alias map from config (defaults to NG_OUTPUT_SCENARIOS)."""
     if configured_outputs is None:
         raw_map: dict[str, list[str]] = NG_OUTPUT_SCENARIOS
-    elif isinstance(configured_outputs, dict):
+    else:
+        require(isinstance(configured_outputs, dict),
+                "alpha_regression.outputs must be an object mapping suffix -> list of aliases.")
         raw_map = {}
         for suffix, aliases in configured_outputs.items():
-            require(
-                isinstance(aliases, list),
-                f"alpha_regression.outputs['{suffix}'] must be a list.",
-            )
+            require(isinstance(aliases, list),
+                    f"alpha_regression.outputs['{suffix}'] must be a list.")
             raw_map[str(suffix)] = [str(a) for a in aliases]
-    elif isinstance(configured_outputs, list):
-        raw_map = {}
-        for row in configured_outputs:
-            require(
-                isinstance(row, dict),
-                "alpha_regression.outputs list entries must be objects.",
-            )
-            suffix = str(row.get("file_suffix", "")).strip()
-            require(suffix, "alpha_regression.outputs entry missing file_suffix.")
-            aliases = row.get("aliases", [])
-            require(
-                isinstance(aliases, list),
-                f"alpha_regression.outputs entry '{suffix}' aliases must be a list.",
-            )
-            vals = [str(a).strip() for a in aliases if str(a).strip()]
-            scenario_id = str(row.get("scenario_id", "")).strip()
-            if scenario_id:
-                vals.insert(0, scenario_id)
-            require(vals, f"alpha_regression.outputs entry '{suffix}' has no aliases.")
-            raw_map[suffix] = vals
-    else:
-        raise ValueError(
-            "alpha_regression.outputs must be either an object or a list of objects."
-        )
 
     out: dict[str, list[str]] = {}
     for suffix, aliases in raw_map.items():
         suffix_txt = str(suffix).strip()
         require(suffix_txt, "alpha_regression.outputs contains an empty file_suffix.")
-        clean_aliases = [str(a).strip() for a in aliases if str(a).strip()]
-        require(clean_aliases, f"alpha_regression.outputs['{suffix_txt}'] has no aliases.")
-        # Keep original strings for logs and output; matching happens via normalize_token.
-        out[suffix_txt] = clean_aliases
+        clean = [str(a).strip() for a in aliases if str(a).strip()]
+        require(clean, f"alpha_regression.outputs['{suffix_txt}'] has no aliases.")
+        out[suffix_txt] = clean
     require(out, "alpha_regression.outputs resolved to an empty mapping.")
-    LOGGER.info(
-        "Configured alpha output scenario map for AEO %d: %s",
-        aeo_year,
-        {k: v for k, v in out.items()},
-    )
+    LOGGER.info("Configured alpha output scenario map for AEO %d: %s", aeo_year, out)
     return out
 
 
@@ -457,31 +221,23 @@ def resolve_output_scenarios(
     """Match available scenarios to configured output scenario aliases."""
     require(not available_scenarios.empty,
             "No available scenarios to resolve NG output scenarios.")
-    rows: list[dict[str, str]] = []
+    rows_dict = available_scenarios.to_dict(orient="records")
+    matched: list[dict[str, str]] = []
     for suffix, aliases in output_aliases.items():
-        alias_tokens = {normalize_token(a.replace("{aeo_year}", str(aeo_year)))
-                        for a in aliases}
-        found_row = None
-        for row in available_scenarios.itertuples(index=False):
-            sid = str(row.scenario_id)
-            sname = str(row.scenario_name)
-            if (normalize_token(sid) in alias_tokens
-                    or normalize_token(sname) in alias_tokens):
-                found_row = row
-                break
-        require(found_row is not None,
+        found = next((r for alias in aliases
+                      if (r := match_scenario(rows_dict, alias, aeo_year)) is not None),
+                     None)
+        require(found is not None,
                 f"Could not resolve required NG output scenario: '{suffix}'")
-        rows.append({
-            "scenario_id": str(found_row.scenario_id),
-            "scenario_name": str(found_row.scenario_name),
+        matched.append({
+            "scenario_id": str(found["scenario_id"]),
+            "scenario_name": str(found["scenario_name"]),
             "file_suffix": str(suffix),
         })
-    out = pd.DataFrame(rows).reset_index(drop=True)
-    require(
-        out["scenario_id"].nunique() == len(out),
-        "alpha_regression.outputs resolved to duplicate scenario_id values. "
-        "Use distinct output scenarios.",
-    )
+    out = pd.DataFrame(matched).reset_index(drop=True)
+    require(out["scenario_id"].nunique() == len(out),
+            "alpha_regression.outputs resolved to duplicate scenario_id values. "
+            "Use distinct output scenarios.")
     LOGGER.info("Resolved NG output scenarios: %s",
                 out[["scenario_id", "file_suffix"]].to_dict(orient="records"))
     return out
@@ -489,7 +245,7 @@ def resolve_output_scenarios(
 
 def resolve_ng_region_order(config: dict[str, Any]) -> list[str]:
     """Get the ordered list of census divisions from the config."""
-    configured = config["ng"]["regions"]
+    configured = list(config["ng"]["cendiv_and_label"].keys())
     order = [output_label_to_cendiv(x) for x in configured]
     require(len(order) == len(set(order)), "NG regions contains duplicates.")
     return order
@@ -635,15 +391,6 @@ def validate_ng_coverage(
 # Historical Data Handling
 # ============================================================================
 
-def resolve_history_file(input_dir: Path, stem: str,
-                         history_suffix: str) -> Path:
-    """Locate a historical data CSV file."""
-    file_path = input_dir / f"{stem}_{history_suffix}.csv"
-    require(file_path.exists(),
-            f"History source file not found: {file_path}")
-    return file_path
-
-
 def load_history_wide_file(
     file_path: Path,
     value_col: str,
@@ -757,27 +504,30 @@ def load_regional_betas(beta_path: Path,
     representing the price sensitivity to regional electric sector demand:
         Beta_regional(r) in units of 2004$/MMBtu per Quad
     """
-    require(beta_path.exists(),
-            f"Regional beta file not found: {beta_path}")
+    require(beta_path.exists(), f"Regional beta file not found: {beta_path}")
     df = pd.read_csv(beta_path)
-    cendiv_col = next(
-        (c for c in df.columns if normalize_token(c).endswith("cendiv")),
-        None,
-    )
-    value_col = next(
-        (c for c in df.columns if normalize_token(c) == "value"),
-        None,
-    )
+    cendiv_col = next((c for c in df.columns if normalize_token(c).endswith("cendiv")), None)
+    value_col = next((c for c in df.columns if normalize_token(c) == "value"), None)
     require(cendiv_col is not None and value_col is not None,
             "Regional beta file missing cendiv/value columns.")
+    df = df[[cendiv_col, value_col]].copy()
     df["cendiv"] = df[cendiv_col].map(output_label_to_cendiv)
     df["value"] = pd.to_numeric(df[value_col], errors="coerce")
-    df = df.dropna(subset=["cendiv", "value"]).copy()
-    betas = {row.cendiv: float(row.value)
-             for row in df[["cendiv", "value"]].itertuples(index=False)}
+    df = df.dropna(subset=["cendiv", "value"])
+    betas = dict(zip(df["cendiv"], df["value"].astype(float)))
     missing = [c for c in region_order if c not in betas]
     require(not missing, f"Regional beta file missing regions: {missing}")
     return betas
+
+
+def load_national_beta(beta_path: Path) -> float:
+    """Load the national beta value from national_beta.csv."""
+    require(beta_path.exists(), f"National beta file not found: {beta_path}")
+    df = pd.read_csv(beta_path)
+    require("beta" in df.columns, f"National beta file missing 'beta' column: {beta_path}")
+    vals = pd.to_numeric(df["beta"], errors="coerce").dropna()
+    require(not vals.empty, f"National beta file has no numeric beta value: {beta_path}")
+    return float(vals.iloc[0])
 
 
 # ============================================================================
@@ -874,7 +624,7 @@ def pivot_ng_series(
         index="year", columns="region_out",
         values=value_col, aggfunc="mean",
     )
-    ordered_cols = [cendiv_output_label(c) for c in region_order]
+    ordered_cols = sorted(cendiv_output_label(c) for c in region_order)
     pivot = pivot.reindex(columns=ordered_cols)
     pivot = pivot.sort_index().reset_index()
     return pivot
@@ -911,33 +661,25 @@ def write_ng_outputs(
     written_files: list[Path] = []
 
     # --- Per-scenario output files ---
+    output_specs = [
+        ("ng_AEO",            price_raw,    "ng_price",            None),
+        ("ng_demand_AEO",     demand_elec,  "demand_elec_quads",   None),
+        ("ng_tot_demand_AEO", demand_total, "demand_total_quads",  None),
+        ("alpha_AEO",         alpha_2004,   "alpha_2004",          {"year": "t"}),
+    ]
     for row in scenario_table.itertuples(index=False):
         scenario_id = str(row.scenario_id)
         file_suffix = getattr(row, "file_suffix", None)
         require(bool(file_suffix),
                 f"Missing output suffix for NG scenario '{scenario_id}'")
         suffix = str(file_suffix)
-
-        price_wide = pivot_ng_series(
-            price_raw, scenario_id, "ng_price", region_order)
-        elec_wide = pivot_ng_series(
-            demand_elec, scenario_id, "demand_elec_quads", region_order)
-        total_wide = pivot_ng_series(
-            demand_total, scenario_id, "demand_total_quads", region_order)
-        alpha_wide = pivot_ng_series(
-            alpha_2004, scenario_id, "alpha_2004", region_order
-        ).rename(columns={"year": "t"})
-
-        fn_price = out_dir / f"ng_AEO_{aeo_year}_{suffix}.csv"
-        fn_elec = out_dir / f"ng_demand_AEO_{aeo_year}_{suffix}.csv"
-        fn_total = out_dir / f"ng_tot_demand_AEO_{aeo_year}_{suffix}.csv"
-        fn_alpha = out_dir / f"alpha_AEO_{aeo_year}_{suffix}.csv"
-
-        price_wide.to_csv(fn_price, index=False, float_format="%.6f")
-        elec_wide.to_csv(fn_elec, index=False, float_format="%.6f")
-        total_wide.to_csv(fn_total, index=False, float_format="%.6f")
-        alpha_wide.to_csv(fn_alpha, index=False, float_format="%.6f")
-        written_files.extend([fn_price, fn_elec, fn_total, fn_alpha])
+        for stem, frame, value_col, rename in output_specs:
+            wide = pivot_ng_series(frame, scenario_id, value_col, region_order)
+            if rename:
+                wide = wide.rename(columns=rename)
+            path = out_dir / f"{stem}_{aeo_year}_{suffix}.csv"
+            wide.to_csv(path, index=False, float_format="%.6f")
+            written_files.append(path)
 
     # --- Beta output files (copy from input) ---
     input_dir = resolve_path(
@@ -978,6 +720,13 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
     client = EiaClient(config["api"], api_key)
 
     ng_cfg = config["ng"]
+
+    # Load shared region mapping from config
+    global CENDIV_OUTPUT
+    CENDIV_OUTPUT = {
+        k.replace(" ", ""): v for k, v in ng_cfg["cendiv_and_label"].items()
+    }
+
     aeo_year = int(config["aeo_year"])
     start_year = int(config["start_year"])
     end_year = int(config["end_year"])
@@ -987,21 +736,9 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
     raw_dir = out_dir / "raw_aeo_data"
     raw_dir.mkdir(parents=True, exist_ok=True)
 
-    scenarios_cfg = config.get("scenarios", {})
-    if scenarios_cfg is None:
-        scenarios_cfg = {}
-    require(isinstance(scenarios_cfg, dict), "Config key 'scenarios' must be an object.")
-    alpha_scen_cfg = scenarios_cfg.get("alpha_regression", {})
-    if alpha_scen_cfg is None:
-        alpha_scen_cfg = {}
-    require(isinstance(alpha_scen_cfg, dict), "Config key 'scenarios.alpha_regression' must be an object.")
-
-    fetch_cfg = alpha_scen_cfg.get("fetch")
-    require(
-        fetch_cfg is None or isinstance(fetch_cfg, list),
-        "Config key 'scenarios.alpha_regression.fetch' must be a list when provided.",
-    )
-    fetch_scenarios = [str(x).strip() for x in (fetch_cfg or []) if str(x).strip()]
+    scenarios_cfg = cfg_section(config, "scenarios")
+    alpha_scen_cfg = cfg_section(scenarios_cfg, "alpha_regression")
+    fetch_scenarios = [str(x).strip() for x in cfg_list(alpha_scen_cfg, "fetch") if str(x).strip()]
     output_aliases = resolve_output_scenario_aliases(
         aeo_year,
         alpha_scen_cfg.get("outputs"),
@@ -1026,7 +763,7 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
     output_scenarios.to_csv(raw_dir / "selected_scenarios_outputs.csv", index=False)
     scenario_ids = all_scenarios["scenario_id"].tolist()
     region_ids = list(
-        resolve_region_ids(client, aeo_year, ng_cfg["regions"]).values()
+        resolve_region_ids(client, aeo_year, list(ng_cfg["cendiv_and_label"].keys())).values()
     )
     pd.DataFrame(client.get_facets(aeo_year, "regionId")).to_csv(
         raw_dir / "region_facets.csv", index=False
@@ -1034,27 +771,21 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
 
     # ---- Step 2: Fetch price and demand data from EIA API ----
     LOGGER.info("Step 2: Fetching AEO data from EIA API...")
-    price_raw = fetch_aeo_series_by_scenario(
-        client, aeo_year,
-        NG_SERIES_NAMES["price"],
-        scenario_ids, region_ids,
-        "ng_price", start_year, end_year,
-        raw_output_path=raw_dir / "aeo_raw_ng_price.csv",
-    )
-    demand_elec = fetch_aeo_series_by_scenario(
-        client, aeo_year,
-        NG_SERIES_NAMES["demand_elec"],
-        scenario_ids, region_ids,
-        "demand_elec_quads", start_year, end_year,
-        raw_output_path=raw_dir / "aeo_raw_ng_demand_electric_power.csv",
-    )
-    demand_total = fetch_aeo_series_by_scenario(
-        client, aeo_year,
-        NG_SERIES_NAMES["demand_total"],
-        scenario_ids, region_ids,
-        "demand_total_quads", start_year, end_year,
-        raw_output_path=raw_dir / "aeo_raw_ng_demand_total.csv",
-    )
+    fetch_specs = [
+        ("price",        "ng_price",            "aeo_raw_ng_price.csv"),
+        ("demand_elec",  "demand_elec_quads",   "aeo_raw_ng_demand_electric_power.csv"),
+        ("demand_total", "demand_total_quads",  "aeo_raw_ng_demand_total.csv"),
+    ]
+    fetched: dict[str, pd.DataFrame] = {}
+    for series_key, value_col, raw_filename in fetch_specs:
+        fetched[series_key] = fetch_aeo_series_by_scenario(
+            client, aeo_year, NG_SERIES_NAMES[series_key],
+            scenario_ids, region_ids, value_col, start_year, end_year,
+            raw_output_path=raw_dir / raw_filename,
+        )
+    price_raw = fetched["price"]
+    demand_elec = fetched["demand_elec"]
+    demand_total = fetched["demand_total"]
 
     # ---- Step 3: Backfill historical data ----
     LOGGER.info("Step 3: Backfilling historical data...")
@@ -1065,38 +796,50 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
     ))
     validation_start_year = projection_start_year
 
+    # Compute cross-deflation ratio for historical prices.
+    # Historical CSVs are stored in a fixed dollar year (2024$), defined by
+    # HISTORICAL_PRICE_DEFLATOR_TO_2004. When the AEO dollar year changes,
+    # this ratio converts historical prices to the current AEO's dollar year.
+    hist_deflator = HISTORICAL_PRICE_DEFLATOR_TO_2004
+    current_deflator = float(ng_cfg["price_deflator_to_2004"])
+    hist_price_adjustment = hist_deflator / current_deflator
+    if abs(hist_price_adjustment - 1.0) > 1e-9:
+        LOGGER.info(
+            "  Historical price adjustment factor: %.8f "
+            "(hist_deflator=%.9f / current_deflator=%.9f)",
+            hist_price_adjustment, hist_deflator, current_deflator,
+        )
+
     if start_year < projection_start_year:
         input_dir = resolve_path(
             base_dir,
             config["paths"].get("input_dir", config["paths"]["output_dir"]),
         )
+        history_specs = [
+            ("ng_AEO",            "ng_price",           price_raw),
+            ("ng_demand_AEO",     "demand_elec_quads",  demand_elec),
+            ("ng_tot_demand_AEO", "demand_total_quads", demand_total),
+        ]
         try:
-            history_price = load_history_wide_file(
-                resolve_history_file(input_dir, "ng_AEO", HISTORY_SUFFIX),
-                "ng_price", region_order,
-            )
-            history_elec = load_history_wide_file(
-                resolve_history_file(
-                    input_dir, "ng_demand_AEO", HISTORY_SUFFIX),
-                "demand_elec_quads", region_order,
-            )
-            history_total = load_history_wide_file(
-                resolve_history_file(
-                    input_dir, "ng_tot_demand_AEO", HISTORY_SUFFIX),
-                "demand_total_quads", region_order,
-            )
-            price_raw = apply_reference_history_to_all_scenarios(
-                price_raw, "ng_price", history_price,
-                scenario_ids, projection_start_year,
-            )
-            demand_elec = apply_reference_history_to_all_scenarios(
-                demand_elec, "demand_elec_quads", history_elec,
-                scenario_ids, projection_start_year,
-            )
-            demand_total = apply_reference_history_to_all_scenarios(
-                demand_total, "demand_total_quads", history_total,
-                scenario_ids, projection_start_year,
-            )
+            backfilled: list[pd.DataFrame] = []
+            for stem, value_col, frame in history_specs:
+                hist_path = input_dir / f"{stem}_{HISTORY_SUFFIX}.csv"
+                require(hist_path.exists(), f"History source file not found: {hist_path}")
+                hist = load_history_wide_file(hist_path, value_col, region_order)
+                backfilled.append(apply_reference_history_to_all_scenarios(
+                    frame, value_col, hist, scenario_ids, projection_start_year,
+                ))
+            price_raw, demand_elec, demand_total = backfilled
+            # Adjust historical prices from their stored dollar year to the
+            # current AEO's dollar year so the output is in a single consistent
+            # dollar year across all years.
+            if abs(hist_price_adjustment - 1.0) > 1e-9:
+                mask = price_raw["year"] < projection_start_year
+                price_raw.loc[mask, "ng_price"] *= hist_price_adjustment
+                LOGGER.info(
+                    "  Adjusted %d historical price rows by factor %.8f",
+                    mask.sum(), hist_price_adjustment,
+                )
             validation_start_year = start_year
             LOGGER.info(
                 "Backfilled %d-%d from historical files in %s.",
@@ -1135,18 +878,11 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
         len(output_scenarios) == len(output_aliases),
         "One or more required output scenarios were dropped by coverage filtering.",
     )
-    validate_ng_coverage(
-        price_raw, scenario_ids, region_order,
-        validation_start_year, end_year, "NG price",
-    )
-    validate_ng_coverage(
-        demand_elec, scenario_ids, region_order,
-        validation_start_year, end_year, "NG electric demand",
-    )
-    validate_ng_coverage(
-        demand_total, scenario_ids, region_order,
-        validation_start_year, end_year, "NG total demand",
-    )
+    for label, frame in [("NG price", price_raw),
+                         ("NG electric demand", demand_elec),
+                         ("NG total demand", demand_total)]:
+        validate_ng_coverage(frame, scenario_ids, region_order,
+                             validation_start_year, end_year, label)
 
     # ---- Step 5: Convert prices to 2004$ ----
     LOGGER.info("Step 5: Converting prices to 2004$ (deflator=%.6f)...",
@@ -1157,28 +893,17 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
 
     # ---- Step 6: Compute alpha values ----
     LOGGER.info("Step 6: Computing NG alpha values...")
-    beta_path = resolve_path(base_dir, ng_cfg["regional_beta_path"])
+    input_dir = resolve_path(
+        base_dir,
+        config["paths"].get("input_dir", config["paths"]["output_dir"]),
+    )
+    beta_path = resolve_case_insensitive(input_dir / "cd_beta0.csv")
     beta_regional = load_regional_betas(beta_path, region_order)
-    national_beta_path = resolve_case_insensitive(beta_path.parent / "national_beta.csv")
-    require(
-        national_beta_path.exists(),
-        f"National beta file not found: {national_beta_path}",
-    )
-    national_beta_df = pd.read_csv(national_beta_path)
-    require(
-        "beta" in national_beta_df.columns,
-        f"National beta file missing 'beta' column: {national_beta_path}",
-    )
-    beta_vals = pd.to_numeric(national_beta_df["beta"], errors="coerce").dropna()
-    require(
-        not beta_vals.empty,
-        f"National beta file has no numeric beta value: {national_beta_path}",
-    )
-    beta_national = float(beta_vals.iloc[0])
+    national_beta_path = resolve_case_insensitive(input_dir / "national_beta.csv")
+    beta_national = load_national_beta(national_beta_path)
     LOGGER.info(
         "  Beta_national = %.10f (2004$/MMBtu per Quad, source=%s)",
-        beta_national,
-        national_beta_path,
+        beta_national, national_beta_path,
     )
     LOGGER.info(
         "  Beta_regional: %s",
@@ -1212,6 +937,9 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
     )
 
     # ---- Step 8: Append projection_start_year to history CSVs ----
+    # Note: price_raw may have been adjusted to the current AEO's dollar year,
+    # but the historical CSVs must remain in their original dollar year (2024$).
+    # Divide out the adjustment before appending the price row.
     ref_rows = output_scenarios[
         output_scenarios["file_suffix"] == "reference"
     ]
@@ -1221,8 +949,12 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
             base_dir,
             config["paths"].get("input_dir", config["paths"]["output_dir"]),
         )
+        # For the price series, convert back to the historical CSV dollar year
+        price_for_hist = price_raw.copy()
+        if abs(hist_price_adjustment - 1.0) > 1e-9:
+            price_for_hist["ng_price"] = price_for_hist["ng_price"] / hist_price_adjustment
         for stem, vcol, df in [
-            ("ng_AEO", "ng_price", price_raw),
+            ("ng_AEO", "ng_price", price_for_hist),
             ("ng_demand_AEO", "demand_elec_quads", demand_elec),
             ("ng_tot_demand_AEO", "demand_total_quads", demand_total),
         ]:
@@ -1241,14 +973,7 @@ def main() -> int:
     setup_logging(args.log_level)
 
     script_dir = Path(__file__).resolve().parent
-    cfg_path = Path(args.config)
-    if not cfg_path.is_absolute():
-        cwd_candidate = resolve_case_insensitive(
-            (Path.cwd() / cfg_path).resolve())
-        script_candidate = resolve_case_insensitive(
-            (script_dir / cfg_path).resolve())
-        cfg_path = (cwd_candidate if cwd_candidate.exists()
-                    else script_candidate)
+    cfg_path = resolve_config_path(args.config, script_dir)
 
     cfg = load_config(cfg_path)
     if args.aeo_year is not None:
