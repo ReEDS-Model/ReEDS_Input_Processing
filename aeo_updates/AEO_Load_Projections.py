@@ -20,6 +20,8 @@ import matplotlib.pyplot as plt
 # lastyear is the last year that historical data are available
 lastyear = 2024
 AEO_year = 2026
+# First projected year in AEO data (2025 for AEO2026)
+aeo_first_year = AEO_year - 1
 
 ### Helper functions
 
@@ -182,11 +184,10 @@ df_combined['load'] = df_combined['sales'] + df_combined['pvgen']
 df_combined.drop(columns=['sales', 'pvgen'], inplace=True)
 
 # Build demand ratios from AEO electricity consumption + DGPV for each scenario.
-# Ratios are normalized so that the first AEO projected year (2025) = 1.0 for each cendiv.
+# Ratios are normalized so that the first AEO projected year = 1.0 for each cendiv.
 # This avoids unit-mismatch between historical EIA data (million kWh) and AEO data (quads).
 # Historical years (2010-lastyear) use ratio = 1.0 so the state-level loadmult drives
 # the multiplier for those years; AEO growth trajectory applies from lastyear onward.
-aeo_first_year = 2025
 all_cendivs = list(_DIV_TO_CENDIV.values())
 hist_years = list(range(2010, lastyear + 1))  # 2010 through lastyear inclusive
 all_ratios = []
