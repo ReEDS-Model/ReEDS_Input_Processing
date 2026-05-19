@@ -106,6 +106,12 @@ NG_OUTPUT_SCENARIOS = {
 
 HISTORY_SUFFIX = "historical"
 
+# Deflator from the historical CSV dollar year (2024$) to 2004$.
+# The historical CSVs in 'inputs for alpha regression/' are stored in 2024 USD.
+# This value should only change if the historical CSVs are regenerated in a
+# different dollar year.
+HISTORICAL_PRICE_DEFLATOR_TO_2004 = 0.602782
+
 
 # ============================================================================
 # Utility Functions
@@ -790,6 +796,20 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
     ))
     validation_start_year = projection_start_year
 
+    # Compute cross-deflation ratio for historical prices.
+    # Historical CSVs are stored in a fixed dollar year (2024$), defined by
+    # HISTORICAL_PRICE_DEFLATOR_TO_2004. When the AEO dollar year changes,
+    # this ratio converts historical prices to the current AEO's dollar year.
+    hist_deflator = HISTORICAL_PRICE_DEFLATOR_TO_2004
+    current_deflator = float(ng_cfg["price_deflator_to_2004"])
+    hist_price_adjustment = hist_deflator / current_deflator
+    if abs(hist_price_adjustment - 1.0) > 1e-9:
+        LOGGER.info(
+            "  Historical price adjustment factor: %.8f "
+            "(hist_deflator=%.9f / current_deflator=%.9f)",
+            hist_price_adjustment, hist_deflator, current_deflator,
+        )
+
     if start_year < projection_start_year:
         input_dir = resolve_path(
             base_dir,
@@ -810,6 +830,16 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
                     frame, value_col, hist, scenario_ids, projection_start_year,
                 ))
             price_raw, demand_elec, demand_total = backfilled
+            # Adjust historical prices from their stored dollar year to the
+            # current AEO's dollar year so the output is in a single consistent
+            # dollar year across all years.
+            if abs(hist_price_adjustment - 1.0) > 1e-9:
+                mask = price_raw["year"] < projection_start_year
+                price_raw.loc[mask, "ng_price"] *= hist_price_adjustment
+                LOGGER.info(
+                    "  Adjusted %d historical price rows by factor %.8f",
+                    mask.sum(), hist_price_adjustment,
+                )
             validation_start_year = start_year
             LOGGER.info(
                 "Backfilled %d-%d from historical files in %s.",
@@ -907,6 +937,9 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
     )
 
     # ---- Step 8: Append projection_start_year to history CSVs ----
+    # Note: price_raw may have been adjusted to the current AEO's dollar year,
+    # but the historical CSVs must remain in their original dollar year (2024$).
+    # Divide out the adjustment before appending the price row.
     ref_rows = output_scenarios[
         output_scenarios["file_suffix"] == "reference"
     ]
@@ -916,8 +949,12 @@ def run_ng_pipeline(config: dict[str, Any], base_dir: Path) -> None:
             base_dir,
             config["paths"].get("input_dir", config["paths"]["output_dir"]),
         )
+        # For the price series, convert back to the historical CSV dollar year
+        price_for_hist = price_raw.copy()
+        if abs(hist_price_adjustment - 1.0) > 1e-9:
+            price_for_hist["ng_price"] = price_for_hist["ng_price"] / hist_price_adjustment
         for stem, vcol, df in [
-            ("ng_AEO", "ng_price", price_raw),
+            ("ng_AEO", "ng_price", price_for_hist),
             ("ng_demand_AEO", "demand_elec_quads", demand_elec),
             ("ng_tot_demand_AEO", "demand_total_quads", demand_total),
         ]:
