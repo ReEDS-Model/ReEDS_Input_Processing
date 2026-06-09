@@ -55,7 +55,7 @@ Pulled using the EIA AEO data grabber. The demand growth data reports electricit
 
 The projections through 2050 are created using AEO_Load_Projections.py, which reads the AEO electricity consumption CSVs from the outputs/ folder and the EIA-provided DGPV Excel file directly. The script calibrates historical years (2010–lastyear) to EIA retail sales data via the EIA API, then applies census-division demand growth ratios from the AEO scenarios for projected years.
 
-The output multipliers are ratios of demand in the specified year to demand in 2010, i.e. Demand~year~ / Demand~2010~. Output files are written to the Outputs/ folder:
+The output multipliers are ratios of demand in the specified year to demand in 2010, i.e. Demand<sub>year</sub> / Demand<sub>2010</sub>. Output files are written to the Outputs/ folder:
 
 * demand_AEO_{year}_baseline.csv (Counterfactual Baseline scenario)
 * demand_AEO_{year}_low.csv (Low Economic Growth scenario)
