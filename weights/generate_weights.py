@@ -81,7 +81,8 @@ if __name__ == '__main__':
         dfweights[decay_km], _ = smear(dfcounty, dfcendiv, decay_km=decay_km, decay_func=decay_func)
         if not (dfweights[decay_km].sum(axis=1).map(lambda x: np.isclose(x, 1))).all():
             raise ValueError("Census division weights don't sum to 1")
-        dfweights[decay_km].round(decimals).to_csv(f'{resolution}_weights_{decay_km}kmExpDecay.csv')
+        fpath = f'{resolution}_weights_{decay_km}kmExpDecay.csv'
+        dfweights[decay_km].rename_axis('r').sort_index().round(decimals).to_csv(fpath)
 
 
     #%% Take a look
