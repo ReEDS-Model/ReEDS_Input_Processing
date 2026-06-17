@@ -11,26 +11,44 @@ print("...Starting data processing for RPS, CES and hydrofrac...")
 ### ===========Load Input Data=================
 ### ===========================================
 
-### Input `RPS data for NREL_June 2025.xlsx` file and convert it to a DataFrame
+### Input `RPS data for NREL_June 2026.xlsx` file and convert it to a DataFrame
 ### If update the input file, please make sure the below table parameters are updated accordingly.
-### This file is provided annually by Galen Barbose at LBNL
+### This file is provided annually by Galen Barbose at LBNL and downloaded from
+### https://emp.lbl.gov/projects/renewables-portfolio
 ### ----------------------------------------------------------------------------
 
-filename                = os.path.join("inputs", "RPS data for NREL_June 2025.xlsx")
+filename                = os.path.join("inputs", "RPS data for NREL_June 2026.xlsx")
 
-# Statewide Load sheet as sales data and RPS & CES Demand Projections sheet for RPS and CES data
-# are used for capculate `rps_fraction` and `ces_fraction`.
-Salessheetname          = "Statewide Load"
-Salessheet_usecols      = "B:BC"
-Salessheet_skiprows     = 5
+# `Statewide Sales` sheet as sales data and `RPS & CES Demand (GWh)` sheet for RPS and CES data
+# are used to calculate `rps_fraction` and `ces_fraction`.
+# NOTE: In the June 2026 LBNL release, several sheets were renamed and re-laid out
+# compared with previous releases (e.g., "Statewide Load" -> "Statewide Sales",
+# "RPS & CES Demand Projections" -> "RPS & CES Demand (GWh)"). The header rows also
+# moved. The skiprows/usecols/nrows values below match the June 2026 layout.
+Salessheetname          = "Statewide Sales"
+Salessheet_usecols      = "A:BB"
+Salessheet_skiprows     = 19
 Salessheet_nrows        = 52
 
-RPSsheetname            = "RPS & CES Demand Projections"
+RPSsheetname            = "RPS & CES Demand (GWh)"
 RPSsheet_usecols        = "A:BB"
-RPSsheet_skiprows       = 2
-RPSsheet_nrows          = 97
+RPSsheet_skiprows       = 28
+RPSsheet_nrows          = 96
 
-# Hydro sheet is used for hydrofrac calculation.
+### Hydro / Non-RE Accounting input
+### -----------------------------------------------------------------------------
+### The state-level hydro / MSW / non-RE accounting data used for the hydrofrac
+### calculation lived on the `Non-RE Accounting` sheet of the previous LBNL
+### release. That sheet was removed in the June 2026 release (only aggregate,
+### national-level totals remain). Until LBNL provides an updated state-level
+### source for this accounting, we continue to read this from the June 2025
+### file. The underlying values (state-by-state hydro/MSW serving RPS, plus
+### existing nuclear/hydro serving CES) come from compliance reports, IRPs,
+### and similar sources that change slowly year-to-year, so this is a
+### reasonable interim approach. Update this filename if/when LBNL re-releases
+### a state-level version.
+filename_hydrofrac      = os.path.join("inputs", "RPS data for NREL_June 2025.xlsx")
+
 Hydrosheetname          = "Non-RE Accounting"
 
 Hydrosheet_RPS_usecols  = "A:E"
@@ -442,7 +460,7 @@ if __name__ == "__main__":
     )
 
     calculate_hydrofrac(
-        main_excel_file=filename,
+        main_excel_file=filename_hydrofrac,
         gen_df=gen,
         hierarchy_df=hierarchy
     )
