@@ -58,11 +58,11 @@ Hydrosheet_CES_nrows    = 16
 
 ### Input voluntary RPS data which is downloaded from NLR Green Power Data
 ### If update the input file, please make sure the below table parameters are updated accordingly.
-### https://www.nlr.gov/analysis/green-power
+### https://www.nlr.gov/analysis/voluntary-power-procurement
 ### -----------------------------------------------------------------------------
 
 # These data are used to calculate voluntary RPS fraction and will be appended to `rps_fraction.csv`
-filename_voluntary      = os.path.join("inputs", "nrel-green-power-data-v2023.xlsx")
+filename_voluntary      = os.path.join("inputs", "nrel-green-power-data-v2024.xlsx")
 Voluntarysheetname      = "Marketwide Estimates"
 Voluntarysheet_usecols  = "A:C"
 Voluntarysheet_skiprows = 2
@@ -188,7 +188,7 @@ def calculate_rps_fraction(main_excel_file, voluntary_file, non_us_file):
     RPStarget.columns = ['t', 'st', 'rps_all', 'rps_solar', 'rps_wind']
 
     # Append voluntary RPS data
-    # Use 2010-2023 data as historical data
+    # Use 2010-2024 data as historical data
     # and project future data until 2050 using the minimum absolute growth rate from historical data.
     voluntary_data = pd.read_excel(voluntary_file, sheet_name=Voluntarysheetname, usecols=Voluntarysheet_usecols, skiprows=Voluntarysheet_skiprows, nrows=Voluntarysheet_nrows)
     voluntary_data = voluntary_data.rename(columns={'Year': 'Year'})
@@ -202,7 +202,7 @@ def calculate_rps_fraction(main_excel_file, voluntary_file, non_us_file):
     voluntary_data_historical = voluntary_data_historical[['t', 'st', 'rps_all']].assign(rps_solar=0.0, rps_wind=0.0)
 
     rps_series = voluntary_data_historical[['t', 'rps_all']].dropna()
-    rps_series = rps_series[rps_series['t'] <= 2023].sort_values('t')
+    rps_series = rps_series[rps_series['t'] <= 2024].sort_values('t')
     min_growth = rps_series['rps_all'].diff().min()
 
     last_year = rps_series['t'].max()

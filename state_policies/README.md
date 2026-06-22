@@ -34,7 +34,7 @@ All located in `inputs/`:
 | Input | Description |
 | --- | --- |
 | `RPS & CES Targets and Demand_June 2026.xlsx` | Annual LBNL state RPS / CES dataset, provided by Galen Barbose. Source: https://emp.lbl.gov/projects/renewables-portfolio. The script reads four sheets from this file: `Statewide Sales`, `RPS & CES Demand (GWh)`, and `Non-RE Accounting`. Note: starting with the June 2026 release LBNL no longer publishes the `Non-RE Accounting` sheet in the public workbook. Galen sends it separately to NREL, and we paste it back into this file as the `Non-RE Accounting` tab so the workbook is self-contained. |
-| `nrel-green-power-data-v2023.xlsx` | NREL Green Power Data, used for the voluntary RPS row. Source: https://www.nrel.gov/analysis/green-power. |
+| `nrel-green-power-data-v2024.xlsx` | NLR Green Power Data (formerly NREL), used for the voluntary RPS row. Source: https://www.nlr.gov/analysis/voluntary-power-procurement. |
 | `RPS_nonUS.csv` | Non-US RPS data provided by the ReEDS team (currently only Nova Scotia, `NS`). |
 | `hierarchy.csv` | Region hierarchy from a recent ReEDS Reference run, used to map BAs to states for the hydrofrac calculation. |
 | `gen_ann.csv` | Annual generation by tech and BA from a recent ReEDS Reference run, used to compute hydro / non-RE shares for the hydrofrac calculation. |
@@ -56,18 +56,27 @@ a new release:
    - `RPSsheetname`, `RPSsheet_usecols`, `RPSsheet_skiprows`, `RPSsheet_nrows` — match the new sheet's name and header layout.
    - `Hydrosheet_*` — re-check the row counts on the `Non-RE Accounting` sheet (e.g. whether a totals row was added at the bottom of the RPS block).
    - Confirm `hydro_year` is still appropriate for the latest ReEDS Reference run.
-3. (Optional, but recommended for PR review) Stage the previous run's outputs
+3. Check https://www.nlr.gov/analysis/voluntary-power-procurement for a newer
+   NLR Green Power Data release (e.g. `nrel-green-power-data-v2025.xlsx`). If a
+   newer file exists, download it into `inputs/`, update `filename_voluntary` in
+   `data_processing.py`, and bump `Voluntarysheet_nrows` to match the number of
+   historical years in the new file. Also update the hardcoded `<= 2024` year
+   cap in the voluntary projection block (search for `rps_series[rps_series['t']
+   <= 2024]`) to the new last historical year. The NLR file is updated on a
+   different schedule from the LBNL workbook, so this step is independent and
+   may be skipped if no newer NLR release is available.
+4. (Optional, but recommended for PR review) Stage the previous run's outputs
    for comparison. From `state_policies/`:
    ```
    copy outputs\rps_fraction.csv      "old and new data comparison\old ReEDS input\rps_fraction0.csv"
    copy outputs\ces_fraction.csv      "old and new data comparison\old ReEDS input\ces_fraction0.csv"
    copy outputs\hydrofrac_policy.csv  "old and new data comparison\old ReEDS input\hydrofrac_policy0.csv"
    ```
-4. Run the processing script:
+5. Run the processing script:
    ```
    python data_processing.py
    ```
-5. Generate before/after comparison plots:
+6. Generate before/after comparison plots:
    ```
    cd "old and new data comparison"
    python generate_comparison_plots.py
@@ -78,7 +87,6 @@ a new release:
    `hydrofrac_RPS_All_comparison.png`, and
    `hydrofrac_CES_comparison.png`. Attach these to the PR so reviewers can see
    what changed.
-
 # Output files
 
 Located in `outputs/`. These are the files that get copied into ReEDS:
