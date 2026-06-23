@@ -25,12 +25,7 @@ def _format_value(x):
 
 ### Input `RPS & CES Targets and Demand_June 2026.xlsx` file and convert it to a DataFrame
 ### If update the input file, please make sure the below table parameters are updated accordingly.
-### This file is provided annually by Galen Barbose at LBNL and downloaded from
-### https://emp.lbl.gov/projects/renewables-portfolio
-### Note: in the June 2026 release LBNL split the `Non-RE Accounting` sheet out
-### of the public workbook. Galen provided that sheet directly to NREL and we
-### merged it back into this file as the `Non-RE Accounting` tab, so the layout
-### matches the previous all-in-one release.
+### This file is provided annually by Galen Barbose at LBNL
 ### ----------------------------------------------------------------------------
 
 filename                = os.path.join("inputs", "RPS & CES Targets and Demand_June 2026.xlsx")
