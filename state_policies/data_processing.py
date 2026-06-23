@@ -32,10 +32,6 @@ filename                = os.path.join("inputs", "RPS & CES Targets and Demand_J
 
 # `Statewide Sales` sheet as sales data and `RPS & CES Demand (GWh)` sheet for RPS and CES data
 # are used to calculate `rps_fraction` and `ces_fraction`.
-# NOTE: In the June 2026 LBNL release, several sheets were renamed and re-laid out
-# compared with previous releases (e.g., "Statewide Load" -> "Statewide Sales",
-# "RPS & CES Demand Projections" -> "RPS & CES Demand (GWh)"). The header rows also
-# moved. The skiprows/usecols/nrows values below match the June 2026 layout.
 Salessheetname          = "Statewide Sales"
 Salessheet_usecols      = "A:BB"
 Salessheet_skiprows     = 19
@@ -47,12 +43,6 @@ RPSsheet_skiprows       = 28
 RPSsheet_nrows          = 96
 
 ### Hydro / Non-RE Accounting input
-### -----------------------------------------------------------------------------
-### Read from the same workbook as the RPS/CES targets. The `Non-RE Accounting`
-### sheet provides state-by-state GWh of existing hydro / MSW / non-RE
-### generation that already counts toward each state's RPS, plus existing hydro
-### / nuclear that counts toward each state's CES. Layout is identical to the
-### previous LBNL release, so the skiprows/usecols/nrows below are unchanged.
 Hydrosheetname          = "Non-RE Accounting"
 
 Hydrosheet_RPS_usecols  = "A:E"
