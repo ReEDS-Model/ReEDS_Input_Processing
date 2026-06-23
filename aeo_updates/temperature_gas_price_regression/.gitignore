@@ -10,3 +10,5 @@ outputs/
 inputs/gasreg_regression_data.csv
 inputs/state_cdd*.txt
 inputs/state_hdd*.txt
+inputs/cendiv_cdd*.txt
+inputs/cendiv_hdd*.txt
