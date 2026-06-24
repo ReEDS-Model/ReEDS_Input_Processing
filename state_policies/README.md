@@ -95,7 +95,7 @@ in git** (see `.gitignore`). The canonical copies of the three files below live
 in the ReEDS repository after the annual update PR is merged; the diagnostic
 intermediates are only needed locally to regenerate the comparison plots.
 
-Files that get copied into ReEDS (`inputs/state_policy`):
+Files that get copied into ReEDS (`inputs/state_policies/` in the ReEDS repo):
 
 * `rps_fraction.csv`
 * `ces_fraction.csv`
