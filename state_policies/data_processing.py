@@ -53,7 +53,7 @@ Hydrosheet_CES_usecols  = "A:D"
 Hydrosheet_CES_skiprows = 39
 Hydrosheet_CES_nrows    = 16
 
-### Input voluntary RPS data which is downloaded from NLR Green Power Data
+### Input voluntary RPS data which is downloaded from NLR Voluntary Power Procurement website
 ### If update the input file, please make sure the below table parameters are updated accordingly.
 ### https://www.nlr.gov/analysis/voluntary-power-procurement
 ### -----------------------------------------------------------------------------
