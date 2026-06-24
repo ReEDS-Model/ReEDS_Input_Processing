@@ -33,7 +33,7 @@ All located in `inputs/`:
 
 | Input | Description |
 | --- | --- |
-| `RPS & CES Targets and Demand_June 2026.xlsx` | Annual LBNL state RPS / CES dataset, provided by Galen Barbose. Source: https://emp.lbl.gov/projects/renewables-portfolio. The script reads four sheets from this file: `Statewide Sales`, `RPS & CES Demand (GWh)`, and `Non-RE Accounting`. Note: starting with the June 2026 release LBNL no longer publishes the `Non-RE Accounting` sheet in the public workbook. Galen sends it separately to NREL, and we paste it back into this file as the `Non-RE Accounting` tab so the workbook is self-contained. |
+| `RPS & CES Targets and Demand_June 2026.xlsx` | Annual LBNL state RPS / CES dataset, provided by Galen Barbose. Source: https://emp.lbl.gov/projects/renewables-portfolio. The script reads four sheets from this file: `Statewide Sales`, `RPS & CES Demand (GWh)`, and `Non-RE Accounting`. Note: the `Non-RE Accounting` sheet is not in the public workbook. Galen sends it separately, and we paste it back into this file as the `Non-RE Accounting` tab so the workbook is self-contained. |
 | `nrel-green-power-data-v2024.xlsx` | NLR Green Power Data (formerly NREL), used for the voluntary RPS row. Source: https://www.nlr.gov/analysis/voluntary-power-procurement. |
 | `RPS_nonUS.csv` | Non-US RPS data provided by the ReEDS team (currently only Nova Scotia, `NS`). |
 | `hierarchy.csv` | Region hierarchy from a recent ReEDS Reference run, used to map BAs to states for the hydrofrac calculation. |
