@@ -22,6 +22,30 @@ INTM_LABEL = "New (from June 2026 LBNL data, not interpolated)"
 
 
 def plot_rps(value_col, title, fname):
+    """Plot per-state RPS fraction comparison (old vs new) for one value column.
+
+    Reads the previous run's `rps_fraction0.csv` from `old ReEDS input/`, the
+    new interpolated `rps_fraction.csv` from `../outputs/`, and the new
+    un-interpolated intermediate `rps_fraction_intermediate.csv` from
+    `../outputs/intermediate outputs/`. For every state that appears in either
+    old or new, draws three series on a per-state subplot:
+
+    * blue squares  -> old (June 2025 LBNL) values
+    * red line      -> new (June 2026 LBNL) values, after piecewise interpolation
+    * red dots      -> new (June 2026 LBNL) values, before interpolation
+
+    Saves the resulting figure to `plots/{fname}` and prints the output path.
+
+    Parameters
+    ----------
+    value_col : str
+        Column to plot from the RPS CSVs. One of `rps_all`, `rps_solar`,
+        `rps_wind`.
+    title : str
+        Figure suptitle.
+    fname : str
+        Output PNG filename (saved inside `plots/`).
+    """
     df_old = pd.read_csv(os.path.join(OLD_DIR, "rps_fraction0.csv"))
     df_new = pd.read_csv(os.path.join(NEW_DIR, "rps_fraction.csv"))
     df_int = pd.read_csv(os.path.join(INTERMED_DIR, "rps_fraction_intermediate.csv"))
@@ -59,6 +83,21 @@ def plot_rps(value_col, title, fname):
 
 
 def plot_ces():
+    """Plot per-state CES fraction comparison (old vs new).
+
+    Reads the previous run's `ces_fraction0.csv` from `old ReEDS input/`, the
+    new interpolated `ces_fraction.csv` from `../outputs/`, and the new
+    un-interpolated intermediate `ces_fraction_intermediate.csv` from
+    `../outputs/intermediate outputs/`. For every state that appears in either
+    old or new, draws three series on a per-state subplot:
+
+    * blue squares  -> old (June 2025 LBNL) values
+    * red line      -> new (June 2026 LBNL) values, after piecewise interpolation
+    * red dots      -> new (June 2026 LBNL) values, before interpolation
+
+    Saves the resulting figure to `plots/ces_fraction_comparison.png` and
+    prints the output path.
+    """
     df_old = pd.read_csv(os.path.join(OLD_DIR, "ces_fraction0.csv"))
     df_new = pd.read_csv(os.path.join(NEW_DIR, "ces_fraction.csv"))
     df_int = pd.read_csv(os.path.join(INTERMED_DIR, "ces_fraction_intermediate.csv"))
@@ -100,6 +139,17 @@ def plot_ces():
 
 
 def plot_hydrofrac():
+    """Plot per-state hydrofrac policy comparison (old vs new) as two bar charts.
+
+    Reads `hydrofrac_policy0.csv` (previous run) from `old ReEDS input/` and
+    the new `hydrofrac_policy.csv` from `../outputs/`, joins them on state,
+    and produces two grouped bar charts (old vs new side-by-side per state):
+
+    * `plots/hydrofrac_RPS_All_comparison.png` for the `RPS_All` column.
+    * `plots/hydrofrac_CES_comparison.png`     for the `CES` column.
+
+    Prints each output path after it is written.
+    """
     df_old = pd.read_csv(os.path.join(OLD_DIR, "hydrofrac_policy0.csv"))
     df_new = pd.read_csv(os.path.join(NEW_DIR, "hydrofrac_policy.csv"))
 
