@@ -418,6 +418,7 @@ def interpolate_policy_file(input_path, output_path,
 if __name__ == "__main__":
 
     os.makedirs("outputs", exist_ok=True)
+    os.makedirs(os.path.join("outputs", "intermediate outputs"), exist_ok=True)
 
     # --- Run Processing Functions ---
 
