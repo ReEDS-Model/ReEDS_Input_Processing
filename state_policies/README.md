@@ -46,9 +46,8 @@ a new release:
 
 1. Download the new LBNL RPS dataset from
    https://emp.lbl.gov/projects/renewables-portfolio and place it in
-   `inputs/` (e.g. `RPS & CES Targets and Demand_June 2026.xlsx`). Since
-   June 2026, the public workbook no longer contains the `Non-RE Accounting`
-   sheet — request it from Galen Barbose and paste it back into the workbook
+   `inputs/` (e.g. `RPS & CES Targets and Demand_June 2026.xlsx`). To get the `Non-RE Accounting`
+   sheet, request it from Galen Barbose and paste it back into the workbook
    as a sheet named `Non-RE Accounting`.
 2. Open `data_processing.py` and update the parameters at the top of the file:
    - `filename` — point to the new file.
