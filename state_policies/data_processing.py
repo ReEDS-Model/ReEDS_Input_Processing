@@ -357,7 +357,7 @@ def interpolate_policy_file(input_path, output_path,
                             index_col='t', 
                             state_col='st', 
                             column_tolerances=None, 
-                            base_year=2025):
+                            base_year=2023):
     
     print(f"...Interpolating policy file: {input_path} to {output_path}")
 
