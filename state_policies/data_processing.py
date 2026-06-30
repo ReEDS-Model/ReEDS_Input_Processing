@@ -79,7 +79,9 @@ nonUS_state             = "NS"
 ### ----------------------------------------------------------------------------------
 
 # These two files represent hydro power generation and are used to calculate hydrofrac.
-hierarchy               = pd.read_csv('./inputs/hierarchy.csv').drop(columns=['Value'])
+hierarchy               = pd.read_csv('./inputs/hierarchy.csv').drop(columns=['Value'], errors='ignore')
+if 'r' not in hierarchy.columns and '*r' in hierarchy.columns:
+    hierarchy = hierarchy.rename(columns={'*r': 'r'})
 gen                     = pd.read_csv('./inputs/gen_ann.csv')
 hydro_year              = 2023       # The year for which hydrofrac is calculated
 
