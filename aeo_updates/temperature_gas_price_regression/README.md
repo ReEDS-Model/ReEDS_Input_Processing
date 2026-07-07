@@ -3,7 +3,7 @@ The notebooks in this folder create the temperature - gas price regression input
 
 # Workflow
 To reproduce the temperature - gas price regression inputs used in ReEDS, the following notebooks should be run in the order listed here:
-- `write_regression_input_data.ipynb` writes the daily heating/cooling degree day and spot price data used to fit the regression models. Creates the intermediate input file `inputs/gasreg_regression_data.csv`.
+- `write_regression_input_data.ipynb` writes the daily heating/cooling degree day and spot price data used to fit the regression models. Creates the intermediate input file `inputs/gasreg_regression_data.csv`. Note that the file containing the spot price data used in this notebook is not accessible to people external to the lab.
 - `calculate_regression_params.ipynb` performs the regression and exports the corresponding parameters (HDD/CDD coefficients, intercept, and monthly fixed effects). Creates the output (ReEDS input) file `outputs/gasreg_degree_day_price_mult_regression_params.csv`.
 
 Optionally, the `inspect_hub_locations.ipynb` can also be used to identify the gasreg that each natural gas hub overlaps with geographically. This notebook is not required to reproduce the ReEDS inputs, but was used initially to associate gasregs with daily gas prices and is here for documentation purposes. Note that the file containing the hub locations used in this notebook is not accessible to people external to the lab.
