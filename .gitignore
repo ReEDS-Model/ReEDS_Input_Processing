@@ -44,7 +44,7 @@ Manifest.toml
 # IDE files
 *.vscode
 
-# NREL HPC files
+# NLR HPC files
 slurm*.out
 
 # local downloaded files
