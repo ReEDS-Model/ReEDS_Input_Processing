@@ -105,3 +105,14 @@ Diagnostic / intermediate files (not used directly by ReEDS) live in
 
 * `rps_fraction_intermediate.csv` — RPS fractions before piecewise interpolation.
 * `ces_fraction_intermediate.csv` — CES fractions before piecewise interpolation.
+
+# Interpolation tolerances — may need re-tuning each year
+
+`interpolate_policy_file` in `data_processing.py` uses a piecewise-linear
+interpolator whose change-point detection is sensitive to small revisions in
+the LBNL raw values (a sub-percent shift in the input can move a change-point
+year by several years and change the interpolated ramp shape). After each
+annual update, scan the comparison plots for any state whose curve changes
+shape (not just level); if one does, nudge the relevant entry in
+`column_tolerances` in `__main__` until the ramp matches the intended policy
+trajectory, then re-check that no other state was destabilized.

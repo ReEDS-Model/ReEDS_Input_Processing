@@ -453,7 +453,7 @@ if __name__ == "__main__":
         value_columns=["Value"],
         index_col="*t",
         state_col="st",
-        column_tolerances={"Value": 0.08}
+        column_tolerances={"Value": 0.07}
     )
 
     calculate_hydrofrac(
