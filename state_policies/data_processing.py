@@ -7,47 +7,59 @@ import os
 
 print("...Starting data processing for RPS, CES and hydrofrac...")
 
+
+### Format numeric values written to CSV: 6 decimal places, except exactly 1 -> "1"
+### and exactly 0 -> "0". Used as the `float_format` argument to `DataFrame.to_csv`.
+def _format_value(x):
+    if pd.isna(x):
+        return ''
+    if x == 0:
+        return '0'
+    if x == 1:
+        return '1'
+    return f'{x:.6f}'
+
 ### ===========================================
 ### ===========Load Input Data=================
 ### ===========================================
 
-### Input `RPS data for NREL_June 2025.xlsx` file and convert it to a DataFrame
+### Input `RPS & CES Targets and Demand_June 2026.xlsx` file and convert it to a DataFrame
 ### If update the input file, please make sure the below table parameters are updated accordingly.
 ### This file is provided annually by Galen Barbose at LBNL
 ### ----------------------------------------------------------------------------
 
-filename                = os.path.join("inputs", "RPS data for NREL_June 2025.xlsx")
+filename                = os.path.join("inputs", "RPS & CES Targets and Demand_June 2026.xlsx")
 
-# Statewide Load sheet as sales data and RPS & CES Demand Projections sheet for RPS and CES data
-# are used for capculate `rps_fraction` and `ces_fraction`.
-Salessheetname          = "Statewide Load"
-Salessheet_usecols      = "B:BC"
-Salessheet_skiprows     = 5
+# `Statewide Sales` sheet as sales data and `RPS & CES Demand (GWh)` sheet for RPS and CES data
+# are used to calculate `rps_fraction` and `ces_fraction`.
+Salessheetname          = "Statewide Sales"
+Salessheet_usecols      = "A:BB"
+Salessheet_skiprows     = 19
 Salessheet_nrows        = 52
 
-RPSsheetname            = "RPS & CES Demand Projections"
+RPSsheetname            = "RPS & CES Demand (GWh)"
 RPSsheet_usecols        = "A:BB"
-RPSsheet_skiprows       = 2
-RPSsheet_nrows          = 97
+RPSsheet_skiprows       = 28
+RPSsheet_nrows          = 96
 
-# Hydro sheet is used for hydrofrac calculation.
+### Hydro / Non-RE Accounting input
 Hydrosheetname          = "Non-RE Accounting"
 
 Hydrosheet_RPS_usecols  = "A:E"
 Hydrosheet_RPS_skiprows = 2
-Hydrosheet_RPS_nrows    = 33
+Hydrosheet_RPS_nrows    = 32
 
 Hydrosheet_CES_usecols  = "A:D"
 Hydrosheet_CES_skiprows = 39
 Hydrosheet_CES_nrows    = 16
 
-### Input voluntary RPS data which is downloaded from NLR Green Power Data
+### Input voluntary RPS data which is downloaded from NLR Voluntary Power Procurement website
 ### If update the input file, please make sure the below table parameters are updated accordingly.
-### https://www.nlr.gov/analysis/green-power
+### https://www.nlr.gov/analysis/voluntary-power-procurement
 ### -----------------------------------------------------------------------------
 
 # These data are used to calculate voluntary RPS fraction and will be appended to `rps_fraction.csv`
-filename_voluntary      = os.path.join("inputs", "nrel-green-power-data-v2023.xlsx")
+filename_voluntary      = os.path.join("inputs", "nrel-green-power-data-v2024.xlsx")
 Voluntarysheetname      = "Marketwide Estimates"
 Voluntarysheet_usecols  = "A:C"
 Voluntarysheet_skiprows = 2
@@ -67,7 +79,9 @@ nonUS_state             = "NS"
 ### ----------------------------------------------------------------------------------
 
 # These two files represent hydro power generation and are used to calculate hydrofrac.
-hierarchy               = pd.read_csv('./inputs/hierarchy.csv').drop(columns=['Value'])
+hierarchy               = pd.read_csv('./inputs/hierarchy.csv').drop(columns=['Value'], errors='ignore')
+if 'r' not in hierarchy.columns and '*r' in hierarchy.columns:
+    hierarchy = hierarchy.rename(columns={'*r': 'r'})
 gen                     = pd.read_csv('./inputs/gen_ann.csv')
 hydro_year              = 2023       # The year for which hydrofrac is calculated
 
@@ -173,7 +187,7 @@ def calculate_rps_fraction(main_excel_file, voluntary_file, non_us_file):
     RPStarget.columns = ['t', 'st', 'rps_all', 'rps_solar', 'rps_wind']
 
     # Append voluntary RPS data
-    # Use 2010-2023 data as historical data
+    # Use 2010-2024 data as historical data
     # and project future data until 2050 using the minimum absolute growth rate from historical data.
     voluntary_data = pd.read_excel(voluntary_file, sheet_name=Voluntarysheetname, usecols=Voluntarysheet_usecols, skiprows=Voluntarysheet_skiprows, nrows=Voluntarysheet_nrows)
     voluntary_data = voluntary_data.rename(columns={'Year': 'Year'})
@@ -187,7 +201,7 @@ def calculate_rps_fraction(main_excel_file, voluntary_file, non_us_file):
     voluntary_data_historical = voluntary_data_historical[['t', 'st', 'rps_all']].assign(rps_solar=0.0, rps_wind=0.0)
 
     rps_series = voluntary_data_historical[['t', 'rps_all']].dropna()
-    rps_series = rps_series[rps_series['t'] <= 2023].sort_values('t')
+    rps_series = rps_series[rps_series['t'] <= 2024].sort_values('t')
     min_growth = rps_series['rps_all'].diff().min()
 
     last_year = rps_series['t'].max()
@@ -208,7 +222,7 @@ def calculate_rps_fraction(main_excel_file, voluntary_file, non_us_file):
     final_rps = final_rps[final_rps['t'] > 2009].sort_values(by=['st', 't'])
 
     output_path = os.path.join("outputs", "intermediate outputs", "rps_fraction_intermediate.csv")
-    final_rps.to_csv(output_path, index=False)
+    final_rps.to_csv(output_path, index=False, float_format=_format_value)
     print(f"...Intermediate RPS data processed and saved to {output_path}")
 
 ### Function to calculate CES fractions
@@ -277,7 +291,7 @@ def calculate_ces_fraction(main_excel_file):
 
     # Save to CSV
     output_path = os.path.join("outputs", "intermediate outputs", "ces_fraction_intermediate.csv")
-    out_df.to_csv(output_path, index=False)
+    out_df.to_csv(output_path, index=False, float_format=_format_value)
     print(f"...Intermediate CES data processed and saved to {output_path}")
 
 ### Function to calculate hydro fractions in selected year
@@ -329,7 +343,7 @@ def calculate_hydrofrac(main_excel_file, gen_df, hierarchy_df):
     # Format and save
     outdf = df_final[["State", "hydrofrac_RPS", "hydrofrac_CES"]].rename(columns={"State": "st", "hydrofrac_RPS": "RPS_All", "hydrofrac_CES": "CES"})
     output_path = os.path.join("outputs", "hydrofrac_policy.csv")
-    outdf.sort_values("st").round(9).to_csv(output_path, index=False)
+    outdf.sort_values("st").round(9).to_csv(output_path, index=False, float_format=_format_value)
     print(f"...hydrofrac data generated and saved to {output_path}")
 
 
@@ -396,7 +410,7 @@ def interpolate_policy_file(input_path, output_path,
         df_out = pd.merge(df_out, df_interp_long, on=[index_col, state_col], how='left')
 
     df_out = df_out.sort_values([state_col, index_col])
-    df_out.to_csv(output_path, index=False)
+    df_out.to_csv(output_path, index=False, float_format=_format_value)
 
 
 ### ===========================================
@@ -406,6 +420,7 @@ def interpolate_policy_file(input_path, output_path,
 if __name__ == "__main__":
 
     os.makedirs("outputs", exist_ok=True)
+    os.makedirs(os.path.join("outputs", "intermediate outputs"), exist_ok=True)
 
     # --- Run Processing Functions ---
 
@@ -438,7 +453,7 @@ if __name__ == "__main__":
         value_columns=["Value"],
         index_col="*t",
         state_col="st",
-        column_tolerances={"Value": 0.08}
+        column_tolerances={"Value": 0.07}
     )
 
     calculate_hydrofrac(
