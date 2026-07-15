@@ -16,11 +16,11 @@ from shapely.geometry import Point
 
 #%%
 dir = os.getcwd()
-reeds_path = gdbnewname = sys.argv[1]
+# reeds_path = gdbnewname = sys.argv[1]
 
 # For debugging
-# reeds_path = '~/Documents/Github/ReEDS/ReEDS-2.0/'              # local
-# reeds_path = '/kfs2/projects/stdscen/stdscens_fy25/ReEDS-2.0/' # kestrel
+reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'               # local
+#reeds_path = '//kfs2/projects/stdscen/apham/ReEDS/'                       # kestrel
 
 reeds_path = os.path.expanduser(reeds_path)
 sys.path.append(reeds_path)
@@ -63,7 +63,7 @@ def main():
 
     ## Map long/lat to county and FIPS
     # read county shapefile directly from census
-    county_data = reeds.spatial.get_map('county', source='tiger').to_crs("EPSG:4326")
+    county_data = reeds.spatial.get_map('county', source='tiger').to_crs("EPSG:5070")
     ## Format for ReEDS
     county_data['FIPS'] = county_data.index.values
     county_data['rb'] = 'p' + county_data['FIPS']
@@ -77,7 +77,7 @@ def main():
     
     # Spatial join units' long/lat with county and FIPS:
     geometry = [Point(xy) for xy in zip(data_raw['T_LONG'], data_raw['T_LAT'])]
-    data_raw_geo = GeoDataFrame(data_raw, crs='EPSG:4326', geometry=geometry)
+    data_raw_geo = GeoDataFrame(data_raw, crs='EPSG:5070', geometry=geometry)
     nems_county_merged = gpd.sjoin(data_raw_geo, county_data, how="inner", predicate="within")  
     nems_county_merged['FIPS'] = nems_county_merged['rb']
     nems_county_merged['TSTATE'] = nems_county_merged['STCODE']
@@ -91,7 +91,7 @@ def main():
     # For long/lat points that do not match to any county (typically offshore wind units),
     # assign them to the nearest counties:
     geometry = [Point(xy) for xy in zip(nems_county_merged_unmatched['T_LONG'], nems_county_merged_unmatched['T_LAT'])]
-    nems_county_merged_unmatched = GeoDataFrame(nems_county_merged_unmatched, crs='EPSG:4326', geometry=geometry)
+    nems_county_merged_unmatched = GeoDataFrame(nems_county_merged_unmatched, crs='EPSG:5070', geometry=geometry)
     nems_county_merged_unmatched = gpd.sjoin_nearest(nems_county_merged_unmatched, county_data, how='left')
     
     nems_county_merged_unmatched['FIPS'] = nems_county_merged_unmatched['rb']

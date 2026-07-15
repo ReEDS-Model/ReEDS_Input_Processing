@@ -15,21 +15,21 @@ from e3_merge_psh_dbs import merge_psh_dbs
 
 #%%
 
-current_fleet_yr = int(sys.argv[1])
-hydro_prjtype = sys.argv[2]
-ornl_hydro_unit_ver = sys.argv[3]
-coal_plant_retirement = sys.argv[4]
-gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_' + str(current_fleet_yr) + '.csv'
-current_year = int(sys.argv[5])
+#current_fleet_yr = int(sys.argv[1])
+#hydro_prjtype = sys.argv[2]
+#ornl_hydro_unit_ver = sys.argv[3]
+#coal_plant_retirement = sys.argv[4]
+#gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_' + str(current_fleet_yr) + '.csv'
+#current_year = int(sys.argv[5])
 output_changes = 1
 
 # For debugging
-#current_fleet_yr=2024
-#current_year=2025
-#hydro_prjtype='EHA_FY22_post2009_prjtype.xlsx'
-#ornl_hydro_unit_ver='ORNL_EHAHydroUnit_PublicFY2024.xlsx'
-#coal_plant_retirement='EIA860_2025ER_CoalRetirements.csv'
-#gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_2024.csv'
+current_fleet_yr=2024
+current_year=2025
+hydro_prjtype='EHA_FY22_post2009_prjtype.xlsx'
+ornl_hydro_unit_ver='ORNL_EHAHydroUnit_PublicFY2024.xlsx'
+coal_plant_retirement='EIA860_2025ER_CoalRetirements.csv'
+gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_2024.csv'
 
 gdbinputname = 'd_to_e.csv'
 gdbfinalname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
