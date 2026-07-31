@@ -63,7 +63,7 @@ def main():
 
     ## Map long/lat to county and FIPS
     # read county shapefile directly from census
-    county_data = reeds.spatial.get_map('county', source='tiger').to_crs("EPSG:5070")
+    county_data = reeds.spatial.get_map('county', source='tiger').to_crs("ESRI:102008")
     ## Format for ReEDS
     county_data['FIPS'] = county_data.index.values
     county_data['rb'] = 'p' + county_data['FIPS']
@@ -76,29 +76,44 @@ def main():
     #county_data.plot("FIPS", cmap="Set1")
     
     # Spatial join units' long/lat with county and FIPS:
-    geometry = [Point(xy) for xy in zip(data_raw['T_LONG'], data_raw['T_LAT'])]
-    data_raw_geo = GeoDataFrame(data_raw, crs='EPSG:5070', geometry=geometry)
-    nems_county_merged = gpd.sjoin(data_raw_geo, county_data, how="inner", predicate="within")  
+    crs = 'ESRI:102008'
+    data_raw_geo = reeds.plots.df2gdf(
+        data_raw,
+        lat='T_LAT',
+        lon='T_LONG',
+        crs=crs)
+    
+    nems_county_merged = gpd.sjoin(data_raw_geo, county_data, how="left", predicate="within")  
     nems_county_merged['FIPS'] = nems_county_merged['rb']
     nems_county_merged['TSTATE'] = nems_county_merged['STCODE']
     nems_county_merged['county'] = nems_county_merged['NAMELSAD']
     nems_county_merged = nems_county_merged[merge_columns].copy()
 
     # Filter out rows that still do not have a county:
-    nems_county_merged_matched = nems_county_merged[nems_county_merged['county'].notna()]
-    nems_county_merged_unmatched = nems_county_merged[nems_county_merged['county'].isna()]
+    nems_county_merged_matched = nems_county_merged[nems_county_merged['FIPS'].notna()]
+    nems_county_merged_unmatched = nems_county_merged[nems_county_merged['FIPS'].isna()]
 
     # For long/lat points that do not match to any county (typically offshore wind units),
-    # assign them to the nearest counties:
-    geometry = [Point(xy) for xy in zip(nems_county_merged_unmatched['T_LONG'], nems_county_merged_unmatched['T_LAT'])]
-    nems_county_merged_unmatched = GeoDataFrame(nems_county_merged_unmatched, crs='EPSG:5070', geometry=geometry)
-    nems_county_merged_unmatched = gpd.sjoin_nearest(nems_county_merged_unmatched, county_data, how='left')
+    # assign them to the nearest counties 
+    # (using EPSG:5070 for nearest distance calculation)
+    nems_county_merged_unmatched = reeds.plots.df2gdf(
+            nems_county_merged_unmatched,
+            lat='T_LAT',
+            lon='T_LONG',
+            crs='EPSG:5070')
+    county_data_5070 = county_data.to_crs('EPSG:5070')
+    nems_county_merged_unmatched = gpd.sjoin_nearest(nems_county_merged_unmatched, county_data_5070, how='left')
     
     nems_county_merged_unmatched['FIPS'] = nems_county_merged_unmatched['rb']
     nems_county_merged_unmatched['TSTATE'] = nems_county_merged_unmatched['STCODE']
     nems_county_merged_unmatched['county'] = nems_county_merged_unmatched['NAMELSAD']
     nems_county_merged_unmatched['NAME'] = nems_county_merged_unmatched['NAME_right']
     nems_county_merged_unmatched = nems_county_merged_unmatched[merge_columns].copy()
+    # Check to make sure there is no unmatched long/lat
+    if len(nems_county_merged_unmatched[nems_county_merged_unmatched['FIPS'].isna()]) > 0:
+        print('ERROR: Some long/lats are still not matched to their nearest counties')
+        sys.exit()
+
 
     # Merge nems-county with reeds-ba:
     reeds_ba =  pd.read_csv(os.path.join('Inputs','county_to_reeds_region.csv'), low_memory=False).rename(columns={'county': 'NAME', 'state':'TSTATE'})
