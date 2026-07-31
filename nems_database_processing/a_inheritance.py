@@ -76,7 +76,7 @@ mergeonlist = list(COL_RENAME.values())
 # SCRIPT STEP 1: Import the old dataframe:
 #------------------------------------------------------------------------------
 
-dfold = pd.read_csv(os.path.join('Inputs','Inheritance',gdboldname), low_memory=False)
+dfold = pd.read_csv(os.path.join('inputs','Inheritance',gdboldname), low_memory=False)
 dfold.rename(columns=COL_RENAME, inplace=True)
 
 #---this dataframe collects all the PLANT_ID/UNIT_ID combinations that are
@@ -97,7 +97,7 @@ data_map = data_map.drop_duplicates(subset=mergeonlist,keep='first').reset_index
 # SCRIPT STEP 3: Import the new dataframe:
 #------------------------------------------------------------------------------
 
-dfnew = pd.read_excel(os.path.join('Inputs','AEO_NEMS',gdbnewname))
+dfnew = pd.read_excel(os.path.join('inputs','AEO_NEMS',gdbnewname))
 
 #%%----------------------------------------------------------------------------
 # SCRIPT STEP 4a: Apply the mapper to the new dataframe:
@@ -169,5 +169,5 @@ dfout_3.loc[dfout_3['tech'].str.contains('battery_', na=False),'tech'] = 'batter
 #%%----------------------------------------------------------------------------
 # SCRIPT STEP 5: Export the new dataframe:
 #------------------------------------------------------------------------------
-os.makedirs('Outputs', exist_ok=True)
-dfout_3.to_csv(os.path.join('Outputs', gdboutname),index=False)
+os.makedirs('outputs', exist_ok=True)
+dfout_3.to_csv(os.path.join('outputs', gdboutname),index=False)

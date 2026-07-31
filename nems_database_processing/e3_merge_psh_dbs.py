@@ -45,8 +45,8 @@ def merge_psh_dbs(gendb,hydro_prjtype,ornl_hydro_unit_ver):
     #%% PROCEDURE
 
     # IMPORT DATA FILES
-    db1 = pd.read_excel(os.path.join('Inputs','ORNL_EHA',hydro_prjtype))
-    db2 = pd.read_excel(os.path.join('Inputs','ORNL_EHA',ornl_hydro_unit_ver),
+    db1 = pd.read_excel(os.path.join('inputs','ORNL_EHA',hydro_prjtype))
+    db2 = pd.read_excel(os.path.join('inputs','ORNL_EHA',ornl_hydro_unit_ver),
                         sheet_name='Operational')
     # gendb = pd.read_csv(os.path.join(reedsdir,'inputs','capacitydata',
     #                                  'ReEDS_generator_database_final_EIA-NEMS.csv'),
@@ -147,9 +147,9 @@ def merge_psh_dbs(gendb,hydro_prjtype,ornl_hydro_unit_ver):
     check.rename(columns={'tech':'new_tech'},inplace=True)
     check.insert(0,'PrjType',check.pop('PrjType'))
     check.insert(0,'old_tech',check.pop('old_tech'))
-    check.to_csv(os.path.join('Outputs','updated_generators.csv'),     
+    check.to_csv(os.path.join('outputs','updated_generators.csv'),     
                 header=True,index=False)
-    notingendb.to_csv(os.path.join('Outputs','unaccounted_generators.csv'),
+    notingendb.to_csv(os.path.join('outputs','unaccounted_generators.csv'),
                     header=True,index=False)
-    #gendb.to_csv(os.path.join('Outputs','updated_gendb.csv'), header=True,index=False)
+    #gendb.to_csv(os.path.join('outputs','updated_gendb.csv'), header=True,index=False)
     return gendb

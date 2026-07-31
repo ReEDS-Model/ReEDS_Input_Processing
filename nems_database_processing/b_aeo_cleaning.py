@@ -45,7 +45,7 @@ def main():
 
     # =========================================================================
     # Save output file:
-    nems_cleaned.to_csv(os.path.join(dir,'Outputs', gdboutname), index=False)
+    nems_cleaned.to_csv(os.path.join(dir,'outputs', gdboutname), index=False)
     # =========================================================================
 
 ################################### MAIN FUNCTION ###################################
@@ -71,7 +71,7 @@ def processAEOandEIA860(dir, nems_ver, battery_duration, eia860M_ver_mon, eia860
     # Merge current NEMS and operating EIA860M:
     nems_eia860_operating = mergeAEOandEIA860M(aeo_data, eia860M_data_operating,battery_duration,status='Operating')
     # Save temp output file:
-    nems_eia860_operating.to_csv(os.path.join(dir,'Outputs', 'merged_nems_eia860_operating.csv'), index=False)
+    nems_eia860_operating.to_csv(os.path.join(dir,'outputs', 'merged_nems_eia860_operating.csv'), index=False)
     # =========================================================================
     
     # =========================================================================
@@ -82,7 +82,7 @@ def processAEOandEIA860(dir, nems_ver, battery_duration, eia860M_ver_mon, eia860
     nems_eia860_operating_retired = mergeAEOandEIA860M(nems_eia860_operating, eia860M_data_retired, battery_duration, status='Retired')
     nems_eia860_operating_retired = nems_eia860_operating_retired[nems_eia860_operating_retired['nems']==1]
     # Save temp output file:
-    nems_eia860_operating_retired.to_csv(os.path.join(dir,'Outputs', 'merged_nems_eia860_operating_retired.csv'), index=False)
+    nems_eia860_operating_retired.to_csv(os.path.join(dir,'outputs', 'merged_nems_eia860_operating_retired.csv'), index=False)
     # =========================================================================
     
     # =========================================================================
@@ -92,7 +92,7 @@ def processAEOandEIA860(dir, nems_ver, battery_duration, eia860M_ver_mon, eia860
     # Merge current operating and retired NEMS and planned EIA860M:
     nems_eia860_operating_retired_planned = mergeAEOandEIA860M(nems_eia860_operating_retired, eia860M_planned, battery_duration, status='Planned')
     # Save temp output file:
-    nems_eia860_operating_retired_planned.to_csv(os.path.join(dir,'Outputs', 'merged_nems_eia860_operating_retired_planned.csv'), index=False)
+    nems_eia860_operating_retired_planned.to_csv(os.path.join(dir,'outputs', 'merged_nems_eia860_operating_retired_planned.csv'), index=False)
     # =========================================================================
     
     # =========================================================================
@@ -108,7 +108,7 @@ def processAEOandEIA860(dir, nems_ver, battery_duration, eia860M_ver_mon, eia860
 #####################################################################################  
 
 def cleanAEOData(dir, gdbinputname):
-    aeo_data = pd.read_csv(os.path.join(dir,'Outputs',gdbinputname))
+    aeo_data = pd.read_csv(os.path.join(dir,'outputs',gdbinputname))
     aeo_data = aeo_data.astype({'T_PID':'string','T_UID':'string', 'T_SYR': 'int', 'T_RYR': 'int'})
     aeo_data['T_PID'] = aeo_data['T_PID'].str.replace(" ", "")
     aeo_data['T_UID'] = aeo_data['T_UID'].str.replace(" ", "")
@@ -119,7 +119,7 @@ def cleanAEOData(dir, gdbinputname):
     return aeo_data
   
 def cleanEIA860MData(dir, ver_mon, ver_year, battery_duration, status):
-    eia860M_data = pd.read_excel(os.path.join(dir,'Inputs','EIA860M',ver_mon+'_generator'+str(ver_year)+'.xlsx'), 
+    eia860M_data = pd.read_excel(os.path.join(dir,'inputs','EIA860M',ver_mon+'_generator'+str(ver_year)+'.xlsx'), 
                                  sheet_name=status, header=1, index_col=False)
     if ver_year >=2020:
         eia860M_data.columns = eia860M_data.iloc[0]
@@ -214,7 +214,7 @@ def cleanEIA860MData(dir, ver_mon, ver_year, battery_duration, status):
     eia860M_data.loc[eia860M_data['Technology'].str.contains("Landfill", na=False),'tech'] = 'lfill-gas'
 
     # Add wst to match with NEMS:
-    cooling_tech = pd.read_csv(os.path.join(dir,'Inputs','tech_to_cooling_tech_map.csv'))
+    cooling_tech = pd.read_csv(os.path.join(dir,'inputs','tech_to_cooling_tech_map.csv'))
     eia860M_data = pd.merge(eia860M_data, cooling_tech, on=['tech'], how='left')
 
     # Clean up:
@@ -338,7 +338,7 @@ def cleanMergedAEOEIA860(merged_nems_eia860, battery_duration):
     nems_eia860_final = addHeatrates(merged_nems_eia860)
     
     # Assign tech to missing tech values:
-    techmap = pd.read_excel(os.path.join('Inputs','NEMS to ReEDS Tech Mapping.xlsx'))
+    techmap = pd.read_excel(os.path.join('inputs','NEMS to ReEDS Tech Mapping.xlsx'))
     techmap.rename(columns={'EFD Code':'EFDcd', 'ReEDS Tech':'tech'}, inplace=True)
     nems_eia860_final = nems_eia860_final.merge(techmap, on=['EFDcd'], how='left')
     nems_eia860_final['tech'] = np.where(((nems_eia860_final['tech_x'].isnull()) | (nems_eia860_final['tech_x']=='others')),

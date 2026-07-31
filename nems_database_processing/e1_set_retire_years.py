@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import os
 
-def set_retire_years(nems,coal_plant_retirement,current_year):
+def set_retire_years(reeds_path, nems,coal_plant_retirement,current_year):
 
 # =============================================================================
 # Technology naming convention
@@ -32,7 +32,7 @@ def set_retire_years(nems,coal_plant_retirement,current_year):
     #nems.loc[nems['RetireYearGiven']!= False,'RetireYearGiven'] = True
 
     ### Update retirement dates of coal plants 
-    coal_retirement_upd = pd.read_csv(os.path.join('Inputs','Coal_Retirements',coal_plant_retirement))
+    coal_retirement_upd = pd.read_csv(os.path.join('inputs','Coal_Retirements',coal_plant_retirement))
     coal_retirement_upd = coal_retirement_upd.rename(columns={'State':'TSTATE', 'Plant Name':'T_PNM', 'Generator ID':'T_UID', 'Plant Code':'T_PID'})
     coal_retirement_upd = coal_retirement_upd[['TSTATE', 'T_PNM', 'T_UID', 'T_PID', 'Retirement Year', 'MAT Exemptions']]
     coal_retirement_upd['Retirement Year']  = coal_retirement_upd['Retirement Year'].fillna(9999)
@@ -67,7 +67,7 @@ def set_retire_years(nems,coal_plant_retirement,current_year):
     nems.loc[no_retires,'RetireYearGiven'] = False
     nems.loc[~no_retires,'RetireYearGiven'] = True
     
-    lifetimes = pd.read_csv(os.path.join('Inputs','maxage.csv'))
+    lifetimes = pd.read_csv(os.path.join(reeds_path,'plant_characteristics','maxage.csv'))
     lifetimes.set_index('tech',inplace=True)
     
     for i in range(0,len(nems),1):

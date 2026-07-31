@@ -14,7 +14,7 @@ import altair as alt
 alt.data_transformers.disable_max_rows()
 from textwrap import wrap
 
-figure_path = os.path.join('Outputs','Figures')
+figure_path = os.path.join('outputs','Figures')
 
 #%%
 
@@ -31,8 +31,8 @@ gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_2025_nov.csv'
 #gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_' + str(current_fleet_yr) + '.csv'
 gdbfinalname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
 
-dfold = pd.read_csv(os.path.join('Inputs','Inheritance',gdboldname), low_memory=False)
-dfnew = pd.read_csv(os.path.join('Outputs',gdbfinalname), low_memory=False)
+dfold = pd.read_csv(os.path.join('inputs','Inheritance',gdboldname), low_memory=False)
+dfnew = pd.read_csv(os.path.join('outputs',gdbfinalname), low_memory=False)
 
 hierarchy = pd.read_csv(os.path.join(reeds_path, 'inputs','hierarchy.csv'))
 
@@ -117,7 +117,7 @@ chart = alt.Chart(online_data_new).mark_bar(size=30).encode(
     height=300,
     title='Planned Online Capacity (MW) - Updated NEMS - ' + region
 )
-chart.save(os.path.join('Outputs','Figures','planned_online_new_NEMS.html'))
+chart.save(os.path.join('outputs','Figures','planned_online_new_NEMS.html'))
 
 # Graph difference in planned online
 # Read old NEMS data:
@@ -191,7 +191,7 @@ else:
         title='Online Capacity Difference (Updated NEMS - Current NEMS) (MW)'
     )
 
-chart.save(os.path.join('Outputs','Figures','planned_online_diff.html'))
+chart.save(os.path.join('outputs','Figures','planned_online_diff.html'))
 
 #################################
 ### Planned retire comparison ###
@@ -231,7 +231,7 @@ chart = alt.Chart(retire_data_new).mark_bar(size=30).encode(
     height=300,
     title='Planned Retirement (MW) - Updated NEMS'
 )
-chart.save(os.path.join('Outputs','Figures','planned_retired_new_NEMS.html'))
+chart.save(os.path.join('outputs','Figures','planned_retired_new_NEMS.html'))
 
 # Graph old retired year
 sch_order2 = [2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030,2031,2032,2033,2034,2035]
@@ -285,7 +285,7 @@ else:
         height=300,
         title='Planned Retirement (MW) - Current NEMS'
     )
-chart.save(os.path.join('Outputs','Figures','planned_retired_current_NEMS.html'))
+chart.save(os.path.join('outputs','Figures','planned_retired_current_NEMS.html'))
 
 # Graph difference in planned retirement
 # Read old NEMS data:
@@ -365,4 +365,4 @@ else:
         title='Retire Capacity Difference (Updated NEMS - Current NEMS) (MW)'
     )    
 
-chart.save(os.path.join('Outputs','Figures','planned_retired_diff.html'))
+chart.save(os.path.join('outputs','Figures','planned_retired_diff.html'))

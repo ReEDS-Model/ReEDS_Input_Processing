@@ -16,10 +16,10 @@ from shapely.geometry import Point
 
 #%%
 dir = os.getcwd()
-# reeds_path = gdbnewname = sys.argv[1]
+reeds_path = gdbnewname = sys.argv[1]
 
 # For debugging
-reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'               # local
+#reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'               # local
 #reeds_path = '//kfs2/projects/stdscen/apham/ReEDS/'                       # kestrel
 
 reeds_path = os.path.expanduser(reeds_path)
@@ -34,7 +34,7 @@ def main():
     #  Mapping County to Generator using lat/lon coordinates - geopandas
     #----------------------------------------------------------------------------------
 
-    data_raw = pd.read_csv(os.path.join('Outputs',gdbinputname), low_memory=False)
+    data_raw = pd.read_csv(os.path.join('outputs',gdbinputname), low_memory=False)
     data_raw_columns = list(data_raw.columns.values).copy()
     merge_columns = data_raw_columns.copy()
     merge_columns.append("NAME")
@@ -45,19 +45,19 @@ def main():
     # Check if all units have long/lats
     data_raw_no_lon_lat = data_raw[(data_raw['T_LONG'].isna()) | (data_raw['T_LAT'].isna())]
 
-    if (len(data_raw_no_lon_lat) > 0) & (~os.path.isfile(os.path.join('Inputs','user_adjusted_units_missing_lon_lats.csv'))):
+    if (len(data_raw_no_lon_lat) > 0) & (~os.path.isfile(os.path.join('inputs','user_adjusted_units_missing_lon_lats.csv'))):
         print('\n ERROR: Some units are missing long/lat data, \n please manually add their long/lat to "user_adjusted_units_missing_lon_lats.csv"\n')
-        data_raw_no_lon_lat.to_csv(os.path.join(dir,'Inputs', 'user_adjusted_units_missing_lon_lats.csv'), index=False)
+        data_raw_no_lon_lat.to_csv(os.path.join(dir,'inputs', 'user_adjusted_units_missing_lon_lats.csv'), index=False)
         sys.exit()
-    elif (len(data_raw_no_lon_lat) > 0) & (os.path.isfile(os.path.join('Inputs','user_adjusted_units_missing_lon_lats.csv'))):
-        adjusted_missing_unit = pd.read_csv(os.path.join('Inputs','user_adjusted_units_missing_lon_lats.csv'))
+    elif (len(data_raw_no_lon_lat) > 0) & (os.path.isfile(os.path.join('inputs','user_adjusted_units_missing_lon_lats.csv'))):
+        adjusted_missing_unit = pd.read_csv(os.path.join('inputs','user_adjusted_units_missing_lon_lats.csv'))
         data_raw_w_long_lat = data_raw[(data_raw['T_LONG'].notna()) & (data_raw['T_LAT'].notna())]
         data_raw = pd.concat([data_raw_w_long_lat, adjusted_missing_unit])
 
         # Check again if all units have long/lats
         data_raw_no_lon_lat = data_raw[(data_raw['T_LONG'].isna()) | (data_raw['T_LAT'].isna())]
         if (len(data_raw_no_lon_lat) > 0):
-            data_raw_no_lon_lat.to_csv(os.path.join(dir,'Inputs', 'user_adjusted_units_missing_lon_lats.csv'), index=False)
+            data_raw_no_lon_lat.to_csv(os.path.join(dir,'inputs', 'user_adjusted_units_missing_lon_lats.csv'), index=False)
             print('\n ERROR: Some units are still missing long/lat data, \n please manually add ALL units with missing long/lat to "user_adjusted_units_missing_lon_lats.csv"\n')
             sys.exit()
 
@@ -82,7 +82,6 @@ def main():
         lat='T_LAT',
         lon='T_LONG',
         crs=crs)
-    
     nems_county_merged = gpd.sjoin(data_raw_geo, county_data, how="left", predicate="within")  
     nems_county_merged['FIPS'] = nems_county_merged['rb']
     nems_county_merged['TSTATE'] = nems_county_merged['STCODE']
@@ -120,7 +119,7 @@ def main():
     ## Concating matched and unmatched nems files:
     nems_county_final = pd.concat([nems_county_merged_matched,nems_county_merged_unmatched])
     
-    ## Some Manual Fix of FIPS codes for a few units to avoid infeasibility in county-run
+    ## Some Manual fixes of FIPS for a few units to avoid infeasibility in county-run
     # Move all units from p01077 to p01033 
     nems_county_final.loc[(nems_county_final['FIPS']=='p01077') & (nems_county_final['county']=='Lauderdale County') &
                      (nems_county_final['TSTATE']=='AL'),
@@ -152,7 +151,7 @@ def main():
         # =========================================================================
         # Save output file:
         print('Unit database updated:')
-        nems_county_final.to_csv(os.path.join(dir,'Outputs', gdboutname), index=False)
+        nems_county_final.to_csv(os.path.join(dir,'outputs', gdboutname), index=False)
         # =========================================================================
 
     # If some entries in the database do not have matching FIPS, print out message to fix this issue
