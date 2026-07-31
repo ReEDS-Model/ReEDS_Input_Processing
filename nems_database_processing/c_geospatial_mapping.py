@@ -114,12 +114,6 @@ def main():
         print('ERROR: Some long/lats are still not matched to their nearest counties')
         sys.exit()
 
-
-    # Merge nems-county with reeds-ba:
-    reeds_ba =  pd.read_csv(os.path.join('Inputs','county_to_reeds_region.csv'), low_memory=False).rename(columns={'county': 'NAME', 'state':'TSTATE'})
-    nems_county_merged_matched = pd.merge(nems_county_merged_matched, reeds_ba, on=['NAME','TSTATE'], how='left')
-    nems_county_merged_unmatched = pd.merge(nems_county_merged_unmatched, reeds_ba, on=['NAME','TSTATE'], how='left')
-    data_raw_columns+=['reeds_ba','resource_region']
     nems_county_merged_matched = nems_county_merged_matched[data_raw_columns].copy()
     nems_county_merged_unmatched = nems_county_merged_unmatched[data_raw_columns].copy()
 
