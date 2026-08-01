@@ -88,7 +88,7 @@ def main():
         lat='T_LAT',
         lon='T_LONG',
         crs=crs)
-    nems_county_merged = gpd.sjoin(data_raw_geo, county_data, how="inner", predicate="within")
+    nems_county_merged = gpd.sjoin(data_raw_geo, county_data, how="left", predicate="within")
     nems_county_merged['FIPS'] = nems_county_merged['rb']
     nems_county_merged['TSTATE'] = nems_county_merged['STCODE']
     nems_county_merged['county'] = nems_county_merged['NAMELSAD']

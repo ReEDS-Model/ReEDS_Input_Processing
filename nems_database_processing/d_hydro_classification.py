@@ -67,6 +67,8 @@ def categorize(eha_file, dispatchability_file, reedsgens):
 
 if __name__ == "__main__":
 
+    print("Start d_hydro_classification.py")
+
     gdbinputname = 'c_to_d.csv'
     gdboutputname = 'd_to_e.csv'
 
@@ -88,4 +90,6 @@ if __name__ == "__main__":
     gendb.drop(columns="eha_tech", inplace=True)
 
     gendb.to_csv(os.path.join('outputs', gdboutputname), index=False)
+
+    print("Finish d_hydro_classification.py")
 

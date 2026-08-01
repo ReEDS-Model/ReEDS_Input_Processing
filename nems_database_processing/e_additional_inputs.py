@@ -36,6 +36,8 @@ reeds_path = os.path.expanduser(reeds_path)
 sys.path.append(reeds_path)
 import reeds
 
+print("Start e_additional_inputs.py")
+
 gdbinputname = 'd_to_e.csv'
 gdbfinalname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
 
@@ -261,3 +263,5 @@ columns_to_keep = ['tech','summer_power_capacity_MW','energy_capacity_MWh','batt
 dfout = dfout[columns_to_keep]
 
 dfout.to_csv(os.path.join('outputs',gdbfinalname),index=False)
+
+print("Finish e_additional_inputs.py")
