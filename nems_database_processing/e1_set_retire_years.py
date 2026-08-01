@@ -93,6 +93,7 @@ def set_retire_years(reeds_path, nems,coal_plant_retirement,current_year):
                     StartYear_temp = nems.loc[i,'TRFURB']
             
             if (nems.loc[i,'T_RYR'] <= current_year) or (nems.loc[i,'T_RYR'] == 9999):
+                StartYear_temp = nems.loc[i,'T_SYR']
                 if StartYear_temp + lifetime <= current_year:
                     nems.loc[i,'T_RYR'] = current_year + 10
                 else:
