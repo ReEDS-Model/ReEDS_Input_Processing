@@ -67,7 +67,7 @@ def set_retire_years(reeds_path, nems,coal_plant_retirement,current_year):
     nems.loc[no_retires,'RetireYearGiven'] = False
     nems.loc[~no_retires,'RetireYearGiven'] = True
     
-    lifetimes = pd.read_csv(os.path.join(reeds_path,'plant_characteristics','maxage.csv'))
+    lifetimes = pd.read_csv(os.path.join('inputs','maxage.csv'))
     lifetimes.set_index('tech',inplace=True)
     
     for i in range(0,len(nems),1):
@@ -273,8 +273,8 @@ def set_retire_years(reeds_path, nems,coal_plant_retirement,current_year):
     
     nems_cleaned.loc[:,'Plant.NAICS.Description'] = 'Utilities'
     
-    nems_cats_ordered = ['tech','reeds_ba','resource_region','TC_SUM','T_RYR','NukeRefRetireYear','Nuke60RetireYear','Nuke80RetireYear','NukeEarlyRetireYear','T_SYR',
-                         'IsExistUnit','THRATE','FIPS','county']
+    nems_cats_ordered = ['tech','TC_SUM','T_RYR','NukeRefRetireYear','Nuke60RetireYear','Nuke80RetireYear',
+                         'NukeEarlyRetireYear','T_SYR','IsExistUnit','THRATE','FIPS','county']
     
     for cat in nems_cats:
         if cat not in nems_cats_ordered:

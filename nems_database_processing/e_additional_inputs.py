@@ -14,23 +14,23 @@ from e2_fix_upgrades import fix_upgrades
 from e3_merge_psh_dbs import merge_psh_dbs
 
 #%%
-#reeds_path = gdbnewname = sys.argv[1]
-#current_fleet_yr = int(sys.argv[2])
-#hydro_prjtype = sys.argv[3]
-#ornl_hydro_unit_ver = sys.argv[4]
-#coal_plant_retirement = sys.argv[5]
-#gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_' + str(current_fleet_yr) + '.csv'
-#current_year = int(sys.argv[6])
+reeds_path = gdbnewname = sys.argv[1]
+current_fleet_yr = int(sys.argv[2])
+hydro_prjtype = sys.argv[3]
+ornl_hydro_unit_ver = sys.argv[4]
+coal_plant_retirement = sys.argv[5]
+gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_' + str(current_fleet_yr) + '.csv'
+current_year = int(sys.argv[6])
 output_changes = 1
 
 # For debugging
-reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'
-current_fleet_yr=2024
-current_year=2025
-hydro_prjtype='EHA_FY22_post2009_prjtype.xlsx'
-ornl_hydro_unit_ver='ORNL_EHAHydroUnit_PublicFY2024.xlsx'
-coal_plant_retirement='EIA860_2025ER_CoalRetirements.csv'
-gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_2024.csv'
+#reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'
+#current_fleet_yr=2024
+#current_year=2025
+#hydro_prjtype='EHA_FY22_post2009_prjtype.xlsx'
+#ornl_hydro_unit_ver='ORNL_EHAHydroUnit_PublicFY2024.xlsx'
+#coal_plant_retirement='EIA860_2025ER_CoalRetirements.csv'
+#gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_2024.csv'
 
 reeds_path = os.path.expanduser(reeds_path)
 sys.path.append(reeds_path)
@@ -55,9 +55,9 @@ nukebins = pd.read_csv(os.path.join('inputs','NuclearBins.csv'))
 nukebins.rename(columns={'PLANT_NAME':'T_PNM'}, inplace=True)
 
 # Remove duplicated values based on plant names
-nukebins_short = nukebins[~nukebins.duplicated(['T_PNM'])][['T_PNM','tech','reeds_ba','NukeRetireBin']]
+nukebins_short = nukebins[~nukebins.duplicated(['T_PNM'])][['T_PNM','tech','NukeRetireBin']]
 
-df = dfin.merge(nukebins_short, on = ['T_PNM','tech','reeds_ba'], how = 'left')
+df = dfin.merge(nukebins_short, on = ['T_PNM','tech'], how = 'left')
 
 df2 = set_retire_years(reeds_path, df,coal_plant_retirement,current_year)
 
@@ -147,7 +147,7 @@ if output_changes:
         # First, find units of similar tech, region:
         print(f'[{i: >5}]   [{row["tech"]}] {row["T_PNM"]}')
         df_i = df6.loc[df6['tech'] == row['tech']]        
-        df_ir = df6.loc[(df6['tech'] == row['tech']) & (df6['reeds_ba'] == row['reeds_ba'])]
+        df_ir = df6.loc[(df6['tech'] == row['tech']) & (df6['FIPS'] == row['FIPS'])]
         ## Fix FOM first, then VOM
         for OM in ['FOM','VOM']:
             T_OM = f'T_{OM}'
@@ -178,7 +178,7 @@ if output_changes:
                 closest_index_df.loc[i,f'{OM}_from_Unique_ID'] = closest_uniqueID
             else:
                 # No fix necesary for FOM/VOM - just 
-                closest_index_df.loc[i,f'{OM}_from_Unique_ID'] = ''
+                closest_index_df.loc[i,f'{OM}_from_Unique_ID'] = np.nan
                 
     # Replace data in df6 with fixed FOM/VOM data
     df6.loc[fixedFVOM.index] = fixedFVOM.copy()
@@ -215,9 +215,9 @@ if output_changes:
     dfout = df6.copy()
 else:
     dfout = df5.copy()
+
 #%%
 ## Further clean up
-
 # Format years and region ans integers:
 dfout['StartYear'] = dfout['StartYear'].astype(int)
 dfout['RetireYear'] = dfout['RetireYear'].astype(int)
@@ -248,17 +248,16 @@ dfout['in_eia860M'] = dfout['in_eia860M'].astype(int)
 dfout['T_PNM'] = dfout['T_PNM'].str.replace('#', 'no. ')
 dfout['T_UID'] = dfout['T_UID'].str.replace('#', 'no. ')
 
-# Remove reeds_ba & resource_region columns:
-dfout.drop('reeds_ba', inplace = True, axis = 1)
-dfout.drop('resource_region', inplace = True, axis = 1)
-
 # Reorder columns:
-dfout_column_list = dfout.columns.tolist()
-dfout_energy_cap = dfout_column_list.index('energy_capacity_MWh')
-dfout_power_cap = dfout_column_list.index('summer_power_capacity_MW')
-dfout_column_list.insert(dfout_power_cap + 1, dfout_column_list.pop(dfout_energy_cap))
-dfout_bat_duration = dfout_column_list.index('battery_duration')
-dfout_column_list.insert(dfout_power_cap + 2, dfout_column_list.pop(dfout_bat_duration))
-dfout = dfout[dfout_column_list]
+columns_to_keep = ['tech','summer_power_capacity_MW','energy_capacity_MWh','battery_duration',
+                    'RetireYear','NukeRefRetireYear','Nuke60RetireYear','Nuke80RetireYear','NukeEarlyRetireYear',
+                    'StartYear','IsExistUnit','HeatRate','FIPS','county',
+                    'T_CID','T_PID','T_UID','T_PNM','TVIN','EFDcd','ECPcd',
+                    'TSTATE','TC_NP','TC_WIN','TRFURB','T_VOM','T_FOM',
+                    'T_CCSROV','T_CCSF','T_CCSV','T_CCSHR','T_CAPAD','T_CCSCAPA','T_CCSLOC',
+                    'T_LONG','T_LAT','coolingwatertech','ctt','wst','in_nems','in_eia860M',
+                    'status','Description','Unique ID']
+
+dfout = dfout[columns_to_keep]
 
 dfout.to_csv(os.path.join('outputs',gdbfinalname),index=False)

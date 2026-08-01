@@ -46,6 +46,7 @@ import numpy as np
 import os
 import sys
 
+print("Start a_inheritance.py")
 #%%----------------------------------------------------------------------------
 # Step 0: User Input and Data Specification:
 #------------------------------------------------------------------------------
@@ -171,3 +172,5 @@ dfout_3.loc[dfout_3['tech'].str.contains('battery_', na=False),'tech'] = 'batter
 #------------------------------------------------------------------------------
 os.makedirs('outputs', exist_ok=True)
 dfout_3.to_csv(os.path.join('outputs', gdboutname),index=False)
+
+print("Finish a_inheritance.py")

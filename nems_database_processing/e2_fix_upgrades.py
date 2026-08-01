@@ -11,7 +11,7 @@ def fix_upgrades(nems):
 
     nems["Unique ID"] = nems.index
     
-    subset = nems[['tech','reeds_ba','resource_region','summer_power_capacity_MW','RetireYear','StartYear','IsExistUnit','HeatRate','T_PID','TVIN','TRFURB','Unique ID']]
+    subset = nems[['tech','summer_power_capacity_MW','RetireYear','StartYear','IsExistUnit','HeatRate','T_PID','TVIN','TRFURB','Unique ID']]
     
     # Note that T_SYR (now StartYear) is the online year for the most recent time the unit
     # came online. TRFURB holds the original start date of the plant.

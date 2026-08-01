@@ -61,8 +61,8 @@ def merge_psh_dbs(gendb,hydro_prjtype,ornl_hydro_unit_ver):
         .drop(['ReEDSPCA'], axis=1)
         )
     db1['db1'] = 1
-    db2 = (db2[['PtName','EIA_PtID','EIA_GnID','MW','OpYear','ReEDSPCA']]
-        .rename(columns={'PtName':'T_PNM','EIA_PtID':'T_PID','EIA_GnID':'T_UID','ReEDSPCA':'reeds_ba'})
+    db2 = (db2[['PtName','EIA_PtID','EIA_GnID','MW','OpYear']]
+        .rename(columns={'PtName':'T_PNM','EIA_PtID':'T_PID','EIA_GnID':'T_UID'})
         )
     db2['db2'] = 1
 
@@ -85,12 +85,11 @@ def merge_psh_dbs(gendb,hydro_prjtype,ornl_hydro_unit_ver):
     for col in ['T_UID','T_PID','PrjType','tech']:
         dfmerge.insert(0,col,dfmerge.pop(col))
     dfmerge.insert(dfmerge.columns.get_loc('State'),'MW',dfmerge.pop('MW'))
-    dfmerge.insert(dfmerge.columns.get_loc('State'),'reeds_ba',dfmerge.pop('reeds_ba'))
     dfmerge.drop(['T_PID_x','T_PID_y'], axis=1,inplace=True)
 
 
-    dfsmall = dfmerge[['tech','PrjType','T_PID','T_UID','CH_OpYear','T_PNM','County','reeds_ba',
-                    'State','MW','Lat','Lon']].copy()
+    dfsmall = dfmerge[['tech','PrjType','T_PID','T_UID','CH_OpYear','T_PNM','County',
+                       'State','MW','Lat','Lon']].copy()
 
     #%%
 
@@ -137,7 +136,6 @@ def merge_psh_dbs(gendb,hydro_prjtype,ornl_hydro_unit_ver):
         gendb_year = gendb.loc[(gendb['T_PID']==int(row['T_PID'])) & (gendb['T_UID']==str(row['T_UID'])),'StartYear'].iloc[0]
         print(f'                  {gendb_tech} ---> {row.tech}')
         print(f'                  {gendb_year} ---> {int(row.CH_OpYear)}')
-        print(f'                  p{str(int(row.reeds_ba))}')
         print('')
         gendb.loc[(gendb['T_PID']==row['T_PID']) & (gendb['T_UID']==row['T_UID']),'tech'] = row['tech']
         check = pd.concat([check,gendb.loc[(gendb['T_PID']==row['T_PID']) & (gendb['T_UID']==row['T_UID'])]],ignore_index=True)

@@ -34,6 +34,8 @@ def params():
     return (dir, nems_ver, battery_duration, eia860M_ver_mon, eia860M_ver_year, append_operating_units, gdbinputname, gdboutname)
 
 def main():
+    print("Start b_aeo_cleaning.py")
+
     (dir, nems_ver, battery_duration, eia860M_ver_mon, eia860M_ver_year, append_operating_units, gdbinputname, gdboutname) = params()
 
     # Add EIA860M planned units, missing operating units, and updated retirement years to NEMS dataset:
@@ -108,7 +110,7 @@ def processAEOandEIA860(dir, nems_ver, battery_duration, eia860M_ver_mon, eia860
 #####################################################################################  
 
 def cleanAEOData(dir, gdbinputname):
-    aeo_data = pd.read_csv(os.path.join(dir,'outputs',gdbinputname))
+    aeo_data = pd.read_csv(os.path.join(dir,'outputs',gdbinputname),low_memory=False)
     aeo_data = aeo_data.astype({'T_PID':'string','T_UID':'string', 'T_SYR': 'int', 'T_RYR': 'int'})
     aeo_data['T_PID'] = aeo_data['T_PID'].str.replace(" ", "")
     aeo_data['T_UID'] = aeo_data['T_UID'].str.replace(" ", "")
@@ -347,7 +349,7 @@ def cleanMergedAEOEIA860(merged_nems_eia860, battery_duration):
     
     # coal-new technologies are scrubbed coal units with an online data of 1995 of later
     coal_new_filter = (nems_eia860_final['tech'].isin(['coaloldscr'])) & (nems_eia860_final['TRFURB'] >= 1995)
-    nems_eia860_final['tech'][coal_new_filter] = 'coal-new'
+    nems_eia860_final.loc[coal_new_filter, 'tech'] = 'coal-new'
             
     # Assign energy capacity to batteries that are not in EIA860M but are in NEMS
     nems_eia860_final.loc[((nems_eia860_final['tech'].str.contains('battery')) | 
@@ -375,3 +377,5 @@ def cleanMergedAEOEIA860(merged_nems_eia860, battery_duration):
     return nems_eia860_final
 
 main()
+
+print("Finish b_aeo_cleaning.py")
