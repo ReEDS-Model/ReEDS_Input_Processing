@@ -14,13 +14,12 @@ from e2_fix_upgrades import fix_upgrades
 from e3_merge_psh_dbs import merge_psh_dbs
 
 #%%
-reeds_path = gdbnewname = sys.argv[1]
-current_fleet_yr = int(sys.argv[2])
-hydro_prjtype = sys.argv[3]
-ornl_hydro_unit_ver = sys.argv[4]
-coal_plant_retirement = sys.argv[5]
+current_fleet_yr = int(sys.argv[1])
+hydro_prjtype = sys.argv[2]
+ornl_hydro_unit_ver = sys.argv[3]
+coal_plant_retirement = sys.argv[4]
 gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_' + str(current_fleet_yr) + '.csv'
-current_year = int(sys.argv[6])
+current_year = int(sys.argv[5])
 output_changes = 1
 
 # For debugging
@@ -31,10 +30,6 @@ output_changes = 1
 #ornl_hydro_unit_ver='ORNL_EHAHydroUnit_PublicFY2024.xlsx'
 #coal_plant_retirement='EIA860_2025ER_CoalRetirements.csv'
 #gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_2024.csv'
-
-reeds_path = os.path.expanduser(reeds_path)
-sys.path.append(reeds_path)
-import reeds
 
 print("Start e_additional_inputs.py")
 
@@ -61,7 +56,7 @@ nukebins_short = nukebins[~nukebins.duplicated(['T_PNM'])][['T_PNM','tech','Nuke
 
 df = dfin.merge(nukebins_short, on = ['T_PNM','tech'], how = 'left')
 
-df2 = set_retire_years(reeds_path, df,coal_plant_retirement,current_year)
+df2 = set_retire_years(df,coal_plant_retirement,current_year)
 
 df2b = fix_upgrades(df2)
 

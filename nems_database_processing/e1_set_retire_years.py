@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import os
 
-def set_retire_years(reeds_path, nems,coal_plant_retirement,current_year):
+def set_retire_years(nems,coal_plant_retirement,current_year):
 
 # =============================================================================
 # Technology naming convention
