@@ -70,7 +70,7 @@ Import_Season_Fractions['order'] = [order_dict[x] for x in Import_Season_Fractio
 Import_Season_Fractions.sort_values(by = 'order',inplace = True)
 Import_Season_Fractions.drop('order',axis = 1, inplace = True)
 Import_Season_Fractions.columns = ['*szn','frac']
-Import_Season_Fractions.round(4).to_csv(os.path.join(Output_folder, 'can_imports_quarter_frac.csv'), index = False)
+Import_Season_Fractions.round(5).to_csv(os.path.join(Output_folder, 'can_imports_quarter_frac.csv'), index = False)
 
 # generating the Exports season fractions from available years
 Export_Season_Fractions = pd.DataFrame(pd.pivot_table(Historical, values = ['Export_Month_Fraction'], index = 'Season',  aggfunc = 'sum'))
@@ -81,7 +81,7 @@ Export_Season_Fractions['order'] = [order_dict[x] for x in Export_Season_Fractio
 Export_Season_Fractions.sort_values(by = 'order',inplace = True)
 Export_Season_Fractions.drop('order',axis = 1, inplace = True)
 Export_Season_Fractions.columns = ['*szn','frac']
-Export_Season_Fractions.round(4).to_csv(os.path.join(Output_folder, 'can_exports_szn_frac.csv'), index = False)
+Export_Season_Fractions.round(5).to_csv(os.path.join(Output_folder, 'can_exports_szn_frac.csv'), index = False)
 
 
 ########################################
