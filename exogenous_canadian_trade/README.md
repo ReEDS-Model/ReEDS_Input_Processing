@@ -37,3 +37,5 @@ To update the province-to-county map:
 -- In cases where the U.S. state listed in the datasets do not match, we use EIA's provided location, as it has county-level information.
 
 - Run create_province_to_county_map.py in the "Exogenous_Canadian_Trade" directory.
+
+Note: Input entries related to the CHPE Quebec-New York City line (https://chpexpress.com/construction/) were added/updated manually because the line's completion was not reflected in the EIA or CER inputs at the time of writing (August 2026). Specifically, "data/EIA_usa_can_lines.csv" was updated to add the row with line ID "Hertel-Astoria Annex_400", and "data/raw_inputs/CER_usa_can_lines.xlsx" was updated to change the status of the row with original regulatory instrument ID "EP-306" from "Approved" to "Operating".
