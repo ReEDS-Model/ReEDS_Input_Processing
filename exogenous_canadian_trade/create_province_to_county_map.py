@@ -7,7 +7,7 @@ import pandas as pd
 import json
 import sys
 
-reeds_path = '../../ReEDS' # User should specify path to ReEDS repository here
+reeds_path = '' # User should specify path to ReEDS repository here
 sys.path.append(reeds_path)
 import reeds
 
