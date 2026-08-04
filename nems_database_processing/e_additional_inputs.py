@@ -255,7 +255,7 @@ columns_to_keep = ['tech','summer_power_capacity_MW','energy_capacity_MWh','batt
                     'RetireYear','NukeRefRetireYear','Nuke60RetireYear','Nuke80RetireYear','NukeEarlyRetireYear',
                     'StartYear','IsExistUnit','HeatRate','FIPS','county',
                     'T_CID','T_PID','T_UID','T_PNM','TVIN','EFDcd','ECPcd',
-                    'TSTATE','TC_NP','TC_WIN','TRFURB','T_VOM','T_FOM',
+                    'TSTATE','T_PCA','TC_NP','TC_WIN','TRFURB','T_VOM','T_FOM','T_SMO','T_RMO',
                     'T_CCSROV','T_CCSF','T_CCSV','T_CCSHR','T_CAPAD','T_CCSCAPA','T_CCSLOC',
                     'T_LONG','T_LAT','coolingwatertech','ctt','wst','in_nems','in_eia860M',
                     'status','Description','Unique ID']
