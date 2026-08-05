@@ -34,7 +34,7 @@ def params():
     return (dir, nems_ver, battery_duration, eia860M_ver_mon, eia860M_ver_year, append_operating_units, gdbinputname, gdboutname)
 
 def main():
-    print("Start b_aeo_cleaning.py")
+    print("Starting b_aeo_cleaning.py")
 
     (dir, nems_ver, battery_duration, eia860M_ver_mon, eia860M_ver_year, append_operating_units, gdbinputname, gdboutname) = params()
 
@@ -378,4 +378,4 @@ def cleanMergedAEOEIA860(merged_nems_eia860, battery_duration):
 
 main()
 
-print("Finish b_aeo_cleaning.py")
+print("Finished b_aeo_cleaning.py")

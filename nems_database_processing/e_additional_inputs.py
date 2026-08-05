@@ -31,7 +31,7 @@ output_changes = 1
 #coal_plant_retirement='EIA860_2025ER_CoalRetirements.csv'
 #gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_2024.csv'
 
-print("Start e_additional_inputs.py")
+print("Starting e_additional_inputs.py")
 
 gdbinputname = 'd_to_e.csv'
 gdbfinalname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
@@ -259,4 +259,4 @@ dfout = dfout[columns_to_keep]
 
 dfout.to_csv(os.path.join('outputs',gdbfinalname),index=False)
 
-print("Finish e_additional_inputs.py")
+print("Finished e_additional_inputs.py")
