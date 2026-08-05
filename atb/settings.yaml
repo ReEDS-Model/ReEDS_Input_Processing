@@ -137,6 +137,7 @@ techs:
       "Fixed O&M $/(kW-yr)": fom
       "Var O&M $/MWh": vom
       "Turbine": turbine
+      "Wind class": turbine
       "Year": t
       "CF_mult": cf_improvement
     indexcols:
@@ -419,25 +420,27 @@ techs:
     functions:
       - backfill_data
 
-  beccs:
-    Technology: Biopower
-    DisplayName:
-      Biopower - 95% CCS: beccs_mod
-    subset_rows:
-      Case: R&D + TC
-      CRPYears: 30
-    renamecols:
-      DisplayName: i
-      variable: t
-    indexcols:
-      - Scenario
-      - i
-      - t
-    cols:
-      - i
-      - t
-      - capcost
-      - fom
-      - vom
-      - heatrate
-    filename_historical: "beccs_reference.csv"
+  # NOTE: beccs is not available in ATB 2024 (only 'Biopower - Dedicated' exists,
+  # and there is no 'R&D + TC' case). Disabled for 2024 runs; re-enable for ATB 2025.
+  # beccs:
+  #   Technology: Biopower
+  #   DisplayName:
+  #     Biopower - 95% CCS: beccs_mod
+  #   subset_rows:
+  #     Case: R&D + TC
+  #     CRPYears: 30
+  #   renamecols:
+  #     DisplayName: i
+  #     variable: t
+  #   indexcols:
+  #     - Scenario
+  #     - i
+  #     - t
+  #   cols:
+  #     - i
+  #     - t
+  #     - capcost
+  #     - fom
+  #     - vom
+  #     - heatrate
+  #   filename_historical: "beccs_reference.csv"
