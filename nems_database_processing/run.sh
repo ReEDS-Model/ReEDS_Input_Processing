@@ -13,9 +13,9 @@ aeo_file='PLTF860_RDB.xlsx'
 
 # Most recent EIA 860M and nems versions:
 # Most recent EIA 860M version month:
-eia860M_ver_mon='october'
+eia860M_ver_mon='june'
 # Most recent EIA 860M version year:                       
-eia860M_ver_year=2025
+eia860M_ver_year=2026
 # NEMS version:                           
 nems_ver=2023                                   
 
