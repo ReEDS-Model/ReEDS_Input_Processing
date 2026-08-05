@@ -36,3 +36,6 @@ All located in `inputs` folder:
 # Output file:
 Located in `outputs` folder. This is the final file that will be used to run ReEDS:
 * `ReEDS_generator_database_final_EIA-NEMS.csv`
+
+# Note:
+Sometimes when running `c_geospatial_mapping.py`, geopandas operation results in invalid geometry - point (inf, inf) or polygon (inf, inf). If this occurs, run `conda install -c conda-forge proj-data` to pre-download projection data in the current environment before rerunning the script.
