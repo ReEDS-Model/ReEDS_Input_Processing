@@ -5,6 +5,9 @@ gen_database_updated_test.csv
 *.lst
 gens_fixme.csv
 ATB/inputs/
+atb/output/
+atb/inputs/
+atb/figures/
 /NEMS_database_processing/Outputs/
 /AEO_Updates/outputs/
 /AEO_Updates/output/AEO_HIGHMACRO_2021_electricity_consumption.csv
