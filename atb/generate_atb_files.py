@@ -1,7 +1,7 @@
 """
 This script processes and produces ATB costs input files for ReEDS.
 Global and technology-specific settings for Scenario, Case, CRPYears etc. are defined in the settings.yaml file.
-The script uses the atb-processing environment (see environment.yml).
+The script runs in the standard ReEDS environment (reeds2); it only requires numpy, pandas, pyyaml, and requests.
 """
 
 #%% ===========================================================================

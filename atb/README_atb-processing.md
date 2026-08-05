@@ -3,6 +3,8 @@ This script generate_atb_files.py can be used to process raw ATB inputs (from th
 
 # Running the script
 
+Use the standard ReEDS environment (`reeds2`); the processing script only requires numpy, pandas, pyyaml, and requests, which are all included in `reeds2`.
+
 1. Gather or update the input data sources (see list below).
    - Data is taken from the ATB flat file or an ATBe file.
 2. Update values for "User settings" in `settings.yaml`. 
@@ -30,7 +32,7 @@ The script follows these steps:
 
 The processing script relies on the "flat file" version of the ATB workbook. The flat file can be generated via the following steps:
 
-1. Set-up and activate the `atb-processing` environment using the `environment.yml` file in ReEDS-2.0_Input_Processing/ATB folder.
+1. Generating the flat file requires `xlwings` and `nrel-pysam` (plus a local Excel install on Windows). Install these into the `reeds2` environment with `pip install xlwings nrel-pysam`, or use a separate environment. Note these packages are only needed to generate the flat file, not to run `generate_atb_files.py`.
 2. Create a local copy of https://github.com/NREL/ATB-calc/tree/dev
    - The dev branch is for the ATB under development, the main branch is for the publicly released ATB
 3. Download a local copy of 2025-ATB-Data_Workbook.xlsx

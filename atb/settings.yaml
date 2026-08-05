@@ -12,9 +12,9 @@ atb_source: url
 filename: "atb_2025_flat_file_20250916.csv"
 url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2024/v3.0.0/ATBe.csv
 # path to ReEDS-2.0 repo for saving results and reading previous year files
-reedspath: /Users/ssharma2/Documents/GitHub/ReEDS-2.0_B
+reedspath: c:/ReEDS/ReEDS
 # if True copies updated ATB files to correct locations in repo specified by reedspath
-copy_to_reeds: True
+copy_to_reeds: False
 # dollar year that ATB results are provided in
 dollaryear: 2022
 # earliest possible start date for ReEDS (used to backfill data)
