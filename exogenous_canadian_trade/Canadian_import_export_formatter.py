@@ -11,7 +11,7 @@ Monthly_Sheet = 'Fig. 1(m), Fig. 3(m)'
 Canada_Projection_FN = 'Electricity_Interchange.xlsx' # From https://apps.cer-rec.gc.ca/ftrppndc/dflt.aspx?GoCTemplateCulture=en-CA
 
 # Ensure the headers for the provinces match the excel file
-Province_header_dict = {'Newfoundland and Labrador':6,
+Province_header_dict = {'Newfoundland and Labrador':15,
                         'Prince Edward Island':24,
                         'Nova Scotia':33,
                         'New Brunswick':42,
@@ -151,4 +151,4 @@ Imports.set_index('r', inplace = True)
 
 Imports.round(1).to_csv(os.path.join(Output_folder, 'can_imports.csv'))
 
-print(f"Run complete. See outputs folder for outputs which are inputs to ReEDS.")
+print(f"Run complete. See the '{Output_folder}' directory for outputs.")
