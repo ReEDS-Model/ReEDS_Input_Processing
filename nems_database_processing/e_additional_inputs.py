@@ -37,26 +37,8 @@ gdbinputname = 'd_to_e.csv'
 gdbfinalname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
 
 dfin = pd.read_csv(os.path.join('outputs',gdbinputname), low_memory=False)
-#dfin = pd.read_csv("/Users/apham/Documents/GitHub/ReEDS_Input_Processing/NEMS_database_processing/outputs/d_to_e.csv")
 
-# Add nuclear retirement bins
-# Bin 1 indicates that the plant is at greater risk of retirement, which is due
-# to it being a single reactor plant or residing in a restructured market.
-# Bin 2 indicates that the plant is has less retirement risk, which is due to
-# it being a multi-unit plant in a non-restructured market, or due to
-# requesting a license to operate to 80 years.
-
-nukebins = pd.read_csv(os.path.join('inputs','NuclearBins.csv'))
-#nukebins = pd.read_csv(os.path.join('/Users/apham/Documents/GitHub/ReEDS_Input_Processing/NEMS_database_processing/inputs','NuclearBins.csv'))
-
-nukebins.rename(columns={'PLANT_NAME':'T_PNM'}, inplace=True)
-
-# Remove duplicated values based on plant names
-nukebins_short = nukebins[~nukebins.duplicated(['T_PNM'])][['T_PNM','tech','NukeRetireBin']]
-
-df = dfin.merge(nukebins_short, on = ['T_PNM','tech'], how = 'left')
-
-df2 = set_retire_years(df,coal_plant_retirement,current_year)
+df2 = set_retire_years(dfin,coal_plant_retirement,current_year)
 
 df2b = fix_upgrades(df2)
 
@@ -220,10 +202,6 @@ dfout['StartYear'] = dfout['StartYear'].astype(int)
 dfout['RetireYear'] = dfout['RetireYear'].astype(int)
 dfout['StartYear2'] = dfout['StartYear']
 dfout['TRFURB'] = dfout['TRFURB'].fillna(dfout.pop('StartYear2')).astype(int)
-dfout['NukeRefRetireYear'] = dfout['NukeRefRetireYear'].astype(int)
-dfout['Nuke60RetireYear'] = dfout['Nuke60RetireYear'].astype(int)
-dfout['Nuke80RetireYear'] = dfout['Nuke80RetireYear'].astype(int)
-dfout['NukeEarlyRetireYear'] = dfout['NukeEarlyRetireYear'].astype(int)
 
 dfout['TCOUNT'] = dfout['TCOUNT'].fillna(1)
 dfout['nems'] = dfout['nems'].fillna(0)
@@ -246,11 +224,10 @@ dfout['T_PNM'] = dfout['T_PNM'].str.replace('#', 'no. ')
 dfout['T_UID'] = dfout['T_UID'].str.replace('#', 'no. ')
 
 # Reorder columns:
-columns_to_keep = ['tech','summer_power_capacity_MW','energy_capacity_MWh','battery_duration',
-                    'RetireYear','NukeRefRetireYear','Nuke60RetireYear','Nuke80RetireYear','NukeEarlyRetireYear',
-                    'StartYear','IsExistUnit','HeatRate','FIPS','county',
+columns_to_keep = ['tech','summer_power_capacity_MW','energy_capacity_MWh',
+                    'RetireYear','StartYear','IsExistUnit','HeatRate','FIPS',
                     'T_CID','T_PID','T_UID','T_PNM','TVIN','EFDcd','ECPcd',
-                    'TSTATE','T_PCA','TC_NP','TC_WIN','TRFURB','T_VOM','T_FOM','T_SMO','T_RMO',
+                    'T_PCA','TC_NP','TC_WIN','TRFURB','T_VOM','T_FOM','T_SMO','T_RMO',
                     'T_CCSROV','T_CCSF','T_CCSV','T_CCSHR','T_CAPAD','T_CCSCAPA','T_CCSLOC',
                     'T_LONG','T_LAT','coolingwatertech','ctt','wst','in_nems','in_eia860M',
                     'status','Description','Unique ID']
