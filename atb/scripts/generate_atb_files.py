@@ -18,8 +18,10 @@ import sys
 import requests
 from io import StringIO
 
-# directory containing this script; used to build robust paths to input_data/settings
+# directory containing this script (atb/scripts); settings.yaml lives here.
 THISDIR = os.path.dirname(os.path.abspath(__file__))
+# parent atb/ directory; used to build paths to input/, manual_input/, output/.
+ATBDIR = os.path.dirname(THISDIR)
 
 # mapping for column headers in ATBe file vs. ATB flat file
 atbe_col_mapping = {
@@ -108,7 +110,7 @@ def load_atb_flat_file(settings, args, techs_to_run):
     if source == 'url':
         atb_data_in = fetch_atb_from_url(settings['atbyear'], settings)
     else:
-        filepath = os.path.join(THISDIR, 'input_data', settings['filename'])
+        filepath = os.path.join(ATBDIR, 'scraped_input', settings['filename'])
         if not os.path.isfile(filepath):
             raise FileNotFoundError(f"Could not find {filepath}. Check 'filename' in settings.yaml.")
         print(f"Loading {filepath}")
@@ -326,7 +328,7 @@ def load_historic_atb_files(tech_data, tech, settings, dollaryear, deflator):
     # for techs with cf_improvement we need to reset using the historical cf values before normalizing
     tech_settings = settings['techs'][tech]
     if 'cf_improvement' in tech_data_historic:
-        historic_cf = pd.read_csv(os.path.join(THISDIR, "input_data", "historic_capacity_factors.csv"))
+        historic_cf = pd.read_csv(os.path.join(ATBDIR, "manual_input", "historic_capacity_factors.csv"))
         # merge on all indexcols except scenario and rsc_mult
         mergecols = [col for col in tech_settings['indexcols'] if col not in ['Scenario', 'rsc_mult']]
         historic_cf = historic_cf.loc[historic_cf.tech == tech, mergecols + ['cf']]
@@ -490,7 +492,7 @@ def format_continuous_battery(tech, settings, df):
         Input dataframe with columns that will be replaced by the battery cost fields (the function drops ['capcost', 'fom'] before merging)
     """
     # load battery power and energy costs (manually created file using ATB workbook)
-    battery_costs = pd.read_csv(os.path.join(THISDIR, 'input_data', f"battery_costs_{settings['atbyear']}.csv"))
+    battery_costs = pd.read_csv(os.path.join(ATBDIR, 'scraped_input', f"battery_costs_{settings['atbyear']}.csv"))
     # reshape and format
     battery_costs = pd.melt(battery_costs, id_vars=['cost','Scenario'], var_name='t')
     battery_costs = battery_costs.pivot(index=['Scenario', 't'], columns='cost', values='value').reset_index().rename_axis(None, axis=1)
@@ -523,7 +525,7 @@ def add_csp_techs(tech, settings, df, techcol='i'):
         Column name identifying the technology label in `df` (default 'i').
     """
     # load cost ratios for csp techs
-    csp_ratios = pd.read_csv(os.path.join(THISDIR, "input_data", f"csp_cost_ratios_{settings['atbyear']}.csv"))
+    csp_ratios = pd.read_csv(os.path.join(ATBDIR, "manual_input", f"csp_cost_ratios_{settings['atbyear']}.csv"))
     print("updating csp tech costs using the following ratios:")
     print(csp_ratios[['type','ratio']])
 
@@ -953,7 +955,7 @@ def main(args):
     yamlfile = os.path.join(THISDIR, 'settings.yaml')
     with open(yamlfile) as f:
         settings = yaml.safe_load(f)
-    outfolder = os.path.join(THISDIR, 'output')
+    outfolder = os.path.join(ATBDIR, 'output')
 
     # if output folder does not exist, create it
     if not os.path.exists(outfolder):

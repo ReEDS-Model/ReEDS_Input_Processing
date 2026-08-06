@@ -5,7 +5,7 @@
 # ATB year to process
 atbyear: 2024
 # specify ATB input source: 'file' or 'url'
-  # 'file', uses a local copy of the filename below located in the input_data folder;
+  # 'file', uses a local copy of the filename below located in the input folder;
   # 'url', fetches the ATBe file published on OEDI
 atb_source: url
 # name of ATB flat file use for processing
