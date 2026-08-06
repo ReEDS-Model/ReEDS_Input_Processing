@@ -6,8 +6,10 @@ All ATB processing code and configuration.
 - `generate_atb_files.py` — main pipeline: reads ATB data plus `../scraped_input/`
   and `../manual_input/`, writes formatted files to `../output/`. See
   [`README_atb-processing.md`](README_atb-processing.md).
-- `scrape_battery_inputs.py` — downloads the ATB workbook and writes
-  `../scraped_input/battery_costs_<year>.csv`.
+- `scrape_battery_inputs.py` — downloads the raw ATB workbook into
+  `../scraped_input/`; its `download_workbook` / `extract_battery_costs`
+  functions are imported by `generate_atb_files.py` to read battery costs from
+  the workbook at runtime.
 - `atb_plotting.py` — plotting utilities. See
   [`README_atb-plotting.md`](README_atb-plotting.md).
 

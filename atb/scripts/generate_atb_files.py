@@ -1,7 +1,7 @@
 """
 This script processes and produces ATB costs input files for ReEDS.
 Global and technology-specific settings for Scenario, Case, CRPYears etc. are defined in the settings.yaml file.
-The script runs in the standard ReEDS environment (reeds2); it only requires numpy, pandas, pyyaml, and requests.
+The script runs in the standard ReEDS environment (reeds2); it requires numpy, pandas, pyyaml, requests, and openpyxl (openpyxl is used to read the ATB Excel workbook for battery costs).
 """
 
 #%% ===========================================================================
@@ -87,6 +87,14 @@ def fetch_atb_from_url(atbyear, settings):
     print(f"Downloading ATB {atbyear} flat file from {url}")
     resp = requests.get(url, timeout=120)
     resp.raise_for_status()
+    # persist the raw flat file into scraped_input/ so scraped_input holds the
+    # raw ATB downloads for every technology (not just battery).
+    raw_dir = os.path.join(ATBDIR, 'scraped_input')
+    os.makedirs(raw_dir, exist_ok=True)
+    raw_path = os.path.join(raw_dir, f"atb_{atbyear}_flat_file.csv")
+    with open(raw_path, 'w', encoding='utf-8', newline='') as f:
+        f.write(resp.text)
+    print(f"Saved raw flat file to {raw_path}")
     df = pd.read_csv(StringIO(resp.text), low_memory=False)
     print(f"Downloaded {len(df):,} rows.")
     df = df.rename(columns=atbe_col_mapping)
@@ -491,8 +499,26 @@ def format_continuous_battery(tech, settings, df):
     df: pd.DataFrame
         Input dataframe with columns that will be replaced by the battery cost fields (the function drops ['capcost', 'fom'] before merging)
     """
-    # load battery power and energy costs (manually created file using ATB workbook)
-    battery_costs = pd.read_csv(os.path.join(ATBDIR, 'scraped_input', f"battery_costs_{settings['atbyear']}.csv"))
+    # Battery power/energy capital costs are extracted directly from the raw ATB
+    # Excel workbook (scraped_input/). The workbook is downloaded on demand and
+    # cached there. For ATB years whose workbook is not yet published (e.g. a
+    # pre-release year), fall back to a manually maintained
+    # manual_input/battery_costs_<year>.csv.
+    atbyear = settings['atbyear']
+    from scrape_battery_inputs import download_workbook, extract_battery_costs, WORKBOOK_URLS
+    if atbyear in WORKBOOK_URLS:
+        raw_dir = os.path.join(ATBDIR, 'scraped_input')
+        workbook = download_workbook(atbyear, raw_dir)
+        battery_costs = extract_battery_costs(workbook)
+        # round to 2 decimals to match the historical battery_costs_<year>.csv
+        yearcols = [c for c in battery_costs.columns if c not in ('cost', 'Scenario')]
+        battery_costs[yearcols] = battery_costs[yearcols].round(2)
+        battery_costs.columns = [str(c) for c in battery_costs.columns]
+    else:
+        fallback = os.path.join(ATBDIR, 'manual_input', f"battery_costs_{atbyear}.csv")
+        print(f"No ATB workbook URL configured for {atbyear}; "
+              f"using manual fallback {fallback}")
+        battery_costs = pd.read_csv(fallback)
     # reshape and format
     battery_costs = pd.melt(battery_costs, id_vars=['cost','Scenario'], var_name='t')
     battery_costs = battery_costs.pivot(index=['Scenario', 't'], columns='cost', values='value').reset_index().rename_axis(None, axis=1)

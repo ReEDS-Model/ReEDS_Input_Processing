@@ -1,19 +1,22 @@
 """
-Scrape battery capital costs from the NREL ATB Excel workbook.
+Download the raw NREL ATB Excel workbook (used for battery capital costs).
 
 The ATB summary flat file (ATBe.csv) only reports total battery CAPEX per
 duration. ReEDS needs the split into power ($/kW) and energy ($/kWh) capital
 cost components, which are only published in the ATB Excel workbook on the
-"Utility-Scale Battery Storage" sheet. This script downloads that workbook and
-writes scraped_input/battery_costs_<year>.csv, the intermediate consumed by
-generate_atb_files.py (format_continuous_battery).
+"Utility-Scale Battery Storage" sheet.
 
-Usage:
+This script downloads that raw workbook into scraped_input/. It does NOT write
+an intermediate battery_costs_<year>.csv: generate_atb_files.py imports
+``download_workbook`` / ``extract_battery_costs`` from this module and extracts
+the battery costs directly from the raw workbook at runtime.
+
+Usage (optional pre-fetch / preview):
     python scrape_battery_inputs.py --year 2024
 
 Note: CSP cost ratios (csp_cost_ratios_*.csv) and historic capacity factors
 (historic_capacity_factors.csv) are NOT produced here. Those are manually
-maintained inputs that do not come from the ATB workbook.
+maintained inputs (manual_input/) that do not come from the ATB workbook.
 """
 import argparse
 import os
@@ -121,23 +124,16 @@ def main():
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--year', type=int, default=2024,
                    help='ATB year to process (default: 2024).')
-    p.add_argument('--cache-dir', default=os.path.join(ATBDIR, 'scraped_input', '_workbook_cache'),
-                   help='Directory to cache the downloaded workbook.')
     p.add_argument('--outdir', default=os.path.join(ATBDIR, 'scraped_input'),
-                   help='Directory to write battery_costs_<year>.csv.')
-    p.add_argument('--decimals', type=int, default=2,
-                   help='Round output values to this many decimals (default: 2).')
+                   help='Directory to save the raw workbook into.')
     args = p.parse_args()
 
-    xlsx = download_workbook(args.year, args.cache_dir)
+    xlsx = download_workbook(args.year, args.outdir)
+    print(f'Raw workbook available at {xlsx}')
+    # preview the extracted battery costs (not written to disk)
     df = extract_battery_costs(xlsx)
-    if args.decimals is not None:
-        yearcols = [c for c in df.columns if isinstance(c, int)]
-        df[yearcols] = df[yearcols].round(args.decimals)
-
-    out = os.path.join(args.outdir, f'battery_costs_{args.year}.csv')
-    df.to_csv(out, index=False)
-    print(f'Wrote {out}  ({df.shape[0]} rows x {df.shape[1]} cols)')
+    print(f'Extracted battery costs: {df.shape[0]} rows x {df.shape[1]} cols')
+    print(df.to_string(index=False, max_cols=6))
 
 
 if __name__ == '__main__':

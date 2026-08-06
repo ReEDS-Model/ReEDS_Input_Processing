@@ -8,8 +8,9 @@ ATB/inputs/
 atb/output/
 atb/inputs/
 atb/figures/
-atb/scraped_input/_workbook_cache/
 atb/_dev/
+# pre-release ATB battery costs (no public workbook); keep local, never commit
+atb/manual_input/battery_costs_2025.csv
 /NEMS_database_processing/Outputs/
 /AEO_Updates/outputs/
 /AEO_Updates/output/AEO_HIGHMACRO_2021_electricity_consumption.csv
