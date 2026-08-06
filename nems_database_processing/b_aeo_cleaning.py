@@ -331,9 +331,9 @@ def cleanMergedAEOEIA860(merged_nems_eia860, battery_duration):
     merged_nems_eia860['TC_WIN'] = merged_nems_eia860['TC_WIN'] * merged_nems_eia860['TCOUNT']
     merged_nems_eia860['TC_SUM'] = merged_nems_eia860['TC_SUM'] * merged_nems_eia860['TCOUNT']
 
-    merged_nems_eia860['TC_NP'] = merged_nems_eia860['TC_NP'].round(2)
-    merged_nems_eia860['TC_WIN'] = merged_nems_eia860['TC_WIN'].round(2)
-    merged_nems_eia860['TC_SUM'] = merged_nems_eia860['TC_SUM'].round(2)
+    rounding_cols = ['TC_NP', 'TC_WIN','TC_SUM','T_VOM','T_FOM',
+                     'T_CCSROV','T_CCSF','T_CCSV','T_CCSHR','T_CAPAD']
+    merged_nems_eia860[rounding_cols] = merged_nems_eia860[rounding_cols].round(2)
 
     ## Further clean up
     # Add heat rate for EIA860M units:
