@@ -70,11 +70,12 @@ def set_retire_years(nems,coal_plant_retirement,current_year):
         if not nems.loc[i,'RetireYearGiven']:
             tech = nems.loc[i,'tech'].lower()
             size = nems.loc[i,'TC_SUM']
+            StartYear_temp = nems.loc[i,'T_SYR']
             if size >= 100:
                 lifetime = lifetimes.loc[tech,'lifetime_big']
             elif size < 100:
                 lifetime = lifetimes.loc[tech,'lifetime_small']
-            
+
             # Assign retirement years to operating units with T_SYR <= current_year
             if nems.loc[i,'status'] == '(OP) Operating':
                 
@@ -93,7 +94,7 @@ def set_retire_years(nems,coal_plant_retirement,current_year):
                     nems.loc[i,'T_RYR'] = current_year + 10
                 else:
                     nems.loc[i,'T_RYR'] = StartYear_temp + lifetime
-                          
+
         elif nems.loc[i,'RetireYearGiven']:
             pass
             

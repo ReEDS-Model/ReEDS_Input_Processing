@@ -18,15 +18,15 @@ figure_path = os.path.join('outputs','Figures')
 
 #%%
 
-current_fleet_yr = int(sys.argv[1])
-reeds_path = gdbnewname = sys.argv[2]
-reeds_path = os.path.expanduser(reeds_path)
-sys.path.append(reeds_path)
+#current_fleet_yr = int(sys.argv[1])
+#reeds_path = gdbnewname = sys.argv[2]
+#reeds_path = os.path.expanduser(reeds_path)
+#sys.path.append(reeds_path)
 
 # For debugging
-#current_fleet_yr=2025
+current_fleet_yr=2025
 
-gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_2025_nov.csv'
+gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_july_2026.csv'
 
 #gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_' + str(current_fleet_yr) + '.csv'
 gdbfinalname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
@@ -34,9 +34,11 @@ gdbfinalname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
 dfold = pd.read_csv(os.path.join('inputs','Inheritance',gdboldname), low_memory=False)
 dfnew = pd.read_csv(os.path.join('outputs',gdbfinalname), low_memory=False)
 
-hierarchy = pd.read_csv(os.path.join(reeds_path, 'inputs','hierarchy.csv'))
+#hierarchy = pd.read_csv(os.path.join(reeds_path, 'inputs','hierarchy.csv'))
 
 region = 'USA'
+startyear = 2010
+finalyear = 2050
 
 #################################
 ### Planned online comparison ###
@@ -46,7 +48,7 @@ online_data_old = dfold.loc[dfold['StartYear']>=2020]
 
 # Graph old planned online:
 max_y = 80000
-sch_order = [2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030,2031]
+sch_order = range(startyear, finalyear+1)
 if current_fleet_yr < 2025:
     status_cat = ['upv', 'dupv', 'pvb', 'csp-ns','wind-ons', 'wind-ofs', 'nuclear', 'battery_li',
                 'biopower', 'lfill-gas', 'gas-cc','gas-ct', 'o-g-s', 'hydED', 'hydEND','hydNPND','geohydro_allkm']
@@ -93,7 +95,7 @@ os.makedirs(figure_path, exist_ok=True)
 chart.save(os.path.join(figure_path,'planned_online_current_NEMS.html'))
 
 # Graph new planned online:
-sch_order = [2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030,2031]
+sch_order = range(startyear, finalyear+1)
 status_cat = ['upv', 'dupv','pvb_pv','csp-ns','pvb_battery','wind-ons', 'wind-ofs', 'nuclear', 'battery_li',
               'biopower', 'lfill-gas', 'gas-cc','gas-ct', 'o-g-s', 'hydED', 'hydEND', 'hydND', 'hydNPND', 'geohydro_allkm']
 
@@ -141,7 +143,7 @@ online_data_compare['cap_new'] = online_data_compare['cap_new'].fillna(0)
 online_data_compare['cap_old'] = online_data_compare['cap_old'].fillna(0)
 online_data_compare['cap_diff'] = online_data_compare['cap_new']-online_data_compare['cap_old']
 
-sch_order = [2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030,2031]
+sch_order = range(startyear, finalyear+1)
 if current_fleet_yr < 2025:
     status_cat = ['upv', 'dupv','pvb','csp-ns','wind-ons', 'wind-ofs', 'nuclear', 'battery',
                   'biopower', 'lfill-gas', 'gas-cc','gas-ct', 'o-g-s', 'hydED', 'hydEND', 'hydND', 'hydNPND', 'geohydro_allkm']
@@ -203,7 +205,7 @@ retire_data_old = dfold.loc[dfold['RetireYear']<=2035]
 retire_data_old = retire_data_old.loc[retire_data_old['RetireYear']>=2020]
 
 # Graph new retired year
-sch_order2 = [2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030,2031,2032,2033,2034,2035]
+sch_order2 = range(startyear, finalyear+1)
 status_cat = ['upv', 'dupv','pvb_pv','csp-ns','pvb_battery','wind-ons', 'nuclear', 'battery_li',
               'biopower', 'lfill-gas', 'gas-cc','gas-ct', 'o-g-s', 'coal-new','coalolduns','coaloldscr',
               'hydED', 'hydEND', 'hydND', 'hydNPND', 'pumped-hydro','geohydro_allkm']
@@ -234,7 +236,7 @@ chart = alt.Chart(retire_data_new).mark_bar(size=30).encode(
 chart.save(os.path.join('outputs','Figures','planned_retired_new_NEMS.html'))
 
 # Graph old retired year
-sch_order2 = [2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030,2031,2032,2033,2034,2035]
+sch_order2 = range(startyear, finalyear+1)
 if current_fleet_yr < 2025:
     status_cat = ['upv','dupv','pvb','csp-ns','pvb_battery','wind-ons', 'nuclear', 'battery_li',
                 'biopower', 'lfill-gas', 'gas-cc','gas-ct', 'o-g-s', 'coal-new','coalolduns','coaloldscr',
@@ -310,7 +312,7 @@ retire_data_compare['cap_new'] = retire_data_compare['cap_new'].fillna(0)
 retire_data_compare['cap_old'] = retire_data_compare['cap_old'].fillna(0)
 retire_data_compare['cap_diff'] = retire_data_compare['cap_new']-retire_data_compare['cap_old']
 
-sch_order = [2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030,2031]
+sch_order = range(startyear, finalyear+1)
 if current_fleet_yr < 2025:
     status_cat = ['upv', 'dupv','pvb','csp-ns','wind-ons', 'wind-ofs', 'nuclear', 'battery',
                 'biopower', 'lfill-gas', 'gas-cc','gas-ct', 'o-g-s', 'coal-new','coalolduns','coaloldscr',
