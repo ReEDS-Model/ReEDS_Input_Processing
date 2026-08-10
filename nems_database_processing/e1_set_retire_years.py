@@ -76,18 +76,18 @@ def set_retire_years(nems,coal_plant_retirement,current_year):
                 lifetime = lifetimes.loc[tech,'lifetime_small']
             
             # Assign retirement years to operating units with T_SYR <= current_year
-            #if nems.loc[i,'status'] == '(OP) Operating':
+            if nems.loc[i,'status'] == '(OP) Operating':
                 
             # if start year is after refurbishment year (or if refurbishment year is null) 
             # and start year + lifetime is before current year, then extend retirement year by 10 years.
             # On the other hand, if start year + lifetime is already after current year,
             # then keep retirement year = start year + lifetime
 
-            if (nems.loc[i,'T_SYR'] >= nems.loc[i,'TRFURB']) or (pd.isnull(nems['TRFURB'][i])):
-                StartYear_temp = nems.loc[i,'T_SYR']
-            else:
-                StartYear_temp = nems.loc[i,'TRFURB']
-            
+                if (nems.loc[i,'T_SYR'] >= nems.loc[i,'TRFURB']) or (pd.isnull(nems['TRFURB'][i])):
+                    StartYear_temp = nems.loc[i,'T_SYR']
+                else:
+                    StartYear_temp = nems.loc[i,'TRFURB']
+                
             if (nems.loc[i,'T_RYR'] <= current_year) or (nems.loc[i,'T_RYR'] == 9999):
                 if StartYear_temp + lifetime <= current_year:
                     nems.loc[i,'T_RYR'] = current_year + 10
