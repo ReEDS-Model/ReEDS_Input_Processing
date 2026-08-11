@@ -16,7 +16,7 @@ from shapely.geometry import Point
 
 #%%
 dir = os.getcwd()
-reeds_path = gdbnewname = sys.argv[1]
+reeds_path = sys.argv[1]
 
 # For debugging
 #reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'               # local

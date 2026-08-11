@@ -14,27 +14,33 @@ import altair as alt
 alt.data_transformers.disable_max_rows()
 from textwrap import wrap
 
-figure_path = os.path.join('outputs','Figures')
+figure_path = os.path.join('outputs','figures')
 
 #%%
 
 #current_fleet_yr = int(sys.argv[1])
-#reeds_path = gdbnewname = sys.argv[2]
-#reeds_path = os.path.expanduser(reeds_path)
-#sys.path.append(reeds_path)
+#reeds_path = sys.argv[2]
 
 # For debugging
 current_fleet_yr=2025
+reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'               # local
+#reeds_path = '//kfs2/projects/stdscen/apham/ReEDS/' 
 
+reeds_path = os.path.expanduser(reeds_path)                      # kestrel
+sys.path.append(reeds_path)
+import reeds
+
+# Read in NEMS capacity input files to compare
 gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_july_2026.csv'
 
 #gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_' + str(current_fleet_yr) + '.csv'
 gdbfinalname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
 
-dfold = pd.read_csv(os.path.join('inputs','Inheritance',gdboldname), low_memory=False)
+dfold = pd.read_csv(os.path.join('inputs','inheritance',gdboldname), low_memory=False)
 dfnew = pd.read_csv(os.path.join('outputs',gdbfinalname), low_memory=False)
 
-#hierarchy = pd.read_csv(os.path.join(reeds_path, 'inputs','hierarchy.csv'))
+# Read hierarchy
+hierarchy = reeds.io.get_hierarchy(GSw_ZoneSet='z90'.reset_index())
 
 region = 'USA'
 startyear = 2010
@@ -43,8 +49,8 @@ finalyear = 2050
 #################################
 ### Planned online comparison ###
 #################################
-online_data_new = dfnew.loc[dfnew['StartYear']>=2020]
-online_data_old = dfold.loc[dfold['StartYear']>=2020]
+online_data_new = dfnew.loc[dfnew['StartYear']>=startyear]
+online_data_old = dfold.loc[dfold['StartYear']>=startyear]
 
 # Graph old planned online:
 max_y = 80000
