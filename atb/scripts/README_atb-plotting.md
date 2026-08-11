@@ -1,10 +1,22 @@
-# Overview
-This repo includes scripts to plot CAPEX, FOM, and VOM of different versions of the ATB.
+# Plotting stage
 
-# Required inputs
-Users are required to provide Users have the options to provide the ATBe.csv file for the specific ATB version they want to plot. THere are two options to provide ATBe.csv file:
-- Save the file in the ATB/inputs folder
-- Provide an URL to the ATBe.csv file. If choose URL option, users are prompted to provide the URL.
+`atb_plotting.py` reads the same local raw flat file used by the ReEDS formatter.
+It does not prompt for URLs, download data, depend on external JSON style files,
+or require importing plotting utilities from a separate ReEDS checkout.
 
-# Note
-This script was tested on ATB 2024 and 2025 versions only, so they may not work for earlier versions.
+Configure metrics, case, CRP years, technologies, output directory, and image
+format under `plotting:` in `../config.yaml`, then run:
+
+```bash
+python atb_plotting.py
+```
+
+Override the configured metric list when needed:
+
+```bash
+python atb_plotting.py --metric CAPEX "Fixed O&M"
+```
+
+Moderate values are drawn as lines. Where both Advanced and Conservative data
+exist, the range between them is shown as a band. Figures are saved to the
+configured plotting output directory.

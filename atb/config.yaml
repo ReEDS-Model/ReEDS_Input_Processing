@@ -1,0 +1,52 @@
+# User-facing configuration for the ATB workflow.
+# Set the workflow switches, review the paths/URLs, then run:
+#   python scripts/run_pipeline.py
+
+workflow:
+  scrape_raw_data: true
+  format_reeds_inputs: true
+  make_plots: true
+
+atb:
+  year: 2024
+  dollar_year: 2022
+
+raw_data:
+  directory: scraped_input
+  flat_file:
+    filename: atb_2024_flat_file.csv
+    url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2024/v3.0.0/ATBe.csv
+  workbook:
+    filename: atb_2024_workbook.xlsx
+    url: https://data.openei.org/files/6006/2024_v3_Workbook.xlsx
+
+processing:
+  reeds_repo: C:/ReEDS/ReEDS
+  output_directory: output
+  copy_to_reeds: false
+  technologies: all
+  update_costs: true
+  update_financials: false
+  sensitivity_name: null
+  reeds_start_year: 2010
+  decimals: 6
+
+plotting:
+  metrics:
+    - CAPEX
+    - Fixed O&M
+    - Variable O&M
+  case: Market
+  crp_years: 20
+  figure_format: png
+  output_directory: figures
+  technologies:
+    - Biopower
+    - Coal_FE
+    - CSP
+    - LandbasedWind
+    - NaturalGas_FE
+    - Nuclear
+    - OffShoreWind
+    - Utility-Scale Battery Storage
+    - UtilityPV

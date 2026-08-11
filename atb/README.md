@@ -1,25 +1,73 @@
-# ATB input processing
+# ATB input pipeline
 
-Tools for turning NREL Annual Technology Baseline (ATB) data into the
-per-technology cost/performance files that ReEDS consumes.
+This directory turns raw NLR Annual Technology Baseline (ATB) data into ReEDS
+input files and plots. The workflow has three explicit stages:
 
-## Folder structure
+1. download and inspect raw data;
+2. format the local raw data for ReEDS;
+3. plot metrics from the same local raw data.
 
-| Folder                            | Contents                                                                                                      |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| [`scripts/`](scripts/)           | All Python scripts and`settings.yaml`. Start here to run the pipeline.                                      |
-| [`scraped_input/`](scraped_input/) | Raw files scraped directly from ATB: the flat file (`atb_<year>_flat_file.csv`) and the Excel workbook (`atb_<year>_workbook.xlsx`). |
-| [`manual_input/`](manual_input/) | Hand-maintained inputs that are **not** scraped from ATB (CSP cost ratios, historic capacity factors, pre-release battery costs). |
-| `output/`                       | Generated per-technology CSVs written by`generate_atb_files.py` (git-ignored).                              |
+## Start here
 
-## Quick start
+[`config.yaml`](config.yaml) is the user-facing control file. It shows which
+stages will run, the ATB release and source URLs, local filenames, ReEDS path,
+technologies, processing choices, and plotting choices.
+
+From this `atb/` directory, run the configured workflow with:
 
 ```bash
-conda activate reeds2
-cd atb/scripts
-python generate_atb_files.py -f
+python scripts/run_pipeline.py
 ```
 
-See [`scripts/README_atb-processing.md`](scripts/README_atb-processing.md) for
-full processing details and [`scripts/README_atb-plotting.md`](scripts/README_atb-plotting.md)
-for plotting.
+The runner prints the selected plan before doing any work. Individual stages
+can also be run directly:
+
+```bash
+python scripts/scrape_atb_inputs.py
+python scripts/generate_atb_files.py
+python scripts/atb_plotting.py
+```
+
+## Data flow
+
+```text
+config.yaml
+    |
+    +--> scrape_atb_inputs.py
+    |        +--> scraped_input/atb_<year>_flat_file.csv
+    |        +--> scraped_input/atb_<year>_workbook.xlsx
+    |        +--> terminal summaries/previews of both raw files
+    |
+    +--> generate_atb_files.py
+    |        +--> raw flat file (primary ATB data)
+    |        +--> raw workbook (battery power/energy cost split)
+    |        +--> manual_input/ (CSP ratios and historic/fallback data)
+    |        +--> existing ReEDS inputs (history and dollar-year conversion)
+    |        +--> output/*_ATB_<year>_<scenario>.csv
+    |
+    +--> atb_plotting.py
+             +--> the same raw flat file
+             +--> figures/
+```
+
+The flat file and workbook are independent upstream downloads. Neither is
+generated from the other. The formatter and plotter do not download data; they
+only consume the raw files created by the scraper.
+
+## Directory layout
+
+| Path | Purpose |
+| --- | --- |
+| `config.yaml` | User-facing workflow configuration |
+| `scraped_input/` | Visible, unmodified raw ATB downloads |
+| `manual_input/` | Hand-maintained inputs not available in the ATB downloads |
+| `scripts/settings.yaml` | Internal per-technology ReEDS formatting rules |
+| `scripts/scrape_atb_inputs.py` | Raw-data download and inspection |
+| `scripts/generate_atb_files.py` | ReEDS input formatter |
+| `scripts/atb_plotting.py` | Raw ATB plotting |
+| `output/` | Generated ReEDS-formatted CSVs |
+| `figures/` | Generated ATB plots |
+
+See [`scripts/README_atb-processing.md`](scripts/README_atb-processing.md) and
+[`scripts/README_atb-plotting.md`](scripts/README_atb-plotting.md) for stage
+details.

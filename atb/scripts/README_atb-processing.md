@@ -1,106 +1,50 @@
-# Overview
-This script generate_atb_files.py can be used to process raw ATB inputs (from the ATB flat file) and write per-technology output CSVs formatted for ReEDS. It also updates system and tech financials and can optionally copy the outputs into a local ReEDS repo.
+# ReEDS formatting stage
 
-# Running the script
+`generate_atb_files.py` converts already-downloaded raw ATB inputs into
+per-technology ReEDS CSVs. Network access and raw-data acquisition belong to
+`scrape_atb_inputs.py`, not to this stage.
 
-Use the standard ReEDS environment (`reeds2`); the processing script only requires numpy, pandas, pyyaml, and requests, which are all included in `reeds2`.
+## Inputs
 
-1. Gather or update the input data sources (see list below).
-   - Data is taken from the ATB flat file or an ATBe file.
-2. Update values for "User settings" in `settings.yaml`. 
-3. Run the script: `python generate_atb_files.py`.
-   - To run for specific technology: `python generate_atb_files.py -t battery upv` 
+- user choices from `../config.yaml`;
+- technology mappings from `settings.yaml`;
+- `../scraped_input/atb_<year>_flat_file.csv` as the primary ATB dataset;
+- `../scraped_input/atb_<year>_workbook.xlsx` for the battery power/energy cost
+  split;
+- `../manual_input/` for CSP ratios, historic capacity factors, and a
+  pre-release battery fallback;
+- prior ReEDS plant-characteristic and financial files for history, deflators,
+  and dollar-year metadata.
 
-# Script workflow
+## Processing
 
-The script follows these steps:
+For every selected technology, the formatter:
 
-1. Load settings.yaml and validate required paths and parameters (path to ATB file, ReEDS repo path, tech definitions).
-2. Load and read the input ATB file (from a local copy or remote url).
-3. Determine the list of technologies to run from CLI args or settings.yaml.
-4. For each technology:
-   - Subset by sub-technology and Case/CRPYears
-   - Format outputs: subset/rename columns, pivot parameters to wide form, reformat/rename parameter names, and run any tech-specific transformation functions (normalize_cf, backfill data, batteries convert to continuous, add_* etc.).
-   - Load and merge historic ATB values and adjust costs with dollar-year deflators.
-   - Write per-technology, per-scenario CSVs to output folder and update the dollaryear.
-5. Write tech financial files (WACC etc.).
-6. Optionally copy generated outputs ((plant characteristics and financials)) into the local ReEDS repo if copy_to_reeds=True.
+1. selects `Technology`, `DisplayName`, `Case`, and `CRPYears` rows;
+2. pivots ATB parameters into ReEDS columns such as `capcost`, `fom`, `vom`,
+   `heatrate`, `rte`, and `cf_improvement`;
+3. applies technology-specific battery, CSP, coal, capacity-factor, or backfill
+   transformations;
+4. merges prior ReEDS inputs and converts historic cost values to the configured
+   dollar year;
+5. writes each distinct scenario to `../output/`.
 
-# Input data
+When enabled, it also creates system and technology financial files. When
+`copy_to_reeds` is true, generated files are copied into the configured ReEDS
+repository.
 
-## ATB flat file
+## Commands
 
-The processing script relies on the "flat file" version of the ATB workbook. The flat file can be generated via the following steps:
+```bash
+# Follow config.yaml
+python generate_atb_files.py
 
-1. Generating the flat file requires `xlwings` and `nrel-pysam` (plus a local Excel install on Windows). Install these into the `reeds2` environment with `pip install xlwings nrel-pysam`, or use a separate environment. Note these packages are only needed to generate the flat file, not to run `generate_atb_files.py`.
-2. Create a local copy of https://github.com/NREL/ATB-calc/tree/dev
-   - The dev branch is for the ATB under development, the main branch is for the publicly released ATB
-3. Download a local copy of 2025-ATB-Data_Workbook.xlsx
-   - Append the date to the end of the file.
-   - Teams/OneDrive interferes with XlWings, so this file must be saved locally.
-4. Activate the environment and run the processing command below.
-   - .xlsx is the input file name, .csv file is the output file name.
-   - if saving the output (flat) file in a folder, the folder must exist.
+# Override the configured technology selection
+python generate_atb_files.py -t battery upv
+
+# Explicitly skip financial or cost outputs
+python generate_atb_files.py --skip_financials
+python generate_atb_files.py --skip_costs
 ```
-python -m lcoe_calculator.process_all -i --save-flat io/atb_2025_flat_file_20250916.csv io/2025-ATB-Data_Workbook-03-01-2026.xlsx
-```
 
-Notes:
-- The flat file processing script does not work on linux systems such as the HPC. 
-- The flat file is quite large. Since we haven't yet enabled lfs for the ReEDS_2.0_Input_Processing it's best not to commit it to the repo for now.
-- Future capability for this script will include specifying the URL to the ATBe file published on OEDI as the input dataset; this will streamline data loading, with remaining processing steps remaining the same.
-
-## ATBe file
-ATB data is published on the Open Energy Data Initiative (OEDI) as an ATBe.csv file. This can be used as the input instead of the ATB flat file by specifying "url" as the 'atb_source' in settings.yaml, and specifying the url for the required year when prompted.
-
-## Other ATB data
-
-### Battery costs
-
-Power (\$/kW) and energy (\$/kWh) capital costs. Taken from the table of values on the "Utility-Scale Battery - Expand" tab of the ATB worksheet. See `battery_costs.csv`.
-
-### CSP cost ratios 
-
-The ATB workbook provides CSP data for a single storage duration and solar multiple, but ReEDS models a range of technologies. The processing script draws costs for a single technology that represents the base option and then applies the ratios in `csp_cost_ratio.csv` to scale the values accordingly. These values can be generated by updating the values for solar multiple and storage duration in the "Solar - CSP" tab and then using the excel calculation to generate a new cost (\$kW), which divided by the base cost provides the ratio.  
-
-## Historic capacity factors 
-
-To complete:
-- upv: check with Wesley
-- wind-ofs: provided by Gabe (check on 2022 values)
-- wind-ons: Based on data from the 2024 LBL Wind Market report (https://emp.lbl.gov/wind-technologies-market-report)
-"Capacity Factor in 2023 by Commercial Operation Date" tab > generation weighted average capacity factor from the
-
-## Details on settings.yaml parameters
-This section provides description of the various parameters and their typical/default values for the settings.yaml file, which controls how the ATB flat file is parsed and per-technology outputs are produced.
-
-| Parameter | Description | Default |
-| :------ | :---------- | :------ |
-| atbyear  | ATB version year to be processed (used for filenames and historic-file lookup)  | 2025 |
-| atb_source  | source for the input ATB file (local 'file' or remote 'url')  | file |
-| filename  | path to the ATB flat file CSV (primary input)  |  |
-| reedspath  | local path to the ReEDS repo used for reading historic-year files and (optionally) writing outputs  |  |
-| copy_to_reeds  | if true, generated outputs are copied to specified ReEDS repo  | True |
-| dollaryear  | dollar year to which ATB values in the flat file correspond (used when converting historic values)  | 2023 |
-| reeds_start_year  | earliest year ReEDS expects (used by backfill operations)  | 2010 |
-| param_names  | mapping from ATB Parameter names in the flat file to the internal ReEDS column names used by the script (capcost/fom/vom/heatrate/rte)  |  |
-| units  | units associated with each column name (e.g., capcost: $/kW)  |  |
-| cost_cols  | list of columns treated as cost columns (used when inflating/deflating historic files)  | - capcost - fom - vom |
-| decimals  | number of decimal places used when rounding outputs  | 6 |
-| wacc_base_tech  | ATB Technology used as the baseline for computing differences in WACC across techs (system financials)  | "NaturalGas_FE" |
-
-### Technology-level parameters
-| Parameter | Description | Default |
-| :------ | :---------- | :------ |
-| Technology  | ATB "Technology" field used to filter the flat file  | UtilityPV, LandbasedWind, NaturalGas_FE etc. |
-| DisplayName  | maps ATB "DisplayName" values to the sub-technology labels used in outputs  |  |
-| subset_rows  | per-tech dictionary used to filter ATB flat file rows before processing (keys "Case" and "CRPYears")  | "Case": Exp + TC, R&D, R&D + TC ; "CRPYears": 30 (default) |
-| renamecols  | column rename mapping applied to ATB rows for a technology (or used to map column names in historic ATB files to capcost/fom/vom)  |  |
-| addcols  | static columns to add for a technology (e.g., 'turbine' for wind-ofs)  |  |
-| indexcols  | list of columns used as the pivot index (Scenario and t for time series)  |  |
-| cols  | final ordered columns to write for each scenario output  | t, capcost, fom, vom, heatrate |
-| cfbase  | controls normalization of capacity-factor series  |  |
-| financialname  | optional rename for the tech used in financials output (e.g., PV, ONSWIND)  |  |
-| functions  | list of transformation functions to run for a technology (e.g., normalize_cf, smooth_hist_cf, backfill_data etc.)  |  |
-| reeds_name  | override used to construct prior-year per-tech filenames in the ReEDS repo  |  |
-| filename_historical (optional)  | explicit historical filename override when the prior-year file uses a different name (e.g., beccs_reference.csv for BECCS)  |  |
+`-f` means `--skip_financials`; it does not mean force.

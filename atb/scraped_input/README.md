@@ -1,21 +1,31 @@
 # scraped_input/
 
-Raw files scraped directly from the NREL ATB, consumed by the scripts in
-[`../scripts/`](../scripts/). These are downloaded automatically when
-`generate_atb_files.py` runs (and can be pre-fetched manually).
+This directory exposes the two independent raw downloads used by the NLR ATB
+workflow. Neither file is generated from the other.
 
-- `atb_<year>_flat_file.csv` — the ATB summary flat file (ATBe.csv). Source of
-  cost/performance data for most technologies. Downloaded by
-  `generate_atb_files.py` (`atb_source: url`).
-- `atb_<year>_workbook.xlsx` — the ATB Excel workbook. Source of the battery
-  power ($/kW) and energy ($/kWh) capital-cost split, which is not in the flat
-  file. Read at runtime by `generate_atb_files.py`.
+| File | Upstream source | Used for |
+| --- | --- | --- |
+| `atb_<year>_flat_file.csv` | ATB summary flat file (`ATBe.csv`) on OEDI | Primary cost, performance, and financial data |
+| `atb_<year>_workbook.xlsx` | ATB Excel data workbook | Battery power ($/kW) and energy ($/kWh) capital-cost components |
 
-These are the raw downloads only — no intermediate/derived files live here.
-Battery costs are extracted from the workbook at runtime rather than stored.
-
-Pre-fetch manually with, e.g.:
+The URLs and local filenames are declared under `raw_data:` in
+[`../config.yaml`](../config.yaml). Download and inspect both files with:
 
 ```bash
-python ../scripts/scrape_battery_inputs.py --year 2024
+python ../scripts/scrape_atb_inputs.py
 ```
+
+Useful variants:
+
+```bash
+python ../scripts/scrape_atb_inputs.py --only flat
+python ../scripts/scrape_atb_inputs.py --only workbook
+python ../scripts/scrape_atb_inputs.py --force
+```
+
+Without `--force`, existing files are reused and displayed. These files remain
+raw and unmodified: derived ReEDS inputs go in `../output/`, and plots go in
+`../figures/`.
+
+Both raw files are tracked by Git so the exact upstream inputs used for a run
+can be preserved with the repository.

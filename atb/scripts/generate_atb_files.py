@@ -1,7 +1,8 @@
 """
 This script processes and produces ATB costs input files for ReEDS.
-Global and technology-specific settings for Scenario, Case, CRPYears etc. are defined in the settings.yaml file.
-The script runs in the standard ReEDS environment (reeds2); it requires numpy, pandas, pyyaml, requests, and openpyxl (openpyxl is used to read the ATB Excel workbook for battery costs).
+Workflow choices are defined in ../config.yaml; technology-specific formatting
+rules are defined in settings.yaml. This formatter reads local raw inputs only.
+The script runs in the standard ReEDS environment (reeds2).
 """
 
 #%% ===========================================================================
@@ -12,28 +13,15 @@ import os
 import numpy as np
 import pandas as pd
 import shutil
-import yaml
 from pandas.errors import EmptyDataError
 import sys
-import requests
-from io import StringIO
+
+from atb_config import ATBE_COLUMN_MAPPING, load_processing_settings
 
 # directory containing this script (atb/scripts); settings.yaml lives here.
 THISDIR = os.path.dirname(os.path.abspath(__file__))
 # parent atb/ directory; used to build paths to input/, manual_input/, output/.
 ATBDIR = os.path.dirname(THISDIR)
-
-# mapping for column headers in ATBe file vs. ATB flat file
-atbe_col_mapping = {
-    'core_metric_parameter': 'Parameter',
-    'core_metric_case':      'Case',
-    'tax_credit_case':       'TaxCreditCase',
-    'crpyears':              'CRPYears',
-    'technology':            'Technology',
-    'display_name':          'DisplayName',
-    'scenario':              'Scenario',
-    'core_metric_variable':  'variable',
-}
 
 # define zero marginal cost technologies (to assign zero 'vom' if input data is missing)
 zero_vom_techs = {'upv', 'wind-ons', 'wind-ofs', 'battery'}
@@ -65,41 +53,6 @@ def subset_atb_rows(subset_rows, atb_data_in):
             atb_data = atb_data.loc[atb_data[sr] == subset_rows[sr]]
     return atb_data, atb_col_vals
 
-def fetch_atb_from_url(atbyear, settings):
-    """
-    Retrieve ATBe input csv from a user-provided URL.
-
-    Returns
-    -------
-    pd.DataFrame
-        Loaded ATBe file dataframe.
-    """
-    url = settings.get('url', '').strip() if settings else ''
-    if url:
-        print(f"Using url from settings.yaml: {url}")
-    else:
-        print(f"\nEnter the url to the ATB {atbyear} file (ATBe.csv).")
-        print("ATB data is published at: https://data.openei.org/s3_viewer?bucket=oedi-data-lake&prefix=ATB%2Felectricity%2Fcsv%2F&limit=50")
-        url = input("Enter URL: ").strip()
-        if not url:
-            raise ValueError("No URL provided. Cannot fetch an input ATBe file.")
-
-    print(f"Downloading ATB {atbyear} flat file from {url}")
-    resp = requests.get(url, timeout=120)
-    resp.raise_for_status()
-    # persist the raw flat file into scraped_input/ so scraped_input holds the
-    # raw ATB downloads for every technology (not just battery).
-    raw_dir = os.path.join(ATBDIR, 'scraped_input')
-    os.makedirs(raw_dir, exist_ok=True)
-    raw_path = os.path.join(raw_dir, f"atb_{atbyear}_flat_file.csv")
-    with open(raw_path, 'w', encoding='utf-8', newline='') as f:
-        f.write(resp.text)
-    print(f"Saved raw flat file to {raw_path}")
-    df = pd.read_csv(StringIO(resp.text), low_memory=False)
-    print(f"Downloaded {len(df):,} rows.")
-    df = df.rename(columns=atbe_col_mapping)
-    return df
-
 def load_atb_flat_file(settings, args, techs_to_run):
     """
     load ATB flat file with all inputs for specified techs
@@ -113,16 +66,16 @@ def load_atb_flat_file(settings, args, techs_to_run):
     techs_to_run: list[str]
         Ordered list of tech keys (matching keys in settings['techs'])
     """
-    source = settings.get('atb_source', 'file')  # default to 'file' if not specified
-
-    if source == 'url':
-        atb_data_in = fetch_atb_from_url(settings['atbyear'], settings)
-    else:
-        filepath = os.path.join(ATBDIR, 'scraped_input', settings['filename'])
-        if not os.path.isfile(filepath):
-            raise FileNotFoundError(f"Could not find {filepath}. Check 'filename' in settings.yaml.")
-        print(f"Loading {filepath}")
-        atb_data_in = pd.read_csv(filepath, low_memory=False)
+    filepath = settings['flat_file_path']
+    if not os.path.isfile(filepath):
+        raise FileNotFoundError(
+            f"Raw ATB flat file not found: {filepath}\n"
+            "Run 'python scrape_atb_inputs.py' before formatting ReEDS inputs."
+        )
+    print(f"Loading raw ATB flat file: {filepath}")
+    atb_data_in = pd.read_csv(filepath, low_memory=False)
+    # Apply the same mapping for downloaded ATBe files and canonical flat files.
+    atb_data_in = atb_data_in.rename(columns=ATBE_COLUMN_MAPPING)
 
     if args.debug:
         breakpoint()
@@ -499,16 +452,13 @@ def format_continuous_battery(tech, settings, df):
     df: pd.DataFrame
         Input dataframe with columns that will be replaced by the battery cost fields (the function drops ['capcost', 'fom'] before merging)
     """
-    # Battery power/energy capital costs are extracted directly from the raw ATB
-    # Excel workbook (scraped_input/). The workbook is downloaded on demand and
-    # cached there. For ATB years whose workbook is not yet published (e.g. a
-    # pre-release year), fall back to a manually maintained
-    # manual_input/battery_costs_<year>.csv.
+    # Battery power/energy capital costs are extracted from the raw workbook
+    # downloaded by scrape_atb_inputs.py. The formatter itself never downloads
+    # raw data. A manual CSV remains available for pre-release ATB years.
     atbyear = settings['atbyear']
-    from scrape_battery_inputs import download_workbook, extract_battery_costs, WORKBOOK_URLS
-    if atbyear in WORKBOOK_URLS:
-        raw_dir = os.path.join(ATBDIR, 'scraped_input')
-        workbook = download_workbook(atbyear, raw_dir)
+    from scrape_battery_inputs import extract_battery_costs
+    workbook = settings['workbook_path']
+    if os.path.isfile(workbook):
         battery_costs = extract_battery_costs(workbook)
         # round to 2 decimals to match the historical battery_costs_<year>.csv
         yearcols = [c for c in battery_costs.columns if c not in ('cost', 'Scenario')]
@@ -516,8 +466,13 @@ def format_continuous_battery(tech, settings, df):
         battery_costs.columns = [str(c) for c in battery_costs.columns]
     else:
         fallback = os.path.join(ATBDIR, 'manual_input', f"battery_costs_{atbyear}.csv")
-        print(f"No ATB workbook URL configured for {atbyear}; "
-              f"using manual fallback {fallback}")
+        print(f"Raw ATB workbook not found for {atbyear}; using manual fallback {fallback}")
+        if not os.path.isfile(fallback):
+            raise FileNotFoundError(
+                f"Neither raw workbook nor manual battery fallback exists.\n"
+                f"Expected workbook: {workbook}\nExpected fallback: {fallback}\n"
+                "Run 'python scrape_atb_inputs.py --only workbook'."
+            )
         battery_costs = pd.read_csv(fallback)
     # reshape and format
     battery_costs = pd.melt(battery_costs, id_vars=['cost','Scenario'], var_name='t')
@@ -551,7 +506,9 @@ def add_csp_techs(tech, settings, df, techcol='i'):
         Column name identifying the technology label in `df` (default 'i').
     """
     # load cost ratios for csp techs
-    csp_ratios = pd.read_csv(os.path.join(ATBDIR, "manual_input", f"csp_cost_ratios_{settings['atbyear']}.csv"))
+    csp_ratios = pd.read_csv(
+        os.path.join(ATBDIR, "manual_input", f"csp_cost_ratios_{settings['atbyear']}.csv")
+    ).dropna(subset=['type', 'ratio', 'base_tech'])
     print("updating csp tech costs using the following ratios:")
     print(csp_ratios[['type','ratio']])
 
@@ -664,9 +621,11 @@ def process_tech_file(atb_data, tech, settings, filenames, dollaryear, deflator,
     if 'DisplayName' in tech_settings:
         if isinstance(tech_settings['DisplayName'], dict):
             tech_data = tech_data.loc[tech_data['DisplayName'].isin(tech_settings['DisplayName'].keys())]
+            missing_subtechs = (
+                set(tech_settings['DisplayName']) - set(tech_data['DisplayName'].unique())
+            )
             tech_data = tech_data.replace({'DisplayName': tech_settings['DisplayName']})
             # verify all expected subtechs were found in the data
-            missing_subtechs = set(tech_settings['DisplayName'].keys()) - set(tech_data['DisplayName'].unique())
             if missing_subtechs:
                 print(f"Warning: the following DisplayName(s) for {tech} were not found in the ATB subset: {sorted(missing_subtechs)}")
         else:
@@ -977,28 +936,33 @@ def update_financials(settings, atb_data, outfolder):
 ### --- Main ---
 ### ===========================================================================
 def main(args):    
-    # load yaml file with settings
-    yamlfile = os.path.join(THISDIR, 'settings.yaml')
-    with open(yamlfile) as f:
-        settings = yaml.safe_load(f)
-    outfolder = os.path.join(ATBDIR, 'output')
+    settings = load_processing_settings(args.config)
+    processing = settings['config']['processing']
+    outfolder = settings['output_dir']
+    args.skip_costs = args.skip_costs or not processing.get('update_costs', True)
+    args.skip_financials = (
+        args.skip_financials or not processing.get('update_financials', True)
+    )
+    if args.sensitivity_name is None:
+        args.sensitivity_name = processing.get('sensitivity_name')
 
     # if output folder does not exist, create it
-    if not os.path.exists(outfolder):
-        os.mkdir(outfolder)
+    os.makedirs(outfolder, exist_ok=True)
     
     # get list of techs to process
-    if args.techs[0] == 'all':
+    configured_techs = processing.get('technologies', 'all')
+    requested_techs = args.techs if args.techs is not None else configured_techs
+    if requested_techs == 'all' or requested_techs == ['all']:
         techs_to_run = list(settings['techs'].keys())
     else: 
-        techs_to_run = args.techs
+        techs_to_run = requested_techs if isinstance(requested_techs, list) else [requested_techs]
         missing_techs = [t for t in techs_to_run if t not in settings['techs']]
         if missing_techs:
             raise ValueError(f"The following technologies are not in settings['techs']: {missing_techs}")
     
     # check if ReEDS repo is correctly specified
     if not os.path.isdir(settings['reedspath']):
-        raise FileNotFoundError(f"Could not find '{settings['reedspath']}'; check path in settings.yaml.")
+        raise FileNotFoundError(f"Could not find '{settings['reedspath']}'; check config.yaml.")
     
     # load dollaryear file in ReEDS
     dollaryear = pd.read_csv(os.path.join(settings['reedspath'], 'inputs', 'plant_characteristics', 'dollaryear.csv'), 
@@ -1046,8 +1010,9 @@ def main(args):
 if __name__ == "__main__":
     print("Processing ATB files")
     parser = argparse.ArgumentParser(description="Generate ATB files.")
-    parser.add_argument('--techs', '-t', nargs='+', default=['all'],
-                    help='1 or more strings with techs that should be processed.')
+    parser.add_argument('--config', help='path to config.yaml (default: ../config.yaml)')
+    parser.add_argument('--techs', '-t', nargs='+', default=None,
+                    help='one or more techs; defaults to processing.technologies in config.yaml')
     parser.add_argument('--sensitivity_name', '-s', type=str, 
                     help='suffix to append to file name for sensitivities')
     parser.add_argument('--skip_financials', '-f', action="store_true",

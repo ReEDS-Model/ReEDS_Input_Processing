@@ -1,5 +1,5 @@
 """
-Download the raw NREL ATB Excel workbook (used for battery capital costs).
+Download the raw NLR ATB Excel workbook (used for battery capital costs).
 
 The ATB summary flat file (ATBe.csv) only reports total battery CAPEX per
 duration. ReEDS needs the split into power ($/kW) and energy ($/kWh) capital
@@ -23,17 +23,12 @@ import os
 
 import pandas as pd
 import openpyxl
-import requests
+
+from atb_config import load_config, raw_file_path
 
 THISDIR = os.path.dirname(os.path.abspath(__file__))
 # parent atb/ directory; scraper outputs land in atb/scraped_input/.
 ATBDIR = os.path.dirname(THISDIR)
-
-# ATB Excel workbook download URLs (from https://atb.nrel.gov/electricity/<year>/data).
-# Add new years here as they are released.
-WORKBOOK_URLS = {
-    2024: 'https://data.openei.org/files/6006/2024_v3_Workbook.xlsx',
-}
 
 BATTERY_SHEET = 'Utility-Scale Battery Storage'
 # Block header label in the sheet -> output "cost" name expected by ReEDS.
@@ -44,32 +39,21 @@ BLOCKS = {
 SCENARIOS = ['Advanced', 'Moderate', 'Conservative']
 
 
-def download_workbook(year, cache_dir):
-    """Download (and cache) the ATB workbook for the given year."""
-    if year not in WORKBOOK_URLS:
+def download_workbook(year, cache_dir=None):
+    """Compatibility helper that downloads the config-selected workbook."""
+    from scrape_atb_inputs import download_file
+
+    config = load_config()
+    configured_year = config['atb']['year']
+    if year != configured_year:
         raise ValueError(
-            f'No workbook URL configured for ATB {year}. '
-            f'Add it to WORKBOOK_URLS. Known years: {sorted(WORKBOOK_URLS)}')
-    os.makedirs(cache_dir, exist_ok=True)
-    dst = os.path.join(cache_dir, f'atb_{year}_workbook.xlsx')
-    if os.path.exists(dst):
-        return dst
-    url = WORKBOOK_URLS[year]
-    print(f'Downloading ATB {year} workbook from {url}')
-    try:
-        r = requests.get(url, timeout=300)
-        r.raise_for_status()
-    except requests.exceptions.SSLError:
-        # Some corporate networks perform TLS inspection with a self-signed
-        # root cert. Retry without verification for this public download.
-        import urllib3
-        urllib3.disable_warnings()
-        print('  SSL verification failed; retrying with verify=False')
-        r = requests.get(url, timeout=300, verify=False)
-        r.raise_for_status()
-    with open(dst, 'wb') as f:
-        f.write(r.content)
-    return dst
+            f'config.yaml selects ATB {configured_year}, not {year}. '
+            'Update the config before downloading a different release.'
+        )
+    destination = raw_file_path(config, 'workbook')
+    if cache_dir is not None:
+        destination = os.path.join(cache_dir, config['raw_data']['workbook']['filename'])
+    return str(download_file(config['raw_data']['workbook']['url'], destination))
 
 
 def extract_battery_costs(xlsx_path):
@@ -122,10 +106,10 @@ def extract_battery_costs(xlsx_path):
 def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument('--year', type=int, default=2024,
-                   help='ATB year to process (default: 2024).')
-    p.add_argument('--outdir', default=os.path.join(ATBDIR, 'scraped_input'),
-                   help='Directory to save the raw workbook into.')
+    p.add_argument('--year', type=int, default=load_config()['atb']['year'],
+                   help='ATB year; must match config.yaml.')
+    p.add_argument('--outdir', default=None,
+                   help='Optional override for the configured raw-data directory.')
     args = p.parse_args()
 
     xlsx = download_workbook(args.year, args.outdir)

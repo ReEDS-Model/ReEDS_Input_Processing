@@ -1,24 +1,6 @@
-# Settings for processing ATB files
+# Internal formatting rules for converting raw ATB data into ReEDS inputs.
+# Edit ../config.yaml for workflow, year, paths, downloads, and output choices.
 
-## User settings ##
-
-# ATB year to process
-atbyear: 2024
-# specify ATB input source: 'file' or 'url'
-  # 'file', uses a local copy of the filename below located in the input folder;
-  # 'url', fetches the ATBe file published on OEDI
-atb_source: url
-# name of ATB flat file use for processing
-filename: "atb_2025_flat_file_20250916.csv"
-url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2024/v3.0.0/ATBe.csv
-# path to ReEDS-2.0 repo for saving results and reading previous year files
-reedspath: c:/ReEDS/ReEDS
-# if True copies updated ATB files to correct locations in repo specified by reedspath
-copy_to_reeds: False
-# dollar year that ATB results are provided in
-dollaryear: 2022
-# earliest possible start date for ReEDS (used to backfill data)
-reeds_start_year: 2010
 # paired entries mapping ATB parameter names into the names used in ReEDS
 param_names:
   OCC: capcost
@@ -38,8 +20,6 @@ cost_cols:
   - capcost
   - fom
   - vom
-# decimals in output files
-decimals: 6
 # the ATB technology used as the base tech for computing differences in the weighted average cost of capital
 wacc_base_tech: "NaturalGas_FE"
 
