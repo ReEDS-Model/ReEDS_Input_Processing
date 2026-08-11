@@ -6,12 +6,12 @@ Created on Fri Nov 07 14:31:00 2025
 """
 
 import pandas as pd
+import itertools
 import os
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
-import altair as alt
-alt.data_transformers.disable_max_rows()
+import seaborn as sns
 from textwrap import wrap
 
 figure_path = os.path.join('outputs','figures')
@@ -39,338 +39,214 @@ gdbfinalname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
 dfold = pd.read_csv(os.path.join('inputs','inheritance',gdboldname), low_memory=False)
 dfnew = pd.read_csv(os.path.join('outputs',gdbfinalname), low_memory=False)
 
-# Read hierarchy
-hierarchy = reeds.io.get_hierarchy(GSw_ZoneSet='z90'.reset_index())
+# Read county2zone
+county2zone = reeds.io.get_county2zone(GSw_ZoneSet='z90', as_map=False)
+county2zone['FIPS'] = 'p' + county2zone.FIPS
+county2zone = county2zone[['FIPS','r']]
 
-region = 'USA'
+###################### MAIN SWITCHES ######################
+resolution = 'r'               # 'USA' or 'r'
 startyear = 2010
-finalyear = 2050
+finalyear_online = max(dfnew['StartYear'].max(),dfold['StartYear'].max())
+finalyear_retire = 2050
+###########################################################
 
-#################################
-### Planned online comparison ###
-#################################
-online_data_new = dfnew.loc[dfnew['StartYear']>=startyear]
-online_data_old = dfold.loc[dfold['StartYear']>=startyear]
+def main(dfnew, dfold, finalyear_online, finalyear_retire):
 
-# Graph old planned online:
-max_y = 80000
-sch_order = range(startyear, finalyear+1)
-if current_fleet_yr < 2025:
-    status_cat = ['upv', 'dupv', 'pvb', 'csp-ns','wind-ons', 'wind-ofs', 'nuclear', 'battery_li',
-                'biopower', 'lfill-gas', 'gas-cc','gas-ct', 'o-g-s', 'hydED', 'hydEND','hydNPND','geohydro_allkm']
-else:
-    status_cat = ['upv', 'dupv','pvb_pv','csp-ns','pvb_battery','wind-ons', 'wind-ofs', 'nuclear', 'battery_li',
-                'biopower', 'lfill-gas', 'gas-cc','gas-ct', 'o-g-s', 'hydED', 'hydEND', 'hydND', 'hydNPND', 'geohydro_allkm']
-resource_order_idx = {
-    resource: idx 
-    for idx, resource in enumerate(status_cat[::-1]) # Reverse list to align colors with legend order
-}        
+    # Merge data with county2zone
+    dfnew = dfnew.merge(county2zone, on='FIPS', how='left')
+    dfold = dfold.merge(county2zone, on='FIPS', how='left')
 
-online_data_old["idx"] = online_data_old["tech"].map(resource_order_idx)
+    # Establish all zones
+    zones = sorted(dfnew['r'].unique().tolist())
 
-if current_fleet_yr < 2025:
-    chart = alt.Chart(online_data_old).mark_bar(size=30).encode(
-        x=alt.X('StartYear:N', title=None, sort=sch_order),
-        y=alt.Y('sum(cap):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), scale=alt.Scale(domain=[0, max_y]), sort=status_cat),
-        color=alt.Color('tech', 
-                        scale=alt.Scale(range=['gold','goldenrod','khaki','orange','skyblue','aqua','lightpink','darkseagreen',
-                                               'saddlebrown','darkkhaki','grey','lightslategrey','black','aquamarine', 'cadetblue','lightblue','turquoise']),                      
-                        sort=status_cat),
-        order=alt.Order('idx')).configure_axis(titleFontSize=15, labelFontSize=15, grid=False
-                    ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
-        width=500,
-        height=300,
-        title='Planned Online Capacity (MW) - Current NEMS - ' + region
-    )
-else:
-    chart = alt.Chart(online_data_old).mark_bar(size=30).encode(
-        x=alt.X('StartYear:N', title=None, sort=sch_order),
-        y=alt.Y('sum(summer_power_capacity_MW):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), scale=alt.Scale(domain=[0, max_y]), sort=status_cat),
-        color=alt.Color('tech',
-                        scale=alt.Scale(range=['gold','goldenrod','khaki','orange','yellowgreen','skyblue','aqua','lightpink','darkseagreen',
-                                            'saddlebrown','darkkhaki','grey','lightslategrey','black','aquamarine', 'lightsteelblue','lightblue','turquoise']),                       
-                        sort=status_cat),
-        order=alt.Order('idx')).configure_axis(titleFontSize=15, labelFontSize=15, grid=False
-                    ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
-        width=500,
-        height=300,
-        title='Planned Online Capacity (MW) - Current NEMS - ' + region
-    )
+    #################################
+    ### Planned online comparison ###
+    #################################
 
-os.makedirs(figure_path, exist_ok=True)
-chart.save(os.path.join(figure_path,'planned_online_current_NEMS.html'))
+    # Raw online data
+    online_data_new = dfnew.loc[dfnew['StartYear']>=startyear]
+    online_data_new['summer_power_capacity_GW'] = online_data_new['summer_power_capacity_MW']/1000
+    online_data_new = online_data_new[['tech','r','StartYear','summer_power_capacity_GW']]
+    online_data_new = online_data_new.groupby(['tech','r','StartYear'], as_index=False).sum()
 
-# Graph new planned online:
-sch_order = range(startyear, finalyear+1)
-status_cat = ['upv', 'dupv','pvb_pv','csp-ns','pvb_battery','wind-ons', 'wind-ofs', 'nuclear', 'battery_li',
-              'biopower', 'lfill-gas', 'gas-cc','gas-ct', 'o-g-s', 'hydED', 'hydEND', 'hydND', 'hydNPND', 'geohydro_allkm']
+    online_data_old = dfold.loc[dfold['StartYear']>=startyear]
+    online_data_old['summer_power_capacity_GW'] = online_data_old['summer_power_capacity_MW']/1000
+    online_data_old = online_data_old[['tech','r','StartYear','summer_power_capacity_GW']]
+    online_data_old = online_data_old.groupby(['tech','r','StartYear'], as_index=False).sum()
 
-resource_order_idx = {
-    resource: idx 
-    for idx, resource in enumerate(status_cat[::-1]) # Reverse list to align colors with legend order
-}        
+    # Diff online data
+    online_data_diff = online_data_new.copy()
+    online_data_diff = online_data_diff.rename(columns={'summer_power_capacity_GW':'cap_new'})
+    online_data_diff = online_data_diff.merge(online_data_old, 
+                                              on=['tech','StartYear'], 
+                                              how='outer').rename(columns={'r_x':'r'})
+    online_data_diff = online_data_diff.rename(columns={'summer_power_capacity_GW':'cap_old'})
+    online_data_diff['summer_power_capacity_GW'] = online_data_diff['cap_new'] - online_data_diff['cap_old']
 
-online_data_new["idx"] = online_data_new["tech"].map(resource_order_idx)
+    # Plot new NEMS
+    comparison_plotting(online_data_new, zones, finalyear_online, figname='planned_online_new', 
+                        x='StartYear', title='Planned online capacity - new NEMS (GW)')
+    # Plot old NEMS
+    comparison_plotting(online_data_old, zones, finalyear_online, figname='planned_online_current', 
+                            x='StartYear', title='Planned online capacity - current NEMS (GW)')
+    # Plot difference (new NEMS - current NEMS)
+    comparison_plotting(online_data_diff, zones, finalyear_online, figname='planned_online_diff', 
+                        x='StartYear', title='Planned online capacity difference (new NEMS - current NEMS) (GW)')
 
-chart = alt.Chart(online_data_new).mark_bar(size=30).encode(
-    x=alt.X('StartYear:N', title=None, sort=sch_order),
-    y=alt.Y('sum(summer_power_capacity_MW):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), scale=alt.Scale(domain=[0, max_y]), sort=status_cat),
-    color=alt.Color('tech', 
-                    scale=alt.Scale(range=['gold','goldenrod','khaki','orange','yellowgreen','skyblue','aqua','lightpink','darkseagreen',
-                                           'saddlebrown','darkkhaki','grey','lightslategrey','black','aquamarine', 'lightsteelblue','lightblue','turquoise']),
-                    sort=status_cat),
-    order=alt.Order('idx')).configure_axis(titleFontSize=15, labelFontSize=15, grid=False
-                ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
-    width=500,
-    height=300,
-    title='Planned Online Capacity (MW) - Updated NEMS - ' + region
-)
-chart.save(os.path.join('outputs','Figures','planned_online_new_NEMS.html'))
+    #################################
+    ### Planned retire comparison ###
+    #################################
 
-# Graph difference in planned online
-# Read old NEMS data:
-if current_fleet_yr < 2025:
-    online_data_old = online_data_old.rename(columns={'cap':'cap_old'})
-    online_data_old.loc[online_data_old['tech'].str.contains("battery", na=False),'tech'] = 'battery'
-else:
-    online_data_old = online_data_old.rename(columns={'summer_power_capacity_MW':'cap_old'})
+    # Raw retire data
+    retire_data_new = dfnew.copy()
+    retire_data_old = dfold.copy()
+    retire_data_new['summer_power_capacity_GW'] = retire_data_new['summer_power_capacity_MW']/1000
+    retire_data_old['summer_power_capacity_GW'] = retire_data_old['summer_power_capacity_MW']/1000
 
-# Read new NEMS data:
-online_data_new = online_data_new.rename(columns={'summer_power_capacity_MW':'cap_new'})
-if current_fleet_yr < 2025:
-    online_data_new.loc[online_data_new['tech'].str.contains("battery", na=False),'tech'] = 'battery'
-    online_data_new.loc[online_data_new['tech'].str.contains("pvb", na=False),'tech'] = 'pvb'
+    # Diff retire data
+    retire_data_diff = retire_data_new.copy()
+    retire_data_diff = retire_data_diff.rename(columns={'summer_power_capacity_GW':'cap_new'})
+    retire_data_diff = retire_data_diff.merge(online_data_old, 
+                                              on=['tech','RetireYear'], 
+                                              how='outer').rename(columns={'r_x':'r'})
+    retire_data_diff = retire_data_diff.rename(columns={'summer_power_capacity_GW':'cap_old'})
+    retire_data_diff['summer_power_capacity_GW'] = online_data_diff['cap_new'] - online_data_diff['cap_old']
 
-online_data_old_gb = online_data_old.groupby(['tech','StartYear'])['cap_old'].sum().reset_index()
-online_data_new_gb = online_data_new.groupby(['tech','StartYear'])['cap_new'].sum().reset_index()
-online_data_compare = pd.merge(online_data_new_gb,online_data_old_gb,on=['tech','StartYear'],how='outer')
+    # Plot new NEMS
+    comparison_plotting(retire_data_new, zones, finalyear_retire, figname='planned_retire_new',
+                        x='RetireYear', title='Planned retire capacity (GW) - new NEMS')
+    # Plot current NEMS
+    comparison_plotting(retire_data_old, zones, finalyear_retire, figname='planned_retire_current',
+                            x='RetireYear', title='Planned retire capacity (GW) - current NEMS')
+    # Plot difference (new NEMS - current NEMS)
+    comparison_plotting(retire_data_diff, zones, finalyear_retire, figname='planned_retire_diff', 
+                        x='RetireYear', title='Planned retire capacity difference (new NEMS - current NEMS) (GW)')
 
-online_data_compare['cap_new'] = online_data_compare['cap_new'].fillna(0)
-online_data_compare['cap_old'] = online_data_compare['cap_old'].fillna(0)
-online_data_compare['cap_diff'] = online_data_compare['cap_new']-online_data_compare['cap_old']
+def comparison_plotting(df, zones, finalyear, figname, x, title):
+    ncols = 10
+    nrows = 9
 
-sch_order = range(startyear, finalyear+1)
-if current_fleet_yr < 2025:
-    status_cat = ['upv', 'dupv','pvb','csp-ns','wind-ons', 'wind-ofs', 'nuclear', 'battery',
-                  'biopower', 'lfill-gas', 'gas-cc','gas-ct', 'o-g-s', 'hydED', 'hydEND', 'hydND', 'hydNPND', 'geohydro_allkm']
-else:
-    status_cat = ['upv', 'dupv','pvb_pv','csp-ns','pvb_battery','wind-ons', 'wind-ofs', 'nuclear', 'battery_li',
-                'biopower', 'lfill-gas', 'gas-cc','gas-ct', 'o-g-s', 'hydED', 'hydEND', 'hydND', 'hydNPND', 'geohydro_allkm']
+    wspace = 0.15
+    hspace = 0.35
+    figsize = (12,5)
+    markersize_plot = 2
+    handletextpad = 0.1
 
-resource_order_idx = {
-    resource: idx 
-    for idx, resource in enumerate(status_cat[::-1]) # Reverse list to align colors with legend order
-}        
+    techs = ['battery_li','pvb_battery','pumped-hydro','upv','dupv','pvb_pv','csp-ns','wind-ons','wind-ofs',
+            'biopower','lfill-gas','geohydro_allkm','hydEND','hydED','hydNPND','hydND',
+            'gas-cc','gas-ct','o-g-s','coaloldscr','coalolduns','coal-igcc','coal-new','nuclear']
 
-online_data_compare["idx"] = online_data_compare["tech"].map(resource_order_idx)
+    color_techs = {'battery_li':'#FF4A88','pvb_battery':"#A75F8A",'pumped-hydro':"#C630B2",
+                'upv':'#FFC903','dupv':'#FEE603','pvb_pv':"#B88D16",'csp-ns':"#F3660E",
+                'wind-ons':'#00B6EF','wind-ofs':'#106BA7',
+                'biopower':'#5B9844','lfill-gas':"#3B692A",
+                'geohydro_allkm':'#A96235',
+                'hydEND':'#187F94','hydED':"#37A5BB",'hydNPND':"#31D6E2",'hydND':"#5FA6A8",
+                'gas-cc':'#52216B','gas-ct':'#C2A1DB','o-g-s':'#52216B',
+                'coaloldscr':'#222222','coalolduns':"#3E3C3C",'coal-igcc':"#5B5A5A",'coal-new':"#A19E9E",
+                'nuclear':'#820000'}
 
-if current_fleet_yr < 2025:
-    chart = alt.Chart(online_data_compare).mark_bar(size=30).encode(
-        x=alt.X('StartYear:N', title=None, sort=sch_order),
-        y=alt.Y('sum(cap_diff):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), 
-                scale=alt.Scale(domain=[-40000, 60000]), 
-                #scale=alt.Scale(domain=[0, 200]), 
-                sort=status_cat),
-        color=alt.Color('tech', 
-                        scale=alt.Scale(range=['gold','goldenrod','khaki','orange','skyblue','aqua','lightpink','darkseagreen',
-                                               'saddlebrown','darkkhaki','grey','lightslategrey','black','aquamarine', 'lightsteelblue','lightblue','turquoise']),
-                        sort=status_cat),
-        order=alt.Order('idx')).configure_axis(titleFontSize=15, labelFontSize=15, grid=False
-                    ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
-        width=500,
-        height=300,
-        title='Online Capacity Difference (Updated NEMS - Current NEMS) (MW)'
-    )
-else:
-    chart = alt.Chart(online_data_compare).mark_bar(size=30).encode(
-        x=alt.X('StartYear:N', title=None, sort=sch_order),
-        y=alt.Y('sum(cap_diff):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), 
-                scale=alt.Scale(domain=[-40000, 60000]), 
-                #scale=alt.Scale(domain=[0, 200]), 
-                sort=status_cat),
-        color=alt.Color('tech', 
-                        scale=alt.Scale(range=['gold','goldenrod','khaki','orange','yellowgreen','skyblue','aqua','lightpink','darkseagreen',
-                                            'saddlebrown','darkkhaki','grey','lightslategrey','black','aquamarine', 'lightsteelblue','lightblue','turquoise']),
-                        sort=status_cat),
-        order=alt.Order('idx')).configure_axis(titleFontSize=15, labelFontSize=15, grid=False
-                    ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
-        width=500,
-        height=300,
-        title='Online Capacity Difference (Updated NEMS - Current NEMS) (MW)'
-    )
+    regions_nxn = np.array(zones).reshape(nrows, ncols)
+    year_set = sorted(range(startyear,finalyear+1))
 
-chart.save(os.path.join('outputs','Figures','planned_online_diff.html'))
+    ### Plot:
+    fig, axes = plt.subplots(nrows,ncols, figsize=figsize, sharex=True)
+    fig.subplots_adjust(wspace=wspace, hspace=hspace)
+        
+    for i in list(range(nrows)):
+        for j in list(range(ncols)):
+            ax = axes[i,j]
+            region = regions_nxn[i][j]
+            print(region)
+            df_cap_temp = df.copy()
+            df_cap_temp = df_cap_temp[df_cap_temp['r']==region].reset_index().drop(columns=['r','index'])
 
-#################################
-### Planned retire comparison ###
-#################################
-retire_data_new = dfnew.loc[dfnew['RetireYear']<=2035]
-retire_data_new = retire_data_new.loc[retire_data_new['RetireYear']>=2020]
+            # tech and year combination
+            year_tech_combos = list(itertools.product(techs, year_set))
+            df_cap = pd.DataFrame(year_tech_combos, columns=['tech',x])
+            df_cap['summer_power_capacity_GW'] = 0.0
 
-retire_data_old = dfold.loc[dfold['RetireYear']<=2035]
-retire_data_old = retire_data_old.loc[retire_data_old['RetireYear']>=2020]
+            for row in list(range(len(df_cap_temp))):
+                tech = df_cap_temp['tech'][row]
+                year = df_cap_temp[x][row]
+                df_cap.loc[(df_cap['tech']==tech) & 
+                           (df_cap[x]==year),
+                           'summer_power_capacity_GW'] = df_cap_temp['summer_power_capacity_GW'][row]
 
-# Graph new retired year
-sch_order2 = range(startyear, finalyear+1)
-status_cat = ['upv', 'dupv','pvb_pv','csp-ns','pvb_battery','wind-ons', 'nuclear', 'battery_li',
-              'biopower', 'lfill-gas', 'gas-cc','gas-ct', 'o-g-s', 'coal-new','coalolduns','coaloldscr',
-              'hydED', 'hydEND', 'hydND', 'hydNPND', 'pumped-hydro','geohydro_allkm']
+            sns.histplot(data=df_cap, x=x, hue="tech", multiple="stack",
+                         weights='summer_power_capacity_GW',
+                         hue_order=techs,palette=color_techs, binwidth=0.7, shrink=1,
+                         edgecolor=None, legend=False, ax = ax)
 
-resource_order_idx = {
-    resource: idx 
-    for idx, resource in enumerate(status_cat[::-1]) # Reverse list to align colors with legend order
-}   
+            ax.set_title(region,fontsize=6,fontweight='bold',fontname="Arial",pad=-6)
 
-retire_data_new["idx"] = retire_data_new["tech"].map(resource_order_idx)
+            # Only display a few years in x-axis
+            # Define the exact tick marks you want to show
+            display_years = [2010, 2015, 2020, 2025, finalyear]
 
-chart = alt.Chart(retire_data_new).mark_bar(size=30).encode(
-    x=alt.X('RetireYear:N', title=None, sort=sch_order2),
-    y=alt.Y('sum(summer_power_capacity_MW):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), 
-            scale=alt.Scale(domain=[0, 26000])),
-            #scale=alt.Scale(domain=[0,400])),
-    color=alt.Color('tech', 
-                    scale=alt.Scale(range=['gold','goldenrod','orange','yellowgreen','skyblue','lightpink','darkseagreen',
-                                           'saddlebrown','darkkhaki','grey','lightslategrey','black', 'slategray','gainsboro','dimgrey',
-                                           'aquamarine', 'lightsteelblue','lightblue','turquoise']),
-                    sort=status_cat),
-    order=alt.Order('idx')).configure_axis(titleFontSize=15, labelFontSize=15, grid=False
-                ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
-    width=500,
-    height=300,
-    title='Planned Retirement (MW) - Updated NEMS'
-)
-chart.save(os.path.join('outputs','Figures','planned_retired_new_NEMS.html'))
+            # Set both locations and labels simultaneously
+            ax.set_xticks(display_years)
+            # ax.set_xticks(year_set)
+            ax.set_xlabel('')
+            #ax.set_xticklabels([''])
+            #minor_locator = AutoMinorLocator(2)
+            #ax.yaxis.set_minor_locator(minor_locator)
 
-# Graph old retired year
-sch_order2 = range(startyear, finalyear+1)
-if current_fleet_yr < 2025:
-    status_cat = ['upv','dupv','pvb','csp-ns','pvb_battery','wind-ons', 'nuclear', 'battery_li',
-                'biopower', 'lfill-gas', 'gas-cc','gas-ct', 'o-g-s', 'coal-new','coalolduns','coaloldscr',
-                'hydED', 'hydEND', 'hydND', 'hydNPND', 'pumped-hydro','geohydro_allkm']
-else:
-    status_cat = ['upv', 'dupv','pvb_pv','csp-ns','pvb_battery','wind-ons', 'nuclear', 'battery_li',
-              'biopower', 'lfill-gas', 'gas-cc','gas-ct', 'o-g-s', 'coal-new','coalolduns','coaloldscr',
-              'hydED', 'hydEND', 'hydND', 'hydNPND', 'pumped-hydro','geohydro_allkm']
+            ax.grid(color='lightgray', linestyle='dashed', linewidth=0.2, axis='y',zorder=0)
+            ax.set_axisbelow(True)
+            ax.tick_params(axis='both', which='major', width=0.5, length=1.5, pad=1)
+            ax.tick_params(axis='both', which='minor', width=0.3, length=1, pad=1)
+            ax.tick_params(labelsize=3)
+            ax.tick_params(axis='x', labelrotation=90)
+            ax.tick_params(right=False, labelright=False)
+            ax.tick_params(top=False, labeltop=False)
+
+            if [i,j]==[4,0]:
+                ax.set_ylabel(title, fontsize=8,fontweight='bold',
+                              fontname="Arial", labelpad=1)
+            else:
+                ax.set_ylabel('')
+            
+            if [i,j] == [5,9]:
+                ax.plot([], c='#FF4A88', marker='s', markersize=markersize_plot, linestyle='', label='battery_li')
+                ax.plot([], c='#A75F8A', marker='s', markersize=markersize_plot, linestyle='', label='pvb_battery')
+                ax.plot([], c='#C630B2', marker='s', markersize=markersize_plot, linestyle='', label='pumped-hydro')
+                ax.plot([], c='#FFC903', marker='s', markersize=markersize_plot, linestyle='', label='upv')
+                ax.plot([], c='#FEE603', marker='s', markersize=markersize_plot, linestyle='', label='dupv')
+                ax.plot([], c='#B88D16', marker='s', markersize=markersize_plot, linestyle='', label='pvb_pv')
+                ax.plot([], c='#F3660E', marker='s', markersize=markersize_plot, linestyle='', label='csp-ns')
+                ax.plot([], c='#00B6EF', marker='s', markersize=markersize_plot, linestyle='', label='wind-ons')
+                ax.plot([], c='#106BA7', marker='s', markersize=markersize_plot, linestyle='', label='wind-ofs')
+                ax.plot([], c='#5B9844', marker='s', markersize=markersize_plot, linestyle='', label='biopower')
+                ax.plot([], c='#3B692A', marker='s', markersize=markersize_plot, linestyle='', label='lfill-gas')
+                ax.plot([], c='#187F94', marker='s', markersize=markersize_plot, linestyle='', label='hydEND')
+                ax.plot([], c='#37A5BB', marker='s', markersize=markersize_plot, linestyle='', label='hydED')
+                ax.plot([], c='#31D6E2', marker='s', markersize=markersize_plot, linestyle='', label='hydNPND')
+                ax.plot([], c='#5FA6A8', marker='s', markersize=markersize_plot, linestyle='', label='hydND')
+                ax.plot([], c='#52216B', marker='s', markersize=markersize_plot, linestyle='', label='gas-cc')
+                ax.plot([], c='#C2A1DB', marker='s', markersize=markersize_plot, linestyle='', label='gas-ct')
+                ax.plot([], c='#52216B', marker='s', markersize=markersize_plot, linestyle='', label='o-g-s')
+                ax.plot([], c='#222222', marker='s', markersize=markersize_plot, linestyle='', label='coaloldscr')
+                ax.plot([], c='#3E3C3C', marker='s', markersize=markersize_plot, linestyle='', label='coalolduns')
+                ax.plot([], c='#5B5A5A', marker='s', markersize=markersize_plot, linestyle='', label='coal-igcc')
+                ax.plot([], c='#A19E9E', marker='s', markersize=markersize_plot, linestyle='', label='coal-new')
+                ax.plot([], c='#820000', marker='s', markersize=markersize_plot, linestyle='', label='nuclear')
+
+                leg = ax.legend(loc='center left', bbox_to_anchor=(0.9, 0), fontsize = 6, 
+                                    handletextpad=handletextpad, 
+                                    labelspacing=0.1, frameon=False)
+                plt.setp(leg.get_texts(), family='Arial', fontsize=5)
+            
+            # Only keep top and right spines of plot
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.spines['bottom'].set_linewidth(0.7)
+            ax.spines['left'].set_linewidth(0.7)
     
-resource_order_idx = {
-    resource: idx 
-    for idx, resource in enumerate(status_cat[::-1]) # Reverse list to align colors with legend order
-}   
+    # Save data
+    fig.savefig(os.path.join(figure_path,figname+'.png'), dpi=600, bbox_inches='tight')
 
-retire_data_old["idx"] = retire_data_old["tech"].map(resource_order_idx)
-
-if current_fleet_yr < 2025:
-    chart = alt.Chart(retire_data_old).mark_bar(size=30).encode(
-        x=alt.X('RetireYear:N', title=None, sort=sch_order2),
-        y=alt.Y('sum(cap):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), 
-                scale=alt.Scale(domain=[0, 26000])),
-                #scale=alt.Scale(domain=[0, 400])),
-        color=alt.Color('tech', 
-                        scale=alt.Scale(range=['gold','goldenrod','khaki','orange','skyblue','lightpink','darkseagreen',
-                                            'saddlebrown','darkkhaki','grey','lightslategrey','black','darkgrey','gainsboro','dimgrey',
-                                            'aquamarine', 'lightsteelblue', 'paleturquoise','lightblue','turquoise']),
-                        sort=status_cat),
-        order=alt.Order('idx')).configure_axis(titleFontSize=15, labelFontSize=15, grid=False
-                    ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
-        width=500,
-        height=300,
-        title='Planned Retirement (MW) - Current NEMS'
-    )
-else:
-    chart = alt.Chart(retire_data_old).mark_bar(size=30).encode(
-        x=alt.X('RetireYear:N', title=None, sort=sch_order2),
-        y=alt.Y('sum(summer_power_capacity_MW):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), 
-                scale=alt.Scale(domain=[0, 26000])),
-                #scale=alt.Scale(domain=[0, 400])),
-        color=alt.Color('tech', 
-                        scale=alt.Scale(range=['gold','goldenrod','orange','yellowgreen','skyblue','lightpink','darkseagreen',
-                                           'saddlebrown','darkkhaki','grey','lightslategrey','black', 'slategray','gainsboro','dimgrey',
-                                           'aquamarine', 'lightsteelblue','lightblue','turquoise']),
-                        sort=status_cat),
-        order=alt.Order('idx')).configure_axis(titleFontSize=15, labelFontSize=15, grid=False
-                    ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
-        width=500,
-        height=300,
-        title='Planned Retirement (MW) - Current NEMS'
-    )
-chart.save(os.path.join('outputs','Figures','planned_retired_current_NEMS.html'))
-
-# Graph difference in planned retirement
-# Read old NEMS data:
-retire_data_old = retire_data_old.loc[retire_data_old['RetireYear']>=2020]
-retire_data_old = retire_data_old.loc[retire_data_old['RetireYear']<=2035]
-if current_fleet_yr < 2025:
-    retire_data_old.loc[retire_data_old['tech'].str.contains("battery", na=False),'tech'] = 'battery'
-    retire_data_old = retire_data_old.rename(columns={'cap':'cap_old'})
-else:
-    retire_data_old = retire_data_old.rename(columns={'summer_power_capacity_MW':'cap_old'})
-
-# Read new NEMS data:
-retire_data_new = retire_data_new.loc[retire_data_new['RetireYear']>=2020]
-retire_data_new = retire_data_new.loc[retire_data_new['RetireYear']<=2035]
-retire_data_new = retire_data_new.rename(columns={'summer_power_capacity_MW':'cap_new'})
-
-retire_data_old_gb = retire_data_old.groupby(['tech','RetireYear'])['cap_old'].sum().reset_index()
-retire_data_new_gb = retire_data_new.groupby(['tech','RetireYear'])['cap_new'].sum().reset_index()
-retire_data_compare = pd.merge(retire_data_new_gb,retire_data_old_gb,on=['tech','RetireYear'],how='outer')
-
-retire_data_compare['cap_new'] = retire_data_compare['cap_new'].fillna(0)
-retire_data_compare['cap_old'] = retire_data_compare['cap_old'].fillna(0)
-retire_data_compare['cap_diff'] = retire_data_compare['cap_new']-retire_data_compare['cap_old']
-
-sch_order = range(startyear, finalyear+1)
-if current_fleet_yr < 2025:
-    status_cat = ['upv', 'dupv','pvb','csp-ns','wind-ons', 'wind-ofs', 'nuclear', 'battery',
-                'biopower', 'lfill-gas', 'gas-cc','gas-ct', 'o-g-s', 'coal-new','coalolduns','coaloldscr',
-                'hydED', 'hydEND', 'hydND', 'hydNPND', 'pumped-hydro','geohydro_allkm']
-else:
-    status_cat = ['upv', 'dupv','csp-ns','pvb_battery','wind-ons', 'nuclear', 'battery_li',
-                'biopower', 'lfill-gas', 'gas-cc','gas-ct', 'o-g-s', 'coal-new','coalolduns','coaloldscr',
-                'hydED', 'hydEND', 'pumped-hydro','geohydro_allkm']
+main(dfnew, dfold, finalyear_online, finalyear_retire)
 
 
-resource_order_idx = {
-    resource: idx 
-    for idx, resource in enumerate(status_cat[::-1]) # Reverse list to align colors with legend order
-}        
-
-retire_data_compare["idx"] = retire_data_compare["tech"].map(resource_order_idx)
-
-if current_fleet_yr < 2025:
-    chart = alt.Chart(retire_data_compare).mark_bar(size=30).encode(
-        x=alt.X('RetireYear:N', title=None, sort=sch_order),
-        y=alt.Y('sum(cap_diff):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), 
-                #scale=alt.Scale(domain=[-9000, 9000]),
-                scale=alt.Scale(domain=[-18000, 22000]),
-                sort=status_cat),
-        color=alt.Color('tech', 
-                        scale=alt.Scale(range=['gold','goldenrod','khaki','orange','skyblue','lightpink','darkseagreen',
-                                            'saddlebrown','darkkhaki','grey','lightslategrey','black','gainsboro','dimgrey','darkgrey',
-                                            'aquamarine', 'lightsteelblue','lightblue','turquoise']),
-                        sort=status_cat),
-        order=alt.Order('idx')).configure_axis(titleFontSize=15, labelFontSize=15, grid=False
-                    ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
-        width=500,
-        height=300,
-        title='Retire Capacity Difference (Updated NEMS - Current NEMS) (MW)'
-    )
-else:
-    chart = alt.Chart(retire_data_compare).mark_bar(size=30).encode(
-        x=alt.X('RetireYear:N', title=None, sort=sch_order),
-        y=alt.Y('sum(cap_diff):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), 
-                #scale=alt.Scale(domain=[-9000, 9000]),
-                scale=alt.Scale(domain=[-18000, 22000]),
-                sort=status_cat),
-        color=alt.Color('tech', 
-                        scale=alt.Scale(range=['gold','goldenrod','orange','yellowgreen','skyblue','lightpink','darkseagreen',
-                                            'saddlebrown','darkkhaki','grey','lightslategrey','black','gainsboro','dimgrey','darkgrey',
-                                            'aquamarine', 'lightsteelblue','lightblue','turquoise']),                                       
-                        sort=status_cat),
-        order=alt.Order('idx')).configure_axis(titleFontSize=15, labelFontSize=15, grid=False
-                    ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
-        width=500,
-        height=300,
-        title='Retire Capacity Difference (Updated NEMS - Current NEMS) (MW)'
-    )    
-
-chart.save(os.path.join('outputs','Figures','planned_retired_diff.html'))
