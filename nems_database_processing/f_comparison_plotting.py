@@ -178,14 +178,14 @@ def main(dfnew, dfold, finalyear_online, finalyear_retire, techs, color_techs):
     # Plot new, old NEMS at zonal level and their difference
     comparison_plotting_r(retire_data_new, zones, finalyear_retire,  techs, color_techs, 
                           figname='planned_retire_new_r',x='RetireYear', 
-                          title='Planned retire capacity (GW) - new NEMS')
+                          title='Planned retire capacity [GW] - new NEMS')
     comparison_plotting_r(retire_data_old, zones, finalyear_retire,  techs, color_techs, 
                           figname='planned_retire_current_r', x='RetireYear', 
-                          title='Planned retire capacity (GW) - current NEMS')
+                          title='Planned retire capacity [GW] - current NEMS')
     # Difference (new NEMS - current NEMS)
     comparison_plotting_r(retire_data_diff, zones, finalyear_retire,  techs, color_techs, 
                           figname='planned_retire_diff_r', x='RetireYear', 
-                          title='Planned retire capacity difference (new NEMS - current NEMS) (GW)')
+                          title='Planned retire capacity difference (new NEMS - current NEMS) [GW]')
 
 
 def comparison_plotting_r(df, zones, finalyear,  techs, color_techs, figname, x, title):
@@ -407,8 +407,8 @@ def mismatching_FIPS(df_old, df_new, x, type):
     data_new_fips = data_new_fips.groupby(['tech','FIPS',x], as_index=False).sum()
     data_old_fips = data_old_fips.groupby(['tech','FIPS',x], as_index=False).sum()
 
-    data_fips = data_new_fips.merge(data_old_fips, on=['tech','FIPS',x], how='outer')
-    data_fips['cap_diff'] = data_fips['summer_power_capacity_GW_x'] - data_fips['summer_power_capacity_GW_y']
+    data_fips = data_new_fips.merge(data_old_fips, on=['tech','FIPS',x], how='outer').fillna(0)
+    data_fips['cap_diff'] = abs(data_fips['summer_power_capacity_GW_x'] - data_fips['summer_power_capacity_GW_y'])
     for f in data_fips['FIPS'].unique().tolist():
         data_fips_f = data_fips[data_fips['FIPS']==f]
         if data_fips_f['cap_diff'].sum() > 1.0E-15:
