@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Nov 07 14:31:00 2025
-
-@author: apham
-"""
-
 import pandas as pd
 import itertools
 import os
