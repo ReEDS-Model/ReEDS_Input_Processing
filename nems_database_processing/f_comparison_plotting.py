@@ -23,10 +23,10 @@ figure_path = os.path.join('outputs','figures')
 
 # For debugging
 current_fleet_yr=2025
-reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'               # local
-#reeds_path = '//kfs2/projects/stdscen/apham/ReEDS/' 
+reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'                 # local
+#reeds_path = '//kfs2/projects/stdscen/apham/ReEDS/'                        # kestrel
 
-reeds_path = os.path.expanduser(reeds_path)                      # kestrel
+reeds_path = os.path.expanduser(reeds_path)                                 
 sys.path.append(reeds_path)
 import reeds
 
@@ -45,13 +45,27 @@ county2zone['FIPS'] = 'p' + county2zone.FIPS
 county2zone = county2zone[['FIPS','r']]
 
 ###################### MAIN SWITCHES ######################
-resolution = 'r'               # 'USA' or 'r'
 startyear = 2010
 finalyear_online = max(dfnew['StartYear'].max(),dfold['StartYear'].max())
 finalyear_retire = 2050
 ###########################################################
 
-def main(dfnew, dfold, finalyear_online, finalyear_retire):
+# Define techs and tech colors
+techs = ['battery_li','pvb_battery','pumped-hydro','upv','dupv','pvb_pv','csp-ns','wind-ons','wind-ofs',
+         'biopower','lfill-gas','geohydro_allkm','hydEND','hydED','hydNPND','hydND',
+         'gas-cc','gas-ct','o-g-s','coaloldscr','coalolduns','coal-igcc','coal-new','nuclear']
+
+color_techs = {'battery_li':'#FF4A88','pvb_battery':"#A75F8A",'pumped-hydro':"#C630B2",
+                   'upv':'#FFC903','dupv':'#FEE603','pvb_pv':"#B88D16",'csp-ns':"#F3660E",
+                   'wind-ons':'#00B6EF','wind-ofs':'#106BA7',
+                   'biopower':'#5B9844','lfill-gas':"#3B692A",
+                   'geohydro_allkm':'#A96235',
+                   'hydEND':'#187F94','hydED':"#37A5BB",'hydNPND':"#31D6E2",'hydND':"#5FA6A8",
+                   'gas-cc':'#52216B','gas-ct':'#C2A1DB','o-g-s':'#52216B',
+                   'coaloldscr':'#222222','coalolduns':"#3E3C3C",'coal-igcc':"#5B5A5A",'coal-new':"#A19E9E",
+                   'nuclear':'#820000'}
+
+def main(dfnew, dfold, finalyear_online, finalyear_retire, techs, color_techs):
 
     # Merge data with county2zone
     dfnew = dfnew.merge(county2zone, on='FIPS', how='left')
@@ -79,51 +93,93 @@ def main(dfnew, dfold, finalyear_online, finalyear_retire):
     online_data_diff = online_data_new.copy()
     online_data_diff = online_data_diff.rename(columns={'summer_power_capacity_GW':'cap_new'})
     online_data_diff = online_data_diff.merge(online_data_old, 
-                                              on=['tech','StartYear'], 
+                                              on=['tech','r','StartYear'], 
                                               how='outer').rename(columns={'r_x':'r'})
     online_data_diff = online_data_diff.rename(columns={'summer_power_capacity_GW':'cap_old'})
     online_data_diff['summer_power_capacity_GW'] = online_data_diff['cap_new'] - online_data_diff['cap_old']
 
-    # Plot new NEMS
-    comparison_plotting(online_data_new, zones, finalyear_online, figname='planned_online_new', 
-                        x='StartYear', title='Planned online capacity - new NEMS (GW)')
-    # Plot old NEMS
-    comparison_plotting(online_data_old, zones, finalyear_online, figname='planned_online_current', 
-                            x='StartYear', title='Planned online capacity - current NEMS (GW)')
-    # Plot difference (new NEMS - current NEMS)
-    comparison_plotting(online_data_diff, zones, finalyear_online, figname='planned_online_diff', 
-                        x='StartYear', title='Planned online capacity difference (new NEMS - current NEMS) (GW)')
+    # Raw and diff online data at national level
+    online_data_new_nat = online_data_new.groupby(['tech','StartYear'], as_index=False).sum()
+    online_data_old_nat = online_data_old.groupby(['tech','StartYear'], as_index=False).sum()
+    online_data_diff_nat = online_data_diff.groupby(['tech','StartYear'], as_index=False).sum()
+
+    # Plot new, old NEMS at national level and their difference
+    comparison_plotting_nat(online_data_new_nat, finalyear_online, 
+                            figname='planned_oneline_new_conus', x='StartYear', 
+                            title='Planned online capacity - CONUS - new NEMS [GW]')
+    comparison_plotting_nat(online_data_old_nat, finalyear_online, 
+                                figname='planned_oneline_current_conus', x='StartYear', 
+                                title='Planned online capacity - CONUS - current NEMS [GW]')
+    comparison_plotting_nat(online_data_diff_nat, finalyear_online, 
+                                figname='planned_oneline_diff_conus', x='StartYear', 
+                                title='Planned online capacity difference - CONUS [GW]')
+
+    # Plot new, old NEMS at zonal level and their difference
+    comparison_plotting_r(online_data_new, zones, finalyear_online, techs, color_techs, 
+                          figname='planned_online_new_r', x='StartYear',
+                          title='Planned online capacity by zone - new NEMS [GW]')
+    comparison_plotting_r(online_data_old, zones, finalyear_online, techs, color_techs,
+                          figname='planned_online_current_r', x='StartYear', 
+                          title='Planned online capacity by zone - current NEMS [GW]')
+    # Difference (new NEMS - current NEMS)
+    comparison_plotting_r(online_data_diff, zones, finalyear_online, techs, color_techs, 
+                          figname='planned_online_diff_r', x='StartYear', 
+                          title='Planned online capacity difference by zone (new NEMS - current NEMS) [GW]')
 
     #################################
     ### Planned retire comparison ###
     #################################
 
     # Raw retire data
-    retire_data_new = dfnew.copy()
-    retire_data_old = dfold.copy()
+    retire_data_new = dfnew.loc[dfnew['RetireYear']<=finalyear_retire]
     retire_data_new['summer_power_capacity_GW'] = retire_data_new['summer_power_capacity_MW']/1000
+    retire_data_new = retire_data_new[['tech','r','RetireYear','summer_power_capacity_GW']]
+    retire_data_new = retire_data_new.groupby(['tech','r','RetireYear'], as_index=False).sum()
+    
+    retire_data_old = dfold.loc[dfold['RetireYear']<=finalyear_retire]
     retire_data_old['summer_power_capacity_GW'] = retire_data_old['summer_power_capacity_MW']/1000
+    retire_data_old = retire_data_old[['tech','r','RetireYear','summer_power_capacity_GW']]
+    retire_data_old = retire_data_old.groupby(['tech','r','RetireYear'], as_index=False).sum()
 
     # Diff retire data
     retire_data_diff = retire_data_new.copy()
     retire_data_diff = retire_data_diff.rename(columns={'summer_power_capacity_GW':'cap_new'})
-    retire_data_diff = retire_data_diff.merge(online_data_old, 
-                                              on=['tech','RetireYear'], 
+    retire_data_diff = retire_data_diff.merge(retire_data_old, 
+                                              on=['tech','r','RetireYear'], 
                                               how='outer').rename(columns={'r_x':'r'})
     retire_data_diff = retire_data_diff.rename(columns={'summer_power_capacity_GW':'cap_old'})
-    retire_data_diff['summer_power_capacity_GW'] = online_data_diff['cap_new'] - online_data_diff['cap_old']
+    retire_data_diff['summer_power_capacity_GW'] = retire_data_diff['cap_new'] - retire_data_diff['cap_old']
 
-    # Plot new NEMS
-    comparison_plotting(retire_data_new, zones, finalyear_retire, figname='planned_retire_new',
-                        x='RetireYear', title='Planned retire capacity (GW) - new NEMS')
-    # Plot current NEMS
-    comparison_plotting(retire_data_old, zones, finalyear_retire, figname='planned_retire_current',
-                            x='RetireYear', title='Planned retire capacity (GW) - current NEMS')
-    # Plot difference (new NEMS - current NEMS)
-    comparison_plotting(retire_data_diff, zones, finalyear_retire, figname='planned_retire_diff', 
-                        x='RetireYear', title='Planned retire capacity difference (new NEMS - current NEMS) (GW)')
+    # Raw and diff online data at national level
+    retire_data_new_nat = retire_data_new.groupby(['tech','RetireYear'], as_index=False).sum()
+    retire_data_old_nat = retire_data_old.groupby(['tech','RetireYear'], as_index=False).sum()
+    retire_data_diff_nat = retire_data_diff.groupby(['tech','RetireYear'], as_index=False).sum()
 
-def comparison_plotting(df, zones, finalyear, figname, x, title):
+    # Plot new, old NEMS at national level and their difference
+    comparison_plotting_nat(retire_data_new_nat, finalyear_retire, 
+                            figname='planned_retire_new_conus', x='RetireYear', 
+                            title='Planned retire capacity - CONUS - new NEMS [GW]')
+    comparison_plotting_nat(retire_data_old_nat, finalyear_retire, 
+                            figname='planned_retire_current_conus', x='RetireYear', 
+                            title='Planned retire capacity - CONUS - current NEMS [GW]')
+    comparison_plotting_nat(retire_data_diff_nat, finalyear_retire, 
+                            figname='planned_retire_diff_conus', x='RetireYear', 
+                            title='Planned retire capacity difference - CONUS [GW]')
+    
+    # Plot new, old NEMS at zonal level and their difference
+    comparison_plotting_r(retire_data_new, zones, finalyear_retire,  techs, color_techs, 
+                          figname='planned_retire_new_r',x='RetireYear', 
+                          title='Planned retire capacity (GW) - new NEMS')
+    comparison_plotting_r(retire_data_old, zones, finalyear_retire,  techs, color_techs, 
+                          figname='planned_retire_current_r', x='RetireYear', 
+                          title='Planned retire capacity (GW) - current NEMS')
+    # Difference (new NEMS - current NEMS)
+    comparison_plotting_r(retire_data_diff, zones, finalyear_retire,  techs, color_techs, 
+                          figname='planned_retire_diff_r', x='RetireYear', 
+                          title='Planned retire capacity difference (new NEMS - current NEMS) (GW)')
+
+
+def comparison_plotting_r(df, zones, finalyear,  techs, color_techs, figname, x, title):
     ncols = 10
     nrows = 9
 
@@ -132,20 +188,6 @@ def comparison_plotting(df, zones, finalyear, figname, x, title):
     figsize = (12,5)
     markersize_plot = 2
     handletextpad = 0.1
-
-    techs = ['battery_li','pvb_battery','pumped-hydro','upv','dupv','pvb_pv','csp-ns','wind-ons','wind-ofs',
-            'biopower','lfill-gas','geohydro_allkm','hydEND','hydED','hydNPND','hydND',
-            'gas-cc','gas-ct','o-g-s','coaloldscr','coalolduns','coal-igcc','coal-new','nuclear']
-
-    color_techs = {'battery_li':'#FF4A88','pvb_battery':"#A75F8A",'pumped-hydro':"#C630B2",
-                'upv':'#FFC903','dupv':'#FEE603','pvb_pv':"#B88D16",'csp-ns':"#F3660E",
-                'wind-ons':'#00B6EF','wind-ofs':'#106BA7',
-                'biopower':'#5B9844','lfill-gas':"#3B692A",
-                'geohydro_allkm':'#A96235',
-                'hydEND':'#187F94','hydED':"#37A5BB",'hydNPND':"#31D6E2",'hydND':"#5FA6A8",
-                'gas-cc':'#52216B','gas-ct':'#C2A1DB','o-g-s':'#52216B',
-                'coaloldscr':'#222222','coalolduns':"#3E3C3C",'coal-igcc':"#5B5A5A",'coal-new':"#A19E9E",
-                'nuclear':'#820000'}
 
     regions_nxn = np.array(zones).reshape(nrows, ncols)
     year_set = sorted(range(startyear,finalyear+1))
@@ -177,13 +219,13 @@ def comparison_plotting(df, zones, finalyear, figname, x, title):
             sns.histplot(data=df_cap, x=x, hue="tech", multiple="stack",
                          weights='summer_power_capacity_GW',
                          hue_order=techs,palette=color_techs, binwidth=0.7, shrink=1,
-                         edgecolor=None, legend=False, ax = ax)
+                         edgecolor=None, legend=False, discrete=True, ax = ax)
 
-            ax.set_title(region,fontsize=6,fontweight='bold',fontname="Arial",pad=-6)
+            ax.set_title(region,fontsize=5,fontweight='bold',fontname="Arial",pad=-6)
 
             # Only display a few years in x-axis
             # Define the exact tick marks you want to show
-            display_years = [2010, 2015, 2020, 2025, finalyear]
+            display_years = [2010, 2015, 2020, 2025, 2035, finalyear]
 
             # Set both locations and labels simultaneously
             ax.set_xticks(display_years)
@@ -198,6 +240,7 @@ def comparison_plotting(df, zones, finalyear, figname, x, title):
             ax.tick_params(axis='both', which='major', width=0.5, length=1.5, pad=1)
             ax.tick_params(axis='both', which='minor', width=0.3, length=1, pad=1)
             ax.tick_params(labelsize=3)
+            ax.yaxis.get_offset_text().set_fontsize(3)
             ax.tick_params(axis='x', labelrotation=90)
             ax.tick_params(right=False, labelright=False)
             ax.tick_params(top=False, labeltop=False)
@@ -233,7 +276,7 @@ def comparison_plotting(df, zones, finalyear, figname, x, title):
                 ax.plot([], c='#A19E9E', marker='s', markersize=markersize_plot, linestyle='', label='coal-new')
                 ax.plot([], c='#820000', marker='s', markersize=markersize_plot, linestyle='', label='nuclear')
 
-                leg = ax.legend(loc='center left', bbox_to_anchor=(0.9, 0), fontsize = 6, 
+                leg = ax.legend(loc='center left', bbox_to_anchor=(0.9, 0.5), fontsize = 6, 
                                     handletextpad=handletextpad, 
                                     labelspacing=0.1, frameon=False)
                 plt.setp(leg.get_texts(), family='Arial', fontsize=5)
@@ -247,6 +290,105 @@ def comparison_plotting(df, zones, finalyear, figname, x, title):
     # Save data
     fig.savefig(os.path.join(figure_path,figname+'.png'), dpi=600, bbox_inches='tight')
 
-main(dfnew, dfold, finalyear_online, finalyear_retire)
+def comparison_plotting_nat(df, finalyear, figname, x, title):
+
+    figsize = (5,3)
+    markersize_plot = 2
+    handletextpad = 0.1
+
+    year_set = sorted(range(startyear,finalyear+1))
+
+    ### Plot:
+    fig, ax = plt.subplots(figsize=figsize)
+        
+    print('Plotting national capacity')
+    df_cap_temp = df.copy()
+
+    # tech and year combination
+    year_tech_combos = list(itertools.product(techs, year_set))
+    df_cap = pd.DataFrame(year_tech_combos, columns=['tech',x])
+    df_cap['summer_power_capacity_GW'] = 0.0
+
+    for row in list(range(len(df_cap_temp))):
+        tech = df_cap_temp['tech'][row]
+        year = df_cap_temp[x][row]
+        df_cap.loc[(df_cap['tech']==tech) & 
+                    (df_cap[x]==year),
+                    'summer_power_capacity_GW'] = df_cap_temp['summer_power_capacity_GW'][row]
+
+    sns.histplot(data=df_cap, x=x, hue="tech", multiple="stack",
+                 weights='summer_power_capacity_GW',
+                 hue_order=techs,palette=color_techs, binwidth=0.85, shrink=0.9,
+                 edgecolor=None, legend=False, discrete=True, ax = ax)
+
+    ax.set_title('CONUS',fontsize=8,fontweight='bold',fontname="Arial",pad=-6)
+
+    # Only display a few years in x-axis
+    # Define the exact tick marks you want to show
+    display_years = sorted(range(startyear,finalyear+1))
+
+    # Set both locations and labels simultaneously
+    ax.set_xticks(display_years)
+    # ax.set_xticks(year_set)
+    ax.set_xlabel('')
+    #ax.set_xticklabels([''])
+    #minor_locator = AutoMinorLocator(2)
+    #ax.yaxis.set_minor_locator(minor_locator)
+
+    ax.grid(color='lightgray', linestyle='dashed', linewidth=0.3, axis='y',zorder=0)
+    ax.set_axisbelow(True)
+    ax.tick_params(axis='both', which='major', width=0.5, length=1.5, pad=1)
+    ax.tick_params(axis='both', which='minor', width=0.3, length=1, pad=1)
+    if 'retire' in title:
+        labelsize = 7
+    else:
+        labelsize = 9
+    ax.tick_params(labelsize=labelsize)
+    ax.yaxis.get_offset_text().set_fontsize(labelsize)
+    ax.tick_params(axis='x', labelrotation=90)
+    ax.tick_params(right=False, labelright=False)
+    ax.tick_params(top=False, labeltop=False)
+
+    ax.set_ylabel(title, fontsize=7,fontweight='bold',fontname="Arial", labelpad=1)
+    
+    ax.plot([], c='#FF4A88', marker='s', markersize=markersize_plot, linestyle='', label='battery_li')
+    ax.plot([], c='#A75F8A', marker='s', markersize=markersize_plot, linestyle='', label='pvb_battery')
+    ax.plot([], c='#C630B2', marker='s', markersize=markersize_plot, linestyle='', label='pumped-hydro')
+    ax.plot([], c='#FFC903', marker='s', markersize=markersize_plot, linestyle='', label='upv')
+    ax.plot([], c='#FEE603', marker='s', markersize=markersize_plot, linestyle='', label='dupv')
+    ax.plot([], c='#B88D16', marker='s', markersize=markersize_plot, linestyle='', label='pvb_pv')
+    ax.plot([], c='#F3660E', marker='s', markersize=markersize_plot, linestyle='', label='csp-ns')
+    ax.plot([], c='#00B6EF', marker='s', markersize=markersize_plot, linestyle='', label='wind-ons')
+    ax.plot([], c='#106BA7', marker='s', markersize=markersize_plot, linestyle='', label='wind-ofs')
+    ax.plot([], c='#5B9844', marker='s', markersize=markersize_plot, linestyle='', label='biopower')
+    ax.plot([], c='#3B692A', marker='s', markersize=markersize_plot, linestyle='', label='lfill-gas')
+    ax.plot([], c='#187F94', marker='s', markersize=markersize_plot, linestyle='', label='hydEND')
+    ax.plot([], c='#37A5BB', marker='s', markersize=markersize_plot, linestyle='', label='hydED')
+    ax.plot([], c='#31D6E2', marker='s', markersize=markersize_plot, linestyle='', label='hydNPND')
+    ax.plot([], c='#5FA6A8', marker='s', markersize=markersize_plot, linestyle='', label='hydND')
+    ax.plot([], c='#52216B', marker='s', markersize=markersize_plot, linestyle='', label='gas-cc')
+    ax.plot([], c='#C2A1DB', marker='s', markersize=markersize_plot, linestyle='', label='gas-ct')
+    ax.plot([], c='#52216B', marker='s', markersize=markersize_plot, linestyle='', label='o-g-s')
+    ax.plot([], c='#222222', marker='s', markersize=markersize_plot, linestyle='', label='coaloldscr')
+    ax.plot([], c='#3E3C3C', marker='s', markersize=markersize_plot, linestyle='', label='coalolduns')
+    ax.plot([], c='#5B5A5A', marker='s', markersize=markersize_plot, linestyle='', label='coal-igcc')
+    ax.plot([], c='#A19E9E', marker='s', markersize=markersize_plot, linestyle='', label='coal-new')
+    ax.plot([], c='#820000', marker='s', markersize=markersize_plot, linestyle='', label='nuclear')
+
+    leg = ax.legend(loc='center left', bbox_to_anchor=(0.97, 0.5), 
+                    fontsize=6, handletextpad=handletextpad, 
+                    labelspacing=0.1, frameon=False)
+    plt.setp(leg.get_texts(), family='Arial', fontsize=6)
+    
+    # Only keep top and right spines of plot
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_linewidth(0.7)
+    ax.spines['left'].set_linewidth(0.7)
+    
+    # Save data
+    fig.savefig(os.path.join(figure_path,figname+'.png'), dpi=600, bbox_inches='tight')
+
+main(dfnew, dfold, finalyear_online, finalyear_retire, techs, color_techs)
 
 
