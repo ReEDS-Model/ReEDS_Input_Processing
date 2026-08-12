@@ -38,7 +38,7 @@ Located in `outputs` folder. This is the final file that will be used to run ReE
 * `ReEDS_generator_database_final_EIA-NEMS.csv`
 
 # Debug
-A debug folder, which stores the FIPS that have mismatched online/retire capacity between two NEMS versions, is created for easy debugging. If the two NEMS versions have no changes at all at FIPS-level, this folder is not created or is empty.
+A `debug` folder, which stores the FIPS that have mismatched online/retire capacity between two NEMS versions, is created for easy debugging. If the two NEMS versions have no changes at all at FIPS-level, this folder is not created or is empty.
 
 # Note:
 Sometimes when running `c_geospatial_mapping.py`, geopandas operation results in invalid geometry - point (inf, inf) or polygon (inf, inf). If this occurs, run `conda install -c conda-forge proj-data` to pre-download projection data in the current environment before rerunning the script.
