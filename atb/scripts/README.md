@@ -11,7 +11,7 @@ User-facing run instructions are in the main [`../README.md`](../README.md).
 | `atb_plotting.py` | Plots configured metrics from the local raw flat file |
 | `atb_config.py` | Shared config and path-loading functions |
 | `settings.yaml` | Internal per-technology mappings and transformations |
-| `scrape_battery_inputs.py` | Workbook battery-cost extraction helper used by the formatter |
+| `battery_workbook.py` | Extracts battery cost components from the downloaded workbook; imported by the formatter |
 
 Normal workflow choices belong in `../config.yaml`; `settings.yaml` is only for
 technology-specific formatting rules.

@@ -96,14 +96,15 @@ techs:
       t: 2035
       Scenario: Moderate
     financialname: ONSWIND
+    decimals: 5
     functions:
       - normalize_cf
 
   wind-ofs:
     Technology: OffShoreWind
     DisplayName:
-      Offshore Wind - Class 4: fixed
-      Offshore Wind - Class 11: floating
+      Offshore Wind - Class 1: fixed
+      Offshore Wind - Class 8: floating
     reeds_name: ofs-wind
     subset_rows:
       Case: Market
@@ -140,7 +141,9 @@ techs:
       keepcols:
         - turbine
     financialname: OFSWIND
+    decimals: 5
     functions:
+      - apply_offshore_cost_multipliers
       - normalize_cf
 
   battery:
@@ -169,14 +172,13 @@ techs:
       - vom
       - rte
     financialname: BATTERY
-    functions:
-      - backfill_data
 
   csp:
     Technology: CSP
     DisplayName:
       # mapping to csp2 since that corresponds to ATB storage + solar multiple assumption
-      # 'add_csp_techs' function below expands to add other csp techs (see also 'csp_cost_ratios.csv')
+      # 'add_csp_techs' expands this base series to the other CSP configurations
+      # using the year-specific ratios in manual_input/csp_cost_ratios_<year>.csv.
       CSP - Class 2: csp2
     subset_rows:
       Case: Market
@@ -197,7 +199,6 @@ techs:
     financialname: CSP
     functions:
       - add_csp_techs
-      - backfill_data
 
   coal:
     Technology: Coal_FE
@@ -223,8 +224,7 @@ techs:
       - vom
       - heatrate
     functions:
-      - add_coal_techs
-      - backfill_data
+      - apply_coal_projection_overrides
 
   coal-ccs:
     Technology: Coal_FE
@@ -248,7 +248,7 @@ techs:
       - vom
       - heatrate
     functions:
-      - backfill_data
+      - apply_coal_projection_overrides
 
   gas:
     Technology: NaturalGas_FE
@@ -275,8 +275,6 @@ techs:
       - fom
       - vom
       - heatrate
-    functions:
-      - backfill_data
 
   gas-ccs:
     Technology: NaturalGas_FE
@@ -301,13 +299,11 @@ techs:
       - fom
       - vom
       - heatrate
-    functions:
-      - backfill_data
 
   fuelcell:
     Technology: NaturalGas_FE
     DisplayName:
-      NG Fuel Cell: NG-Fuel-Cell
+      NG Fuel Cell: ng-fuel-cell
     subset_rows:
       Case: Market
       CRPYears: 30
@@ -325,8 +321,6 @@ techs:
       - fom
       - vom
       - heatrate
-    functions:
-      - backfill_data
   
   nuclear:
     Technology: Nuclear
@@ -349,8 +343,6 @@ techs:
       - fom
       - vom
       - heatrate
-    functions:
-      - backfill_data
 
   nuclear-smr:
     Technology: Nuclear
@@ -373,8 +365,6 @@ techs:
       - fom
       - vom
       - heatrate
-    functions:
-      - backfill_data
       
   biopower:
     Technology: Biopower
@@ -397,8 +387,6 @@ techs:
       - fom
       - vom
       - heatrate
-    functions:
-      - backfill_data
 
   # NOTE: beccs is not available in ATB 2024 (only 'Biopower - Dedicated' exists,
   # and there is no 'R&D + TC' case). Disabled for 2024 runs; re-enable for ATB 2025.

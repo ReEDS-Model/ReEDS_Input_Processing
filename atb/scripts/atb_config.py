@@ -54,6 +54,7 @@ def load_processing_settings(config_path=None):
         settings = yaml.safe_load(stream)
 
     processing = config["processing"]
+    history = config["historical_data"]
     settings.update(
         {
             "atbyear": config["atb"]["year"],
@@ -65,6 +66,11 @@ def load_processing_settings(config_path=None):
             "output_dir": str(resolve_atb_path(processing["output_directory"])),
             "flat_file_path": str(raw_file_path(config, "flat_file")),
             "workbook_path": str(raw_file_path(config, "workbook")),
+            "history_dir": str(resolve_atb_path(history["directory"])),
+            "history_dollar_year": int(history["dollar_year"]),
+            "seed_missing_history": bool(
+                history.get("seed_missing_from_reeds", False)
+            ),
             "config": config,
         }
     )

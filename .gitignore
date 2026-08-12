@@ -8,11 +8,12 @@ ATB/inputs/
 atb/output/
 atb/inputs/
 atb/figures/
+atb/comparison/
 atb/_dev/
-# ATB manual inputs; keep local, never commit
+# Unpublished ATB 2025 manual inputs; keep local, never commit
 atb/manual_input/battery_costs_2025.csv
-atb/manual_input/csp_cost_ratios_2024.csv
 atb/manual_input/csp_cost_ratios_2025.csv
+# Legacy CF source; final historical CF multipliers now live in historical/.
 atb/manual_input/historic_capacity_factors.csv
 /NEMS_database_processing/Outputs/
 /AEO_Updates/outputs/

@@ -9,6 +9,7 @@ workflow:
 
 atb:
   year: 2024
+  release_version: 3
   dollar_year: 2022
 
 raw_data:
@@ -35,6 +36,15 @@ processing:
   sensitivity_name: null
   reeds_start_year: 2010
   decimals: 6
+
+# Versioned ReEDS history used before each ATB projection series begins.
+# Set seed_missing_from_reeds to true only when initializing a missing file from
+# processing.reeds_repo. Each run appends the first available projection year,
+# so a later ATB release can move that year into history without a gap.
+historical_data:
+  directory: manual_input/historical
+  dollar_year: 2022
+  seed_missing_from_reeds: false
 
 plotting:
   metrics:

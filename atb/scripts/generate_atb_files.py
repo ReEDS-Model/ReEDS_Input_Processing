@@ -196,117 +196,204 @@ def check_columns(df, col_list, setting, tech):
             f"Please update your 'settings.yaml' for {tech}."
             )
 
-def load_historic_atb_files(tech_data, tech, settings, dollaryear, deflator):
-    """
-    function to load previous ATB and historic capacity factors
+def _history_file_path(tech, scenario, settings):
+    """Return the stable, year-independent history path for one scenario."""
+    return os.path.join(
+        settings['history_dir'],
+        f"{tech}_ATB_historical_{str(scenario).lower()}.csv",
+    )
 
-    Parameters
-    ----------
-    tech_data: pd.DataFrame
-        ATB dataframe for the techs (after subset and pivoting); must contain 'Scenario' column and index columns from settings.yaml
-    tech: str
-        Technology key name in settings['techs']
-    settings: dict
-        Parsed settings.yaml values (paths, indexcols, cost_cols, atbyear, reeds_start_year, etc.)
-    dollaryear: pd.Series
-        Mapping of scenario -> dollar year from dollaryear.csv
-    deflator: pd.Series
-        Mapping of dollar year -> deflator multiplier from deflator.csv
-    """
-    # load previous year ATB files from ReEDS
-    tech_data_historic = []
-    prevyear = settings['atbyear']-1
-    tech_settings = settings['techs'][tech]
 
-    # determine id columns (index cols excluding Scenario and year)
-    idcols = [c for c in tech_settings['indexcols'] if c not in ['Scenario', 't']]
-    # iterate over scenarios to load for historic data
-    for scenario in tech_data['Scenario'].unique():
-        prev_file, filepath = get_atb_file_path(tech, prevyear, scenario, settings)
-        # try tech-specific historic filename override before falling back to moderate
-        if not os.path.isfile(filepath):
-            hist_name = tech_settings.get('filename_historical')
-            if hist_name:
-                hist_path = os.path.join(settings['reedspath'], 'inputs', 'plant_characteristics', hist_name)
-                if os.path.isfile(hist_path):
-                    print(f"...using historic override file {hist_name} for {tech} / {scenario}")
-                    prev_file = os.path.splitext(hist_name)[0]
-                    filepath = hist_path
-                else:
-                    print(f"...historic override {hist_name} not found; continuing to fallback logic.")
-            # check that file exists
-            if not os.path.isfile(filepath):
-                # use moderate as a fallback (if there's no moderate file throw an error)
-                prev_file, filepath = get_atb_file_path(tech, prevyear, 'moderate', settings)
-                if not os.path.isfile(filepath):
-                    # if backfilling data defer adjustments until that step
-                    if 'backfill_data' in tech_settings.get('functions', []):
-                        return tech_data
-                    else:
-                        raise FileNotFoundError(f"Could not find {filepath}.\n"
-                        "If previous ATB files are not available, you can add 'backfill_data' as a "
-                        "function to this tech in the settings.yml file and rerun to fill in earlier data."
-                        )
-        dfin = pd.read_csv(filepath)
-        dfin['Scenario'] = scenario
+def _cost_columns(df):
+    """Return every monetary output column, including battery energy costs."""
+    return [
+        col for col in df.columns
+        if col == 'vom' or col.startswith('capcost') or col.startswith('fom')
+    ]
 
-        # ensure historic file columns match the internal names expected by settings
-        # apply per-tech rename mapping if present so we can use settings['cost_cols'] reliably
-        if 'renamecols' in tech_settings:
-            dfin = dfin.rename(columns=tech_settings['renamecols'])
 
-        # quick guard: if cost_cols still missing, show helpful message and raise
-        missing_cost_cols = [c for c in settings['cost_cols'] if c not in dfin.columns]
-        if missing_cost_cols:
-            raise KeyError(
-                f"Historic file {filepath} is missing expected cost columns: {missing_cost_cols}. "
-                f"Available columns: {list(dfin.columns)}. "
-                "Add a 'renamecols' mapping for this tech in settings.yaml or update settings['cost_cols']."
+def _select_pre_projection_history(history, current, idcols):
+    """Keep history before each current series starts and all retired series."""
+    if not idcols:
+        return history.loc[history['t'] < current['t'].min()].copy()
+
+    starts = (
+        current.groupby(idcols, dropna=False, as_index=False)['t']
+        .min()
+        .rename(columns={'t': '_projection_start'})
+    )
+    selected = history.merge(starts, on=idcols, how='left')
+    selected = selected.loc[
+        selected['_projection_start'].isna()
+        | (selected['t'] < selected['_projection_start'])
+    ]
+    return selected.drop(columns='_projection_start')
+
+
+def _projection_boundary_rows(current, idcols):
+    """Select the first current-ATB year for every active technology series."""
+    if not idcols:
+        return current.loc[current['t'] == current['t'].min()].copy()
+    starts = current.groupby(idcols, dropna=False)['t'].transform('min')
+    return current.loc[current['t'] == starts].copy()
+
+
+def _validate_year_continuity(frame, tech, settings):
+    """Fail if any output series has a missing year or starts after ReEDS."""
+    groupcols = [
+        col for col in settings['techs'][tech]['indexcols'] if col != 't'
+    ]
+    failures = []
+    grouper = groupcols[0] if len(groupcols) == 1 else groupcols
+    for group_values, group in frame.groupby(grouper, dropna=False, sort=False):
+        years = sorted(pd.to_numeric(group['t'], errors='raise').astype(int).unique())
+        expected = set(range(settings['reeds_start_year'], max(years) + 1))
+        missing = sorted(expected - set(years))
+        if years[0] != settings['reeds_start_year'] or missing:
+            values = group_values if isinstance(group_values, tuple) else (group_values,)
+            label = dict(zip(groupcols, values))
+            failures.append(
+                f"{label}: starts {years[0]}, missing {missing[:10]}"
             )
-        # restrict historic rows to only sub-tech identifiers present in current tech_data
-        for idcol in idcols:
-            if idcol in dfin.columns and idcol in tech_data.columns:
-                allowed = pd.Series(tech_data[idcol].unique())
-                dfin = dfin[dfin[idcol].isin(allowed)]
-        # skip empty historic chunk (don't append empty frames)
-        if dfin.empty:
-            continue
+    if failures:
+        raise ValueError(
+            f"Historical continuity check failed for {tech}: "
+            + "; ".join(failures[:10])
+        )
 
-        # convert any cost columns to current dollar year (deflate to 2004, then inflate to present year)
-        try:
-            inflator = deflator[dollaryear[prev_file]] / deflator[settings['dollaryear']] 
-        except KeyError:
-            print(f"ERROR: {prev_file} not found in the dollaryear.csv file.")
-            sys.exit(1)
 
-        dfin[settings['cost_cols']] = dfin[settings['cost_cols']] * inflator
-        tech_data_historic.append(dfin)
-    if tech_data_historic:
-        tech_data_historic = pd.concat(tech_data_historic).reset_index(drop=True)
-    else:
-        tech_data_historic = pd.DataFrame(columns=tech_data.columns)
-
-    # for techs with cf_improvement we need to reset using the historical cf values before normalizing
+def _normalize_reeds_history(frame, tech, settings):
+    """Normalize a ReEDS file to the current technology's output schema."""
     tech_settings = settings['techs'][tech]
-    if 'cf_improvement' in tech_data_historic:
-        historic_cf = pd.read_csv(os.path.join(ATBDIR, "manual_input", "historic_capacity_factors.csv"))
-        # merge on all indexcols except scenario and rsc_mult
-        mergecols = [col for col in tech_settings['indexcols'] if col not in ['Scenario', 'rsc_mult']]
-        historic_cf = historic_cf.loc[historic_cf.tech == tech, mergecols + ['cf']]
-        tech_data_historic = tech_data_historic.merge(historic_cf, on=mergecols, how="left")
-        tech_data_historic = tech_data_historic.assign(cf_improvement=tech_data_historic['cf']).drop('cf', axis=1)
-        # fill historic cf values forward
-        fillcols = [col for col in tech_settings['indexcols'] if col not in ['t', 'rsc_mult']]
-        tech_data_historic['cf_improvement'] = tech_data_historic.groupby(fillcols)['cf_improvement'].ffill()
-    
-    # combine and drop duplicate any rows that overlap with new ATB values
-    tech_data['atbyear'] = int(settings['atbyear'])
-    tech_data_historic['atbyear'] = int(prevyear)
-    tech_data = pd.concat([tech_data_historic, tech_data])
-    tech_data = tech_data.drop_duplicates(subset=tech_settings['indexcols'], keep="last")
-    tech_data = tech_data.reset_index(drop=True)
+    frame = frame.rename(columns=tech_settings.get('renamecols', {})).copy()
+    required = tech_settings['cols']
+    missing = [col for col in required if col not in frame.columns]
+    if missing:
+        raise KeyError(
+            f"Historical ReEDS file for {tech} is missing columns {missing}. "
+            f"Available columns: {list(frame.columns)}"
+        )
+    frame = frame[required]
+    frame['t'] = pd.to_numeric(frame['t'], errors='raise').astype(int)
+    return frame
 
-    return tech_data
+
+def _seed_history_from_reeds(
+    tech, scenario, current, history_path, settings, dollaryear, deflator
+):
+    """Create a local historical baseline from the current ReEDS ATB file."""
+    reeds_key, reeds_path = get_atb_file_path(
+        tech, settings['atbyear'], scenario, settings
+    )
+    if not os.path.isfile(reeds_path):
+        moderate_key, moderate_path = get_atb_file_path(
+            tech, settings['atbyear'], 'moderate', settings
+        )
+        if os.path.isfile(moderate_path):
+            print(
+                f"...no {str(scenario).lower()} ReEDS history for {tech}; "
+                "using moderate history"
+            )
+            reeds_key, reeds_path = moderate_key, moderate_path
+        else:
+            raise FileNotFoundError(
+                f"Historical baseline is missing: {history_path}\n"
+                f"Could not seed it because neither the matching nor moderate "
+                f"ReEDS file exists: {reeds_path}"
+            )
+
+    history = _normalize_reeds_history(pd.read_csv(reeds_path), tech, settings)
+    idcols = [
+        col for col in settings['techs'][tech]['indexcols']
+        if col not in ['Scenario', 't']
+    ]
+    history = _select_pre_projection_history(history, current, idcols)
+
+    source_dollar_year = int(dollaryear[reeds_key])
+    history_dollar_year = settings['history_dollar_year']
+    adjustment = (
+        deflator[source_dollar_year] / deflator[history_dollar_year]
+    )
+    costcols = _cost_columns(history)
+    history[costcols] = history[costcols] * adjustment
+    history = history.sort_values(settings['techs'][tech]['cols']).reset_index(drop=True)
+    os.makedirs(settings['history_dir'], exist_ok=True)
+    history.to_csv(history_path, index=False)
+    print(
+        f"...seeded {os.path.basename(history_path)} from "
+        f"{os.path.basename(reeds_path)}"
+    )
+    return history
+
+
+def merge_historical_atb_data(
+    tech_data, tech, settings, dollaryear, deflator
+):
+    """Combine versioned local history with current scraped ATB projections.
+
+    The local history is stored in a fixed dollar year. For each active series,
+    only rows before the first current scraped year are used. Series no longer
+    published by ATB are retained from history. The first current projection
+    year is appended to the stored history for the next annual update.
+    """
+    tech_settings = settings['techs'][tech]
+    idcols = [
+        col for col in tech_settings['indexcols']
+        if col not in ['Scenario', 't']
+    ]
+    combined = []
+    current_dollar_year = settings['dollaryear']
+    history_dollar_year = settings['history_dollar_year']
+
+    for scenario in tech_data['Scenario'].unique():
+        current = tech_data.loc[tech_data['Scenario'] == scenario].copy()
+        history_path = _history_file_path(tech, scenario, settings)
+        if os.path.isfile(history_path):
+            history_stored = _normalize_reeds_history(
+                pd.read_csv(history_path), tech, settings
+            )
+        elif settings['seed_missing_history']:
+            history_stored = _seed_history_from_reeds(
+                tech, scenario, current, history_path, settings, dollaryear, deflator
+            )
+        else:
+            raise FileNotFoundError(
+                f"Historical baseline is missing: {history_path}. "
+                "Enable historical_data.seed_missing_from_reeds or add the file."
+            )
+
+        history_for_output = _select_pre_projection_history(
+            history_stored, current, idcols
+        )
+        costcols = _cost_columns(history_for_output)
+        adjustment = (
+            deflator[history_dollar_year] / deflator[current_dollar_year]
+        )
+        history_for_output[costcols] = history_for_output[costcols] * adjustment
+        history_for_output['Scenario'] = scenario
+        combined.extend([history_for_output, current])
+
+        boundary = _projection_boundary_rows(current, idcols)[tech_settings['cols']]
+        boundary = boundary.copy().round(
+            tech_settings.get('decimals', settings['decimals'])
+        )
+        boundary_costcols = _cost_columns(boundary)
+        boundary[boundary_costcols] = boundary[boundary_costcols] / adjustment
+        updated_history = pd.concat(
+            [history_stored, boundary], ignore_index=True
+        ).drop_duplicates(subset=[*idcols, 't'], keep='last')
+        updated_history = updated_history.sort_values(
+            tech_settings['cols']
+        ).reset_index(drop=True)
+        updated_history.to_csv(history_path, index=False)
+
+    output = pd.concat(combined, ignore_index=True)
+    output = output.drop_duplicates(
+        subset=tech_settings['indexcols'], keep='last'
+    )
+    output = output.reset_index(drop=True)
+    _validate_year_continuity(output, tech, settings)
+    return output
 
 def normalize_cf(tech, settings, df):
     """
@@ -346,6 +433,43 @@ def normalize_cf(tech, settings, df):
 
     return df
 
+def apply_offshore_cost_multipliers(tech, settings, df):
+    """Apply ReEDS offshore configuration adjustments to ATB class proxies."""
+    multiplier_path = os.path.join(
+        ATBDIR,
+        "manual_input",
+        f"offshore_cost_multipliers_{settings['atbyear']}.csv",
+    )
+    multipliers = pd.read_csv(multiplier_path).set_index("turbine")
+    missing = set(df["turbine"].unique()) - set(multipliers.index)
+    if missing:
+        raise ValueError(
+            f"Missing offshore cost multiplier(s) for turbine(s): {sorted(missing)}"
+        )
+    for metric in ("capcost", "fom"):
+        df[metric] *= df["turbine"].map(multipliers[metric])
+    return df
+
+
+def apply_coal_projection_overrides(tech, settings, df):
+    """Preserve the published ReEDS 2024 coal values changed by ATB v3."""
+    override_path = os.path.join(
+        ATBDIR,
+        "manual_input",
+        f"coal_projection_overrides_{settings['atbyear']}.csv",
+    )
+    overrides = pd.read_csv(override_path)
+    overrides = overrides.loc[overrides["tech"] == tech].drop(columns="tech")
+    keys = ["Scenario", "i", "t"]
+    values = [column for column in overrides if column not in keys]
+    indexed = df.set_index(keys)
+    override_indexed = overrides.set_index(keys)
+    missing = override_indexed.index.difference(indexed.index)
+    if not missing.empty:
+        raise ValueError(f"Coal override rows not found in ATB data: {missing.tolist()}")
+    indexed.update(override_indexed[values])
+    return indexed.reset_index()
+
 def smooth_hist_cf(tech, settings, df):
     """
     function to interpolate historical capacity factor values through 2035
@@ -369,55 +493,6 @@ def smooth_hist_cf(tech, settings, df):
     df['cf_improvement'] = df.groupby('Scenario')['cf_improvement'].transform(lambda x: x.interpolate(method='linear'))
 
     return df
-
-def add_coal_techs(tech, settings, df, deflator, techcol='i'):
-    """
-    function to copy costs for existing coal techs from coal-new
-
-    Parameters
-    ----------
-    tech: str
-        Technology key in settings['techs']
-    settings: dict
-        Parsed settings.yaml values
-    df: pd.DataFrame
-        Must include `techcol` and cost columns for base coal technology
-    deflator: pd.Series
-        Used to convert constant-dollar adder amounts to the ATB dollar year
-    techcol: str, optional
-        Column name identifying the technology label in `df` (default 'i')
-
-    """
-    # list of "new" coal techs to add
-    coal_techs = ['CoalOldUns', 'CoalOldScr', 'CofireNew', 'CofireOld']
-    # existing tech from which to get costs
-    base_coal_tech = 'Coal-new'
-    # for cofire plants include a fixed adder to capital cost
-    # originally 305 $/kW in 2017$, so convert to current dollar year
-    cofire_adder = 305 * deflator.loc[2017] / deflator.loc[settings['dollaryear']]
-    
-    df_add_all = []
-    for ct in coal_techs:
-        # copy and rename data
-        print(f"...adding data for {ct} using {base_coal_tech}")
-        df_add = df.loc[df[techcol] == base_coal_tech].copy()
-        df_add[techcol] = ct
-        # include cofire adder
-        if 'Cofire' in ct:
-            print(f"...including cofire adder")
-            df_add['capcost'] += cofire_adder
-        # add to list
-        df_add_all.append(df_add)
-    
-    # combine entries and merge with original data
-    df_add_all = pd.concat(df_add_all)
-    df_out = pd.concat([df, df_add_all])
-    # drop duplicates. keep values added here since previous ones
-    # come from the historic files and we want to preserve the newer ATB when available.
-    tech_settings = settings['techs'][tech]
-    df_out = df_out.drop_duplicates(subset=tech_settings['indexcols'], keep="last")
-
-    return df_out 
 
 def add_beccs_techs(tech, settings, df, techcol='i'):
     """
@@ -456,7 +531,7 @@ def format_continuous_battery(tech, settings, df):
     # downloaded by scrape_atb_inputs.py. The formatter itself never downloads
     # raw data. A manual CSV remains available for pre-release ATB years.
     atbyear = settings['atbyear']
-    from scrape_battery_inputs import extract_battery_costs
+    from battery_workbook import extract_battery_costs
     workbook = settings['workbook_path']
     if os.path.isfile(workbook):
         battery_costs = extract_battery_costs(workbook)
@@ -482,6 +557,9 @@ def format_continuous_battery(tech, settings, df):
     fom_mult = 0.025
     battery_costs['fom'] = battery_costs['capcost'] * fom_mult
     battery_costs['fom_energy'] = battery_costs['capcost_energy'] * fom_mult
+    battery_costs[['fom', 'fom_energy']] = battery_costs[
+        ['fom', 'fom_energy']
+    ].round(2)
     # merge with placeholder data and return
     df = df.drop(['capcost', 'fom'], axis=1).merge(battery_costs)
     # if rte is missing from the ATB data, assign 0.85 as the default value
@@ -539,49 +617,6 @@ def add_csp_techs(tech, settings, df, techcol='i'):
     df_out = df_out.drop_duplicates(subset=tech_settings['indexcols'], keep="last")
 
     return df_out
-
-def backfill_data(tech, settings, df):
-    """
-    Function to backfill historic years' values with the first observed ATB-year values from the flat file
-
-    Parameters
-    ----------
-    tech: str
-        Technology key in settings['techs']
-    settings: dict
-        Uses:
-        - settings['reeds_start_year'] (start year to backfill to)
-        - settings['techs'][tech]['indexcols'] (grouping keys)
-        - settings['atbyear'] (to detect current vs historic rows)
-    df: pd.DataFrame
-        Must include year column 't' and index columns defined in settings['techs'][tech]['indexcols']
-    """
-    # get index and value columns, including indexcols without year
-    indexcols = settings['techs'][tech]['indexcols']
-    indexcols_noyear = [i for i in indexcols if i != "t"] 
-    valcols = [c for c in df.columns if c not in indexcols]
-
-    # check if historic data has been assigned
-    if "atbyear" in df.columns:
-        # set all data from year before this atb to missing
-        df.loc[df.atbyear != settings['atbyear'], valcols] = np.nan
-    else:
-        # if not assign data through ReEDS start year
-        # identify first year by technology
-        first_atb_year = df.groupby(by=indexcols_noyear)['t'].min()
-        backfill_df = pd.DataFrame()
-        # create empty data
-        for t_add in range(settings['reeds_start_year'], first_atb_year.max()):
-            df_add = first_atb_year.copy()
-            df_add[:] = t_add
-            backfill_df = pd.concat([backfill_df, pd.DataFrame(df_add[df_add < first_atb_year])])
-        backfill_df = backfill_df.reset_index()
-        df = pd.concat([backfill_df, df])
-    
-    # now backfill by group using indexcols except t
-    df[valcols] = df.groupby(indexcols_noyear)[valcols].bfill()
-
-    return df
 
 def process_tech_file(atb_data, tech, settings, filenames, dollaryear, deflator, sensitivity_name, outfolder, args):
     """
@@ -675,22 +710,22 @@ def process_tech_file(atb_data, tech, settings, filenames, dollaryear, deflator,
     if 'battery' in tech:
         tech_data_out = format_continuous_battery(tech, settings, tech_data_out)
 
-    # add in historic values
-    tech_data_out = load_historic_atb_files(tech_data_out, tech, settings, dollaryear, deflator)
-
-    # run any additional modification functions
+    # Apply technology transformations to the current scraped projections first.
+    # History is merged afterward so derived historic series are not overwritten.
     if 'functions' in tech_settings:
         for function_name in tech_settings['functions']:
             selected_function = FUNCTION_MAPPING.get(function_name.lower())
             if selected_function:
                 print(f"Running {function_name}")
-                if function_name == "add_coal_techs":
-                    tech_data_out = selected_function(tech, settings, tech_data_out, deflator)
-                else:
-                    tech_data_out = selected_function(tech, settings, tech_data_out)
+                tech_data_out = selected_function(tech, settings, tech_data_out)
             else:
                 raise NameError(f"'{function_name}' is not a supported function. "
                                 "Define and add to FUNCTION_MAPPING.")
+
+    # Combine the current projections with the stable local historical baseline.
+    tech_data_out = merge_historical_atb_data(
+        tech_data_out, tech, settings, dollaryear, deflator
+    )
 
     # for fuel cells, backfill capcost values as 9999 for all pre-2035 years
     if tech == 'fuelcell' and 'capcost' in tech_data_out.columns:
@@ -714,7 +749,9 @@ def process_tech_file(atb_data, tech, settings, filenames, dollaryear, deflator,
         check_columns(tech_data_out, tech_settings['cols'], 'cols', tech)
         scendata = tech_data_out.loc[tech_data_out.Scenario == scenario, tech_settings['cols']]
         # round to specified decimal places
-        scendata = scendata.round(settings['decimals'])
+        scendata = scendata.round(
+            tech_settings.get('decimals', settings['decimals'])
+        )
         # sort in order of columns
         scendata = scendata.sort_values(by=scendata.columns.to_list()).reset_index(drop=True)
 
@@ -1022,10 +1059,10 @@ if __name__ == "__main__":
     # list of supported custom functions to call from settings.yml
     FUNCTION_MAPPING = {
         'normalize_cf': normalize_cf,
+        'apply_offshore_cost_multipliers': apply_offshore_cost_multipliers,
+        'apply_coal_projection_overrides': apply_coal_projection_overrides,
         'smooth_hist_cf': smooth_hist_cf,
-        'add_coal_techs': add_coal_techs,
         'add_csp_techs': add_csp_techs,
         'add_beccs_techs': add_beccs_techs,
-        'backfill_data': backfill_data
     }
     main(args)
