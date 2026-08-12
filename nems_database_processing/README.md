@@ -37,6 +37,9 @@ All located in `inputs` folder:
 Located in `outputs` folder. This is the final file that will be used to run ReEDS:
 * `ReEDS_generator_database_final_EIA-NEMS.csv`
 
+# Output comparison figures
+Located in `outputs/figures`. This folder includes figures of online/retire capacity by year for different NEMS versions and their differences. Figures are both national and at `z90` resolution.
+
 # Debug
 A `debug` folder, which stores the FIPS that have mismatched online/retire capacity between two NEMS versions, is created for easy debugging. If the two NEMS versions have no changes at all at FIPS-level, this folder is not created or is empty.
 
