@@ -7,25 +7,86 @@ input files and plots. The workflow has three explicit stages:
 2. format the local raw data for ReEDS;
 3. plot metrics from the same local raw data.
 
-## Start here
+## Configure the run
 
 [`config.yaml`](config.yaml) is the user-facing control file. It shows which
 stages will run, the ATB release and source URLs, local filenames, ReEDS path,
 technologies, processing choices, and plotting choices.
 
-From this `atb/` directory, run the configured workflow with:
+Review that file first, especially:
+
+- `atb.year` and `atb.dollar_year`;
+- the two `raw_data` URLs and filenames;
+- `processing.reeds_repo` and selected technologies;
+- the metrics and technologies under `plotting`.
+
+## Run one step at a time
+
+Run the following commands from the `atb/` directory.
+
+### Step 1: scrape raw inputs
+
+```bash
+python scripts/scrape_atb_inputs.py
+```
+
+This downloads or reuses both independent raw inputs:
+
+- `scraped_input/atb_<year>_flat_file.csv`;
+- `scraped_input/atb_<year>_workbook.xlsx`.
+
+It then displays a summary of the flat file and the workbook sheets. Existing
+files are reused unless `--force` is supplied:
+
+```bash
+python scripts/scrape_atb_inputs.py --force
+```
+
+Downloads normally verify HTTPS certificates. If certificate verification
+fails because the active conda environment does not trust an NLR network
+inspection certificate, `raw_data.allow_insecure_ssl_fallback: true` permits a
+clearly labeled `verify=False` retry. Set it to `false` to prohibit that retry.
+
+### Step 2: format ReEDS inputs
+
+```bash
+python scripts/generate_atb_files.py
+```
+
+This reads the local raw files plus `manual_input/` and existing ReEDS inputs,
+then writes ReEDS-formatted CSVs to `output/`. It does **not** download raw
+data. If a required raw file is missing, run Step 1 first.
+
+Whether this step generates cost files and financial files, which technologies
+it processes, and whether it copies results into ReEDS are all controlled under
+`processing:` in `config.yaml`.
+
+### Step 3: plot raw ATB data
+
+```bash
+python scripts/atb_plotting.py
+```
+
+This reads the same local flat file used in Step 2 and saves the configured
+figures to `figures/`. It does not scrape data or plot the formatted files from
+`output/`.
+
+## Run the configured pipeline
+
+To run the enabled stages in order, set the switches under `workflow:` in
+`config.yaml`, then run:
 
 ```bash
 python scripts/run_pipeline.py
 ```
 
-The runner prints the selected plan before doing any work. Individual stages
-can also be run directly:
+The runner prints which stages will run before doing any work. A stage can also
+be selected explicitly:
 
 ```bash
-python scripts/scrape_atb_inputs.py
-python scripts/generate_atb_files.py
-python scripts/atb_plotting.py
+python scripts/run_pipeline.py --only scrape
+python scripts/run_pipeline.py --only format
+python scripts/run_pipeline.py --only plot
 ```
 
 ## Data flow
@@ -68,6 +129,4 @@ only consume the raw files created by the scraper.
 | `output/` | Generated ReEDS-formatted CSVs |
 | `figures/` | Generated ATB plots |
 
-See [`scripts/README_atb-processing.md`](scripts/README_atb-processing.md) and
-[`scripts/README_atb-plotting.md`](scripts/README_atb-plotting.md) for stage
-details.
+See [`scripts/README.md`](scripts/README.md) for the scripts folder structure.

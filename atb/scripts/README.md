@@ -1,18 +1,17 @@
 # scripts/
 
-The scripts use the shared user configuration in [`../config.yaml`](../config.yaml).
+All scripts share the user configuration in [`../config.yaml`](../config.yaml).
+User-facing run instructions are in the main [`../README.md`](../README.md).
 
-- `run_pipeline.py` — runs the enabled stages in order and prints the plan.
-- `scrape_atb_inputs.py` — downloads both configured raw inputs and displays
-  their paths, sizes, and contents/structure.
-- `generate_atb_files.py` — reads local raw and manual inputs and writes
-  ReEDS-formatted CSVs. It does not access the network.
-- `atb_plotting.py` — reads the same local flat file and writes configured plots.
-- `atb_config.py` — shared config and path loader.
-- `settings.yaml` — internal technology mappings and transformations; normal
-  workflow choices belong in `../config.yaml`.
-- `scrape_battery_inputs.py` — battery-workbook extraction helper retained for
-  the formatter and specialized preview use.
+| File | Role |
+| --- | --- |
+| `run_pipeline.py` | Runs the config-enabled scrape, format, and plot stages in order |
+| `scrape_atb_inputs.py` | Downloads and summarizes both raw ATB inputs |
+| `generate_atb_files.py` | Converts local raw and manual inputs into ReEDS-formatted CSVs |
+| `atb_plotting.py` | Plots configured metrics from the local raw flat file |
+| `atb_config.py` | Shared config and path-loading functions |
+| `settings.yaml` | Internal per-technology mappings and transformations |
+| `scrape_battery_inputs.py` | Workbook battery-cost extraction helper used by the formatter |
 
-Run commands from either `atb/` or `atb/scripts/`; paths are resolved relative
-to the `atb/` directory rather than the current working directory.
+Normal workflow choices belong in `../config.yaml`; `settings.yaml` is only for
+technology-specific formatting rules.

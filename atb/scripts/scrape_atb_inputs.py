@@ -10,7 +10,30 @@ import requests
 from atb_config import load_config, raw_file_path
 
 
-def download_file(url, destination, force=False):
+def _open_download(url, allow_insecure_ssl_fallback):
+    """Open a verified download, optionally retrying after a TLS inspection error."""
+    request_options = {"stream": True, "timeout": 300}
+    try:
+        return requests.get(url, **request_options)
+    except requests.exceptions.SSLError as error:
+        if not allow_insecure_ssl_fallback:
+            raise RuntimeError(
+                "TLS certificate verification failed. Install the required CA "
+                "certificate in this environment or set "
+                "raw_data.allow_insecure_ssl_fallback: true in config.yaml."
+            ) from error
+
+        import urllib3
+
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        print("WARNING: TLS certificate verification failed.")
+        print("         Retrying this public raw-data download with verify=False.")
+        return requests.get(url, verify=False, **request_options)
+
+
+def download_file(
+    url, destination, force=False, allow_insecure_ssl_fallback=False
+):
     """Download one file atomically, or reuse the existing local copy."""
     destination = Path(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -21,12 +44,16 @@ def download_file(url, destination, force=False):
     temporary = destination.with_suffix(destination.suffix + ".part")
     print(f"Downloading {url}")
     print(f"       into {destination}")
-    with requests.get(url, stream=True, timeout=300) as response:
-        response.raise_for_status()
-        with temporary.open("wb") as stream:
-            for chunk in response.iter_content(chunk_size=1024 * 1024):
-                if chunk:
-                    stream.write(chunk)
+    try:
+        with _open_download(url, allow_insecure_ssl_fallback) as response:
+            response.raise_for_status()
+            with temporary.open("wb") as stream:
+                for chunk in response.iter_content(chunk_size=1024 * 1024):
+                    if chunk:
+                        stream.write(chunk)
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
     temporary.replace(destination)
     return destination
 
@@ -68,14 +95,21 @@ def summarize_workbook(path):
 def scrape(config, selected="all", force=False):
     """Download configured raw inputs and show what is now available."""
     raw = config["raw_data"]
+    allow_insecure = raw.get("allow_insecure_ssl_fallback", False)
     if selected in ("all", "flat"):
         flat = download_file(
-            raw["flat_file"]["url"], raw_file_path(config, "flat_file"), force
+            raw["flat_file"]["url"],
+            raw_file_path(config, "flat_file"),
+            force=force,
+            allow_insecure_ssl_fallback=allow_insecure,
         )
         summarize_flat_file(flat)
     if selected in ("all", "workbook"):
         workbook = download_file(
-            raw["workbook"]["url"], raw_file_path(config, "workbook"), force
+            raw["workbook"]["url"],
+            raw_file_path(config, "workbook"),
+            force=force,
+            allow_insecure_ssl_fallback=allow_insecure,
         )
         summarize_workbook(workbook)
 

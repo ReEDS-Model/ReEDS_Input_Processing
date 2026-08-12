@@ -940,9 +940,7 @@ def main(args):
     processing = settings['config']['processing']
     outfolder = settings['output_dir']
     args.skip_costs = args.skip_costs or not processing.get('update_costs', True)
-    args.skip_financials = (
-        args.skip_financials or not processing.get('update_financials', True)
-    )
+    should_update_financials = processing.get('update_financials', True)
     if args.sensitivity_name is None:
         args.sensitivity_name = processing.get('sensitivity_name')
 
@@ -986,10 +984,10 @@ def main(args):
         newdollaryear = update_dollaryear(settings, filenames, dollaryear)
     
     ## update financials file
-    if args.skip_financials:
-        print("Skipping financials.")
-    else:
+    if should_update_financials:
         sysfinancialfile, techfinancialfile = update_financials(settings, atb_data, outfolder)
+    else:
+        print("Skipping financials (processing.update_financials is false).")
 
     ## copy new files to ReEDS
     if settings['copy_to_reeds']:
@@ -1002,7 +1000,7 @@ def main(args):
             newdollaryear.to_csv(os.path.join(settings['reedspath'],'inputs','plant_characteristics','dollaryear.csv'), index=True)
         
         # copy financial files
-        if not args.skip_financials:
+        if should_update_financials:
             shutil.copy(os.path.join(outfolder,sysfinancialfile), os.path.join(settings['reedspath'],'inputs','financials',sysfinancialfile))
             shutil.copy(os.path.join(outfolder,techfinancialfile), os.path.join(settings['reedspath'],'inputs','financials',techfinancialfile))
 
@@ -1015,8 +1013,6 @@ if __name__ == "__main__":
                     help='one or more techs; defaults to processing.technologies in config.yaml')
     parser.add_argument('--sensitivity_name', '-s', type=str, 
                     help='suffix to append to file name for sensitivities')
-    parser.add_argument('--skip_financials', '-f', action="store_true",
-                    help='skip updating financials for this run')
     parser.add_argument('--skip_costs', '-c', action="store_true",
                     help='skip updating cost files for this run')
     parser.add_argument('--debug', '-d', action="store_true",

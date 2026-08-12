@@ -53,7 +53,13 @@ def download_workbook(year, cache_dir=None):
     destination = raw_file_path(config, 'workbook')
     if cache_dir is not None:
         destination = os.path.join(cache_dir, config['raw_data']['workbook']['filename'])
-    return str(download_file(config['raw_data']['workbook']['url'], destination))
+    return str(download_file(
+        config['raw_data']['workbook']['url'],
+        destination,
+        allow_insecure_ssl_fallback=config['raw_data'].get(
+            'allow_insecure_ssl_fallback', False
+        ),
+    ))
 
 
 def extract_battery_costs(xlsx_path):

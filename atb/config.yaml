@@ -13,6 +13,11 @@ atb:
 
 raw_data:
   directory: scraped_input
+  # Some NLR networks inspect HTTPS with an internal certificate that may not
+  # be installed in the active conda environment. Normal certificate checking
+  # is always attempted first; this permits a warning + verify=False retry only
+  # after that check fails.
+  allow_insecure_ssl_fallback: true
   flat_file:
     filename: atb_2024_flat_file.csv
     url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2024/v3.0.0/ATBe.csv

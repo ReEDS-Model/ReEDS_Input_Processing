@@ -27,5 +27,10 @@ Without `--force`, existing files are reused and displayed. These files remain
 raw and unmodified: derived ReEDS inputs go in `../output/`, and plots go in
 `../figures/`.
 
+HTTPS certificates are checked first. The
+`raw_data.allow_insecure_ssl_fallback` setting controls whether a failed check
+may be retried with `verify=False`, which can be needed when the active conda
+environment does not trust an NLR network inspection certificate.
+
 Both raw files are tracked by Git so the exact upstream inputs used for a run
 can be preserved with the repository.

@@ -19,6 +19,18 @@ UNITS = {
 }
 
 
+def select_year_ticks(years, max_ticks=5):
+    """Return at most ``max_ticks`` evenly spaced years present in the data."""
+    years = sorted({int(year) for year in years if pd.notna(year)})
+    if len(years) <= max_ticks:
+        return years
+    indices = {
+        round(position * (len(years) - 1) / (max_ticks - 1))
+        for position in range(max_ticks)
+    }
+    return [years[index] for index in sorted(indices)]
+
+
 def load_raw_atb(config):
     """Load the same local flat file used by the ReEDS formatter."""
     path = raw_file_path(config, "flat_file")
@@ -106,6 +118,10 @@ def plot_metric(data, metric, config, figure_format, output_dir):
                 )
         axis.set_title(technology)
         axis.set_xlabel("Projection year")
+        year_ticks = select_year_ticks(tech_data["variable"])
+        axis.set_xticks(year_ticks, labels=[str(year) for year in year_ticks])
+        axis.tick_params(axis="x", labelsize=8, pad=3)
+        axis.margins(x=0.03)
         unit = UNITS.get(metric, "value")
         axis.set_ylabel(f"{metric} ({config['atb']['dollar_year']} {unit})")
         axis.grid(axis="y", linestyle=":", alpha=0.5)
