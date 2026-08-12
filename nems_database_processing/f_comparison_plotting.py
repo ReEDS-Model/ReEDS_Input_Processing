@@ -15,6 +15,11 @@ import seaborn as sns
 from textwrap import wrap
 
 figure_path = os.path.join('outputs','figures')
+os.makedirs(figure_path, exist_ok=True)
+
+debug_path = os.path.join('outputs','debug')
+os.makedirs(debug_path, exist_ok=True)
+os.system('rm -rf '+os.path.expanduser(debug_path)+'/*')
 
 #%%
 
@@ -46,8 +51,8 @@ county2zone = county2zone[['FIPS','r']]
 
 ###################### MAIN SWITCHES ######################
 startyear = 2010
-finalyear_online = max(dfnew['StartYear'].max(),dfold['StartYear'].max())
 finalyear_retire = 2050
+finalyear_online = max(dfnew['StartYear'].max(),dfold['StartYear'].max())
 ###########################################################
 
 # Define techs and tech colors
@@ -56,14 +61,14 @@ techs = ['battery_li','pvb_battery','pumped-hydro','upv','dupv','pvb_pv','csp-ns
          'gas-cc','gas-ct','o-g-s','coaloldscr','coalolduns','coal-igcc','coal-new','nuclear']
 
 color_techs = {'battery_li':'#FF4A88','pvb_battery':"#A75F8A",'pumped-hydro':"#C630B2",
-                   'upv':'#FFC903','dupv':'#FEE603','pvb_pv':"#B88D16",'csp-ns':"#F3660E",
-                   'wind-ons':'#00B6EF','wind-ofs':'#106BA7',
-                   'biopower':'#5B9844','lfill-gas':"#3B692A",
-                   'geohydro_allkm':'#A96235',
-                   'hydEND':'#187F94','hydED':"#37A5BB",'hydNPND':"#31D6E2",'hydND':"#5FA6A8",
-                   'gas-cc':'#52216B','gas-ct':'#C2A1DB','o-g-s':'#52216B',
-                   'coaloldscr':'#222222','coalolduns':"#3E3C3C",'coal-igcc':"#5B5A5A",'coal-new':"#A19E9E",
-                   'nuclear':'#820000'}
+               'upv':'#FFC903','dupv':'#FEE603','pvb_pv':"#B88D16",'csp-ns':"#F3660E",
+               'wind-ons':'#00B6EF','wind-ofs':'#106BA7',
+               'biopower':'#5B9844','lfill-gas':"#3B692A",
+               'geohydro_allkm':'#A96235',
+               'hydEND':'#187F94','hydED':"#37A5BB",'hydNPND':"#31D6E2",'hydND':"#5FA6A8",
+               'gas-cc':'#52216B','gas-ct':'#C2A1DB','o-g-s':'#52216B',
+               'coaloldscr':'#222222','coalolduns':"#3E3C3C",'coal-igcc':"#5B5A5A",'coal-new':"#A19E9E",
+               'nuclear':'#820000'}
 
 def main(dfnew, dfold, finalyear_online, finalyear_retire, techs, color_techs):
 
@@ -73,7 +78,6 @@ def main(dfnew, dfold, finalyear_online, finalyear_retire, techs, color_techs):
 
     # Establish all zones
     zones = sorted(dfnew['r'].unique().tolist())
-
     #################################
     ### Planned online comparison ###
     #################################
@@ -81,11 +85,17 @@ def main(dfnew, dfold, finalyear_online, finalyear_retire, techs, color_techs):
     # Raw online data
     online_data_new = dfnew.loc[dfnew['StartYear']>=startyear]
     online_data_new['summer_power_capacity_GW'] = online_data_new['summer_power_capacity_MW']/1000
-    online_data_new = online_data_new[['tech','r','StartYear','summer_power_capacity_GW']]
-    online_data_new = online_data_new.groupby(['tech','r','StartYear'], as_index=False).sum()
-
+    
     online_data_old = dfold.loc[dfold['StartYear']>=startyear]
     online_data_old['summer_power_capacity_GW'] = online_data_old['summer_power_capacity_MW']/1000
+
+    # Find FIPS that have different online years for each tech
+    mismatching_FIPS(online_data_old, online_data_new, x='StartYear', type='online')
+
+    # Aggredate across r
+    online_data_new = online_data_new[['tech','r','StartYear','summer_power_capacity_GW']]
+    online_data_new = online_data_new.groupby(['tech','r','StartYear'], as_index=False).sum()
+    
     online_data_old = online_data_old[['tech','r','StartYear','summer_power_capacity_GW']]
     online_data_old = online_data_old.groupby(['tech','r','StartYear'], as_index=False).sum()
 
@@ -133,13 +143,19 @@ def main(dfnew, dfold, finalyear_online, finalyear_retire, techs, color_techs):
     # Raw retire data
     retire_data_new = dfnew.loc[dfnew['RetireYear']<=finalyear_retire]
     retire_data_new['summer_power_capacity_GW'] = retire_data_new['summer_power_capacity_MW']/1000
-    retire_data_new = retire_data_new[['tech','r','RetireYear','summer_power_capacity_GW']]
-    retire_data_new = retire_data_new.groupby(['tech','r','RetireYear'], as_index=False).sum()
     
     retire_data_old = dfold.loc[dfold['RetireYear']<=finalyear_retire]
     retire_data_old['summer_power_capacity_GW'] = retire_data_old['summer_power_capacity_MW']/1000
+
+    # Find FIPS that have different retire years for each tech
+    mismatching_FIPS(retire_data_old, retire_data_new, x='RetireYear', type='retire')
+
+    # Aggredate across r
     retire_data_old = retire_data_old[['tech','r','RetireYear','summer_power_capacity_GW']]
     retire_data_old = retire_data_old.groupby(['tech','r','RetireYear'], as_index=False).sum()
+
+    retire_data_new = retire_data_new[['tech','r','RetireYear','summer_power_capacity_GW']]
+    retire_data_new = retire_data_new.groupby(['tech','r','RetireYear'], as_index=False).sum()
 
     # Diff retire data
     retire_data_diff = retire_data_new.copy()
@@ -388,6 +404,32 @@ def comparison_plotting_nat(df, finalyear, figname, x, title):
     
     # Save data
     fig.savefig(os.path.join(figure_path,figname+'.png'), dpi=600, bbox_inches='tight')
+
+def mismatching_FIPS(df_old, df_new, x, type):
+    data_new_fips = df_new.copy()
+    data_new_fips = data_new_fips[['tech','FIPS',x,'summer_power_capacity_GW']]
+    data_old_fips = df_old.copy()
+    data_old_fips = data_old_fips[['tech','FIPS',x,'summer_power_capacity_GW']]
+
+    data_new_fips = data_new_fips.groupby(['tech','FIPS',x], as_index=False).sum()
+    data_old_fips = data_old_fips.groupby(['tech','FIPS',x], as_index=False).sum()
+
+    data_fips = data_new_fips.merge(data_old_fips, on=['tech','FIPS',x], how='outer')
+    data_fips['cap_diff'] = data_fips['summer_power_capacity_GW_x'] - data_fips['summer_power_capacity_GW_y']
+    for f in data_fips['FIPS'].unique().tolist():
+        data_fips_f = data_fips[data_fips['FIPS']==f]
+        if data_fips_f['cap_diff'].sum() > 1.0E-15:
+            print(f"FIPS {f} has mismatched {type} capacities between two versions of NEMS")
+            data_fips_f[['tech','FIPS',x,
+                         'summer_power_capacity_GW_x',
+                         'summer_power_capacity_GW_y',
+                         'cap_diff']].rename(
+                             columns={'summer_power_capacity_GW_x':'cap_new',
+                                      'summer_power_capacity_GW_y':'cap_old'}).to_csv(
+                                          os.path.join(debug_path,'mismatched_'+type+'_cap_'+f+'.csv'),
+                                          index=False)
+        else:
+            print(f"FIPS {f} has no mismatched {type} capacities between two versions of NEMS")
 
 main(dfnew, dfold, finalyear_online, finalyear_retire, techs, color_techs)
 
