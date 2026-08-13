@@ -6,8 +6,8 @@
 reeds_path='~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'
 
 # Most recent ReEDS fleet and AEO versions:
-current_reeds_fleet_ver=2024
-current_year=2025
+current_reeds_fleet_ver=2025
+current_year=2026
 # Data source: https://github.com/EIAgov/NEMS/blob/main/input/emm/emm_db/PLTF860_RDB.xlsx
 aeo_file='PLTF860_RDB.xlsx'
 
@@ -33,9 +33,8 @@ battery_duration=2.9
 
 ############## Run scripts to process fleet ##############
 ##########################################################
-python a_inheritance.py "$current_reeds_fleet_ver" "$aeo_file"
-python b_aeo_cleaning.py "$eia860M_ver_mon" "$eia860M_ver_year" "$nems_ver" "$battery_duration"
-python c_geospatial_mapping.py "$reeds_path"
-python d_hydro_classification.py "$ornl_hydro_plant_ver" "$hydro_dispatchability"
-python e_additional_inputs.py "$current_reeds_fleet_ver" "$hydro_prjtype" "$ornl_hydro_unit_ver" "$coal_plant_retirement" "$current_year"
-python f_comparison_plotting.py "$current_reeds_fleet_ver" "$reeds_path"
+python a_data_cleaning.py "$aeo_file" "$eia860M_ver_mon" "$eia860M_ver_year" "$nems_ver" "$battery_duration"
+python b_geospatial_mapping.py "$reeds_path"
+python c_hydro_classification.py "$ornl_hydro_plant_ver" "$hydro_dispatchability"
+python d_additional_inputs.py "$current_reeds_fleet_ver" "$hydro_prjtype" "$ornl_hydro_unit_ver" "$coal_plant_retirement" "$current_year"
+python e_comparison_plotting.py "$current_reeds_fleet_ver" "$reeds_path"

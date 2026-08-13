@@ -1,0 +1,27 @@
+aeo_tech,reeds_tech
+Batteries,battery_li
+Hydroelectric Pumped Storage,pumped-hydro
+Coal Integrated Gasification Combined Cycle,coal-igcc
+Conventional Steam Coal,coalolduns
+Conventional Hydroelectric,hydro
+Geothermal,geothermal
+Offshore Wind Turbine,wind-ofs
+Onshore Wind Turbine,wind-ons
+Solar Photovoltaic,pv
+Solar Thermal with Energy Storage,csp-ns
+Solar Thermal without Energy Storage,csp-ns
+Natural Gas Fired Combined Cycle,gas-cc
+Natural Gas Fired Combustion Turbine,gas-ct
+Natural Gas Internal Combustion Engine,gas-ct
+Natural Gas with Compressed Air Storage,gas-ct
+Natural Gas Steam Turbine,o-g-s
+Other Natural Gas,o-g-s
+Other Gases,o-g-s
+Petroleum Coke,o-g-s
+Petroleum Liquids,o-g-s
+Nuclear,nuclear
+Biomass,biopower
+Other Waste Biomass,biopower
+Wood/Wood Waste Biomass,biopower
+Municipal Solid Waste,lfill-gas
+Landfill Gas,lfill-gas
