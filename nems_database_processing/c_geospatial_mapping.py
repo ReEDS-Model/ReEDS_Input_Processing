@@ -16,7 +16,7 @@ from shapely.geometry import Point
 
 #%%
 dir = os.getcwd()
-reeds_path = gdbnewname = sys.argv[1]
+reeds_path = sys.argv[1]
 
 # For debugging
 #reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'               # local
@@ -33,7 +33,7 @@ def main():
     #%%--------------------------------------------------------------------------------
     #  Mapping County to Generator using lat/lon coordinates - geopandas
     #----------------------------------------------------------------------------------
-    print("Start c_geopsatial_mapping.py")
+    print("Starting c_geopsatial_mapping.py")
 
     data_raw = pd.read_csv(os.path.join('outputs',gdbinputname), low_memory=False)
     data_raw_columns = list(data_raw.columns.values).copy()
@@ -165,7 +165,7 @@ def main():
         print('Unit database updated')
         nems_county_final.to_csv(os.path.join(dir,'outputs', gdboutname), index=False)
         # =========================================================================
-    print("Finish c_geopsatial_mapping.py")
+    print("Finished c_geopsatial_mapping.py")
 
 main()
 

@@ -34,7 +34,7 @@ def params():
     return (dir, nems_ver, battery_duration, eia860M_ver_mon, eia860M_ver_year, append_operating_units, gdbinputname, gdboutname)
 
 def main():
-    print("Start b_aeo_cleaning.py")
+    print("Starting b_aeo_cleaning.py")
 
     (dir, nems_ver, battery_duration, eia860M_ver_mon, eia860M_ver_year, append_operating_units, gdbinputname, gdboutname) = params()
 
@@ -121,6 +121,8 @@ def cleanAEOData(dir, gdbinputname):
     return aeo_data
   
 def cleanEIA860MData(dir, ver_mon, ver_year, battery_duration, status):
+    #TODO update start year as planned repower year for repowered units
+    
     eia860M_data = pd.read_excel(os.path.join(dir,'inputs','EIA860M',ver_mon+'_generator'+str(ver_year)+'.xlsx'), 
                                  sheet_name=status, header=1, index_col=False)
     if ver_year >=2020:
@@ -148,13 +150,13 @@ def cleanEIA860MData(dir, ver_mon, ver_year, battery_duration, status):
                           (eia860M_data['Technology']=='Natural Gas with Compressed Air Storage')),
                           'Nameplate Energy Capacity (MWh)'] = eia860M_data['Net Summer Capacity (MW)'] * battery_duration
 
-    # Assign energy capacity to battery units that have missing energy capacity values:
-    eia860M_data.loc[(((eia860M_data['Technology']=='Batteries') |
-                          (eia860M_data['Technology']=='Flywheels') |
-                          (eia860M_data['Technology']=='Natural Gas with Compressed Air Storage') |
-                          (eia860M_data['Technology']=='Hydroelectric Pumped Storage')) &
-                          (eia860M_data['Nameplate Energy Capacity (MWh)'].isna())),
-                          'Nameplate Energy Capacity (MWh)'] = eia860M_data['Net Summer Capacity (MW)'] * battery_duration
+    # Assign energy capacity to storage units that have missing energy capacity values:
+    storage_cats = ['Batteries','Flywheels',
+                    'Natural Gas with Compressed Air Storage',
+                    'Hydroelectric Pumped Storage']
+    eia860M_data.loc[(eia860M_data['Technology'].isin(storage_cats)) &
+                     (eia860M_data['Nameplate Energy Capacity (MWh)'].isna()),
+                     'Nameplate Energy Capacity (MWh)'] = eia860M_data['Net Summer Capacity (MW)'] * battery_duration
     
     eia860M_data['Battery Duration'] = eia860M_data['Nameplate Energy Capacity (MWh)']/eia860M_data['Net Summer Capacity (MW)']
     eia860M_data['Battery Duration'] = eia860M_data['Battery Duration'].round(2)
@@ -331,9 +333,9 @@ def cleanMergedAEOEIA860(merged_nems_eia860, battery_duration):
     merged_nems_eia860['TC_WIN'] = merged_nems_eia860['TC_WIN'] * merged_nems_eia860['TCOUNT']
     merged_nems_eia860['TC_SUM'] = merged_nems_eia860['TC_SUM'] * merged_nems_eia860['TCOUNT']
 
-    merged_nems_eia860['TC_NP'] = merged_nems_eia860['TC_NP'].round(2)
-    merged_nems_eia860['TC_WIN'] = merged_nems_eia860['TC_WIN'].round(2)
-    merged_nems_eia860['TC_SUM'] = merged_nems_eia860['TC_SUM'].round(2)
+    rounding_cols = ['TC_NP', 'TC_WIN','TC_SUM','T_VOM','T_FOM',
+                     'T_CCSROV','T_CCSF','T_CCSV','T_CCSHR','T_CAPAD']
+    merged_nems_eia860[rounding_cols] = merged_nems_eia860[rounding_cols].round(2)
 
     ## Further clean up
     # Add heat rate for EIA860M units:
@@ -378,4 +380,4 @@ def cleanMergedAEOEIA860(merged_nems_eia860, battery_duration):
 
 main()
 
-print("Finish b_aeo_cleaning.py")
+print("Finished b_aeo_cleaning.py")

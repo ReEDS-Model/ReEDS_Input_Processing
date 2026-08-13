@@ -38,4 +38,4 @@ python b_aeo_cleaning.py "$eia860M_ver_mon" "$eia860M_ver_year" "$nems_ver" "$ba
 python c_geospatial_mapping.py "$reeds_path"
 python d_hydro_classification.py "$ornl_hydro_plant_ver" "$hydro_dispatchability"
 python e_additional_inputs.py "$current_reeds_fleet_ver" "$hydro_prjtype" "$ornl_hydro_unit_ver" "$coal_plant_retirement" "$current_year"
-#python f_comparison_plotting.py "$current_reeds_fleet_ver" "$reeds_path"
+python f_comparison_plotting.py "$current_reeds_fleet_ver" "$reeds_path"

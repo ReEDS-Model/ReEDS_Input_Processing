@@ -9,8 +9,9 @@ All the scripts are run sequentially from `run.sh`
 * `a_inheritance.py` 
 * `b_aeo_cleaning.py`: This script cleans raw AEO-NEMS and EIA860M files and appends planned and missing existing EIA860M units into AEO-NEMS, and also updates unit retirement years according to specified version of EIA860M
 * `c_geospatial_mapping.py`: This script maps the lon/lats of units database established in step b to their counties and FIPS. For any units that are missing lon/lats, please look up their lon/lats and manually add these units with their lon/lats to in `/inputs/user_adjusted_units_missing_lon_lats.csv`. This step will incur errors until all units are mapped to their counties and FIPS. Any units that need manually adjusted locations should be done in this step.
-* `d_hydro_classification.py` 
+* `d_hydro_classification.py`. 
 * `e_additional_inputs.py`, which includes `e1_set_retire_years.py`, `e2_fix_upgrades.py`, and `e3_merge_psh_dbs.py`: This script handles updated retirement years that are outdated in AEO-NEMS and EIA860M, fix upgrades, and handles other additional adjustments. Any manually adjusted retirement years should be included in `e1_set_retire_years.py`.
+* `f_comparison_plotting.py`, which generates comparison figures between previous version of NEMS and the newly updated version.
 
 # Input files and params to run run.sh
 All the input files to run all 5 python scripts are now specified upfront in run.sh. All inputs files are loacted in `Inputs` folder.
@@ -33,9 +34,15 @@ All located in `inputs` folder:
 * `county_to_reeds_region.csv`
 * `tech_to_cooling_tech_map.csv`
 
-# Output file:
+# Output file
 Located in `outputs` folder. This is the final file that will be used to run ReEDS:
 * `ReEDS_generator_database_final_EIA-NEMS.csv`
+
+# Output comparison figures
+Located in `outputs/figures`. This folder includes figures of online/retire capacity by year for different NEMS versions and their differences. Figures are both national and at `z90` resolution. The figures are generated from `f_comparison_plotting.py`.
+
+# Debug
+A `debug` folder, which stores the FIPS that have mismatched online/retire capacity between two NEMS versions, is created for easy debugging. If the two NEMS versions have no changes at all at FIPS-level, this folder is not created or is empty.
 
 # Note:
 Sometimes when running `c_geospatial_mapping.py`, geopandas operation results in invalid geometry - point (inf, inf) or polygon (inf, inf). If this occurs, run `conda install -c conda-forge proj-data` to pre-download projection data in the current environment before rerunning the script.
