@@ -43,6 +43,10 @@ files are reused unless `--force` is supplied:
 python scripts/scrape_atb_inputs.py --force
 ```
 
+Neither raw file is committed, so this step is required after a fresh clone.
+See [`scraped_input/README.md`](scraped_input/README.md) for why, and how the
+pinned URLs keep a run reproducible without storing the data in Git.
+
 Downloads normally verify HTTPS certificates. If certificate verification
 fails because the active conda environment does not trust an NLR network
 inspection certificate, `raw_data.allow_insecure_ssl_fallback: true` permits a
@@ -69,6 +73,36 @@ annual ATB release.
 Whether this step generates cost files and financial files, which technologies
 it processes, and whether it copies results into ReEDS are all controlled under
 `processing:` in `config.yaml`.
+
+### File names and column schemas expected by ReEDS
+
+Generated files must match what ReEDS expects exactly, because ReEDS resolves
+these inputs by file name and, for some technologies, reads their columns by
+position rather than by name. Two settings in
+[`scripts/settings.yaml`](scripts/settings.yaml) handle the cases where the
+internal representation and the ReEDS representation differ:
+
+- `reeds_name` — the file prefix ReEDS uses when it differs from the internal
+  technology key. Onshore and offshore wind are `wind-ons`/`wind-ofs`
+  internally but `ons-wind`/`ofs-wind` in ReEDS, so their outputs are written
+  as `ons-wind_ATB_<year>_<scenario>.csv` and `ofs-wind_ATB_<year>_<scenario>.csv`.
+  The output file name doubles as the `Scenario` key in the ReEDS
+  `dollaryear.csv`, so a mismatch here silently leaves ReEDS reading its
+  previous inputs.
+- `output_cols` — an ordered mapping of internal column name to ReEDS header,
+  applied as the last step before writing. ReEDS reads the two wind files
+  positionally in `reeds/input_processing/plantcostprep.py`, and detects the
+  ATB 2024 offshore format by the presence of a `Turbine` column, so those
+  files must keep the legacy headers and this exact column order:
+  `Turbine, Year, CF_mult, Overnight Cap Cost $/kW, Fixed O&M $/(kW-yr),
+  Var O&M $/MWh` (plus `rsc_mult` for offshore). Writing the internal names or
+  order instead makes ReEDS assign capital cost to the capacity-factor
+  multiplier without raising an error.
+
+Technologies without these settings are written using the internal column names
+listed under `cols`, which already match their ReEDS files. Everything upstream
+of the write step — history files in `manual_input/historical/`, scenario
+comparisons, transformations — uses the internal names throughout.
 
 ### Step 3: plot raw ATB data
 
@@ -134,7 +168,7 @@ URLs together when adopting a newer release.
 | Path | Purpose |
 | --- | --- |
 | `config.yaml` | User-facing workflow configuration |
-| `scraped_input/` | Visible, unmodified raw ATB downloads |
+| `scraped_input/` | Visible, unmodified raw ATB downloads (local only; not committed) |
 | `manual_input/` | Versioned history and inputs unavailable in ATB downloads |
 | `scripts/settings.yaml` | Internal per-technology ReEDS formatting rules |
 | `scripts/scrape_atb_inputs.py` | Raw-data download and inspection |

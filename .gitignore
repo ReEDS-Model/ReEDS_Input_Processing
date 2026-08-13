@@ -10,6 +10,11 @@ atb/inputs/
 atb/figures/
 atb/comparison/
 atb/_dev/
+# Raw ATB downloads; reproduced by scripts/scrape_atb_inputs.py from the URLs
+# pinned in atb/config.yaml, so they are never committed (see the File Size
+# Guidelines in the top-level README).
+atb/scraped_input/*
+!atb/scraped_input/README.md
 # Unpublished ATB 2025 manual inputs; keep local, never commit
 atb/manual_input/battery_costs_2025.csv
 atb/manual_input/csp_cost_ratios_2025.csv

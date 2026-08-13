@@ -32,5 +32,10 @@ HTTPS certificates are checked first. The
 may be retried with `verify=False`, which can be needed when the active conda
 environment does not trust an NLR network inspection certificate.
 
-Both raw files are tracked by Git so the exact upstream inputs used for a run
-can be preserved with the repository.
+Both raw files are local only and are never committed. The flat file is far
+above the 50 MB limit in the top-level [`README.md`](../../README.md) File Size
+Guidelines, and both files can be pulled directly from their upstream source, so
+this directory is ignored except for this README. Reproducibility comes from the
+URLs instead: they are pinned to a specific ATB release in
+[`../config.yaml`](../config.yaml) (ATB 2024 is pinned to corrected release v3),
+so re-running the scraper restores the exact inputs used for a run.
