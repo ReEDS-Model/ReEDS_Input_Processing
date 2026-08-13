@@ -92,6 +92,16 @@ techs:
       - fom
       - vom
       - cf_improvement
+    # ReEDS assigns the onshore wind columns by position rather than by name
+    # (plantcostprep.py), so the written file must keep this exact order and
+    # these exact headers. Maps internal column name -> ReEDS header.
+    output_cols:
+      turbine: Turbine
+      t: Year
+      cf_improvement: CF_mult
+      capcost: Overnight Cap Cost $/kW
+      fom: Fixed O&M $/(kW-yr)
+      vom: Var O&M $/MWh
     cfbase:
       t: 2035
       Scenario: Moderate
@@ -134,6 +144,17 @@ techs:
       - vom
       - cf_improvement
       - rsc_mult
+    # ReEDS detects the ATB 2024 offshore format by the presence of a 'Turbine'
+    # column and then assigns the remaining columns by position
+    # (plantcostprep.py), so both the headers and this order are required.
+    output_cols:
+      turbine: Turbine
+      t: Year
+      cf_improvement: CF_mult
+      capcost: Overnight Cap Cost $/kW
+      fom: Fixed O&M $/(kW-yr)
+      vom: Var O&M $/MWh
+      rsc_mult: rsc_mult
     cfbase:
       t: 2035
       Scenario: Moderate

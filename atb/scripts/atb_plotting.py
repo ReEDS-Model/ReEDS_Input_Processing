@@ -165,7 +165,8 @@ def make_plots(config, metrics=None, show=False, save_cleaned=False):
             clean_path = output_dir / (
                 f"atb_{config['atb']['year']}_{metric.lower().replace(' ', '_')}_cleaned.csv"
             )
-            data.to_csv(clean_path, index=False)
+            # LF line endings on every platform, matching the formatter's output
+            data.to_csv(clean_path, index=False, lineterminator="\n")
             print(f"Saved cleaned plotting data: {clean_path}")
         outputs.append(
             plot_metric(data, metric, config, plot_config["figure_format"], output_dir)

@@ -26,6 +26,10 @@ ATBDIR = os.path.dirname(THISDIR)
 # define zero marginal cost technologies (to assign zero 'vom' if input data is missing)
 zero_vom_techs = {'upv', 'wind-ons', 'wind-ofs', 'battery'}
 
+# write LF line endings on every platform so repeated runs on Windows do not
+# rewrite every versioned CSV with different line endings than the stored ones
+CSV_LINE_TERMINATOR = "\n"
+
 #%% ===========================================================================
 ### --- FUNCTIONS ---
 ### ===========================================================================
@@ -318,7 +322,7 @@ def _seed_history_from_reeds(
     history[costcols] = history[costcols] * adjustment
     history = history.sort_values(settings['techs'][tech]['cols']).reset_index(drop=True)
     os.makedirs(settings['history_dir'], exist_ok=True)
-    history.to_csv(history_path, index=False)
+    history.to_csv(history_path, index=False, lineterminator=CSV_LINE_TERMINATOR)
     print(
         f"...seeded {os.path.basename(history_path)} from "
         f"{os.path.basename(reeds_path)}"
@@ -385,7 +389,9 @@ def merge_historical_atb_data(
         updated_history = updated_history.sort_values(
             tech_settings['cols']
         ).reset_index(drop=True)
-        updated_history.to_csv(history_path, index=False)
+        updated_history.to_csv(
+            history_path, index=False, lineterminator=CSV_LINE_TERMINATOR
+        )
 
     output = pd.concat(combined, ignore_index=True)
     output = output.drop_duplicates(
@@ -618,6 +624,40 @@ def add_csp_techs(tech, settings, df, techcol='i'):
 
     return df_out
 
+def format_reeds_output(df, tech_settings):
+    """
+    function to apply the ReEDS output schema to a formatted scenario table
+
+    ReEDS reads some plant characteristic files by column position rather than by
+    column name, so those technologies declare an 'output_cols' mapping of
+    internal column name -> ReEDS header in settings.yaml. Technologies without
+    that mapping are written using the internal names in 'cols'.
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        Formatted single-scenario data using the internal column names
+    tech_settings: dict
+        Settings for the technology being written (settings['techs'][tech])
+    """
+    output_cols = tech_settings.get('output_cols')
+    if not output_cols:
+        return df
+    missing_cols = [c for c in output_cols if c not in df.columns]
+    if missing_cols:
+        raise ValueError(
+            f"The following columns are specified as 'output_cols' but are not in "
+            f"the data: {missing_cols}. Please update your 'settings.yaml'."
+        )
+    dropped_cols = [c for c in df.columns if c not in output_cols]
+    if dropped_cols:
+        raise ValueError(
+            f"'output_cols' does not cover every output column; missing "
+            f"{dropped_cols}. Please update your 'settings.yaml'."
+        )
+    return df[list(output_cols)].rename(columns=output_cols)
+
+
 def process_tech_file(atb_data, tech, settings, filenames, dollaryear, deflator, sensitivity_name, outfolder, args):
     """
     function to format per-technology output files
@@ -740,11 +780,19 @@ def process_tech_file(atb_data, tech, settings, filenames, dollaryear, deflator,
     if 'moderate' in scenarios:
         scenarios.insert(0, scenarios.pop(scenarios.index('moderate')))
 
+    # the file prefix ReEDS expects, which can differ from the internal tech key
+    # (e.g. 'wind-ons' is named 'ons-wind' in ReEDS)
+    filename_root = tech_settings.get('reeds_name', tech)
+    # the baseline every other scenario is compared against; always the moderate
+    # scenario when one exists, so a scenario is only skipped when it genuinely
+    # duplicates moderate rather than the previously written scenario
+    baseline = None
+
     for scenario in scenarios:
         if sensitivity_name is not None:
-            filename = f"{tech}_ATB_{settings['atbyear']}_{scenario}_{sensitivity_name}.csv"
+            filename = f"{filename_root}_ATB_{settings['atbyear']}_{scenario}_{sensitivity_name}.csv"
         else:
-            filename = f"{tech}_ATB_{settings['atbyear']}_{scenario}.csv"
+            filename = f"{filename_root}_ATB_{settings['atbyear']}_{scenario}.csv"
         # subset to scenario
         check_columns(tech_data_out, tech_settings['cols'], 'cols', tech)
         scendata = tech_data_out.loc[tech_data_out.Scenario == scenario, tech_settings['cols']]
@@ -755,21 +803,24 @@ def process_tech_file(atb_data, tech, settings, filenames, dollaryear, deflator,
         # sort in order of columns
         scendata = scendata.sort_values(by=scendata.columns.to_list()).reset_index(drop=True)
 
-        # if processing the moderate case or scendata_out doesn't exist, save current data to scendata_out
-        if scenario == "moderate" or 'scendata_out' not in locals():
-            scendata_out = scendata.copy()
-        # otherwise check if file is identical to moderate case
-        else:
-            # if current case is identical to the moderate, skip saving it and continue to next scenario
-            if scendata.equals(scendata_out):
-                print(f"...{scenario} is identical to the moderate scenario, skipping.")
-                continue
-            else:
-                scendata_out = scendata.copy()
+        if baseline is None:
+            baseline = scendata.copy()
+        # if the current case is identical to the baseline, skip saving it and
+        # continue to the next scenario
+        elif scendata.equals(baseline):
+            print(f"...{scenario} is identical to the {scenarios[0]} scenario, skipping.")
+            continue
+
+        # apply the ReEDS output schema (column order and headers) if specified
+        scendata_out = format_reeds_output(scendata, tech_settings)
 
         # save file
         print(f"Saving {filename}")
-        scendata_out.to_csv(os.path.join(outfolder, filename), index=False)
+        scendata_out.to_csv(
+            os.path.join(outfolder, filename),
+            index=False,
+            lineterminator=CSV_LINE_TERMINATOR,
+        )
         # keep list of filenames for copying to ReEDS later
         filenames.append(filename)
 
@@ -961,11 +1012,17 @@ def update_financials(settings, atb_data, outfolder):
 
     # write system and tech financial files
     sysfile_new = f"financials_sys_ATB{settings['atbyear']}.csv"
-    sysfinancial.to_csv(os.path.join(outfolder, sysfile_new),index=False)
+    sysfinancial.to_csv(
+        os.path.join(outfolder, sysfile_new), index=False,
+        lineterminator=CSV_LINE_TERMINATOR,
+    )
 
     techfile_new = f"financials_tech_ATB{settings['atbyear']}.csv"
     financials_out = financials_out[financials_old.columns]
-    financials_out.to_csv(os.path.join(outfolder, techfile_new),index=False)
+    financials_out.to_csv(
+        os.path.join(outfolder, techfile_new), index=False,
+        lineterminator=CSV_LINE_TERMINATOR,
+    )
 
     return sysfile_new, techfile_new
 
@@ -1034,7 +1091,10 @@ def main(args):
             for f in filenames:
                 shutil.copy(os.path.join(outfolder,f), os.path.join(settings['reedspath'],'inputs','plant_characteristics',f))
             # update dollaryear file for tech files
-            newdollaryear.to_csv(os.path.join(settings['reedspath'],'inputs','plant_characteristics','dollaryear.csv'), index=True)
+            newdollaryear.to_csv(
+                os.path.join(settings['reedspath'],'inputs','plant_characteristics','dollaryear.csv'),
+                index=True, lineterminator=CSV_LINE_TERMINATOR,
+            )
         
         # copy financial files
         if should_update_financials:
