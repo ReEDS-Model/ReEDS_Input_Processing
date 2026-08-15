@@ -14,18 +14,18 @@ def params():
     dir = os.getcwd()                                                                   # Main directory                                            
 
     # Key parameters:
-    # aeo_file = sys.argv[1]
-    # eia860M_ver_mon = sys.argv[2]                                                       # Most recent EIA 860M version month
-    # eia860M_ver_year = int(sys.argv[3])                                                 # Most recent EIA 860M version year
-    # battery_duration = float(sys.argv[4])
-    # current_year = int(sys.argv[5])                                                   
+    aeo_file = sys.argv[1]
+    eia860M_ver_mon = sys.argv[2]                                                       # Most recent EIA 860M version month
+    eia860M_ver_year = int(sys.argv[3])                                                 # Most recent EIA 860M version year
+    battery_duration = float(sys.argv[4])
+    current_year = int(sys.argv[5])                                                   
 
-    # For debugging:
-    aeo_file = 'PLTF860_RDB.xlsx'
-    eia860M_ver_mon = 'june'                                                      
-    eia860M_ver_year = 2026                                               
-    battery_duration = 2.9
-    current_year = 2026
+    # For testing:
+    # aeo_file = 'PLTF860_RDB.xlsx'
+    # eia860M_ver_mon = 'june'                                                      
+    # eia860M_ver_year = 2026                                               
+    # battery_duration = 2.9
+    # current_year = 2026
 
     gdbinputname = aeo_file
     gdboutname   = 'a_to_b.csv'
@@ -33,7 +33,7 @@ def params():
     return (dir, current_year, battery_duration, eia860M_ver_mon, eia860M_ver_year, gdbinputname, gdboutname)
 
 def main():
-    print("Starting b_data_cleaning.py")
+    print("Starting a_data_cleaning.py")
 
     (dir, current_year, battery_duration, eia860M_ver_mon, eia860M_ver_year, gdbinputname, gdboutname) = params()
 
@@ -46,7 +46,10 @@ def main():
 
     # =========================================================================
     # Save output file:
-    nems_cleaned.to_csv(os.path.join(dir,'outputs', gdboutname), index=False)
+    intermediate_output_path = os.path.join(dir,'outputs','intermediate_outputs')
+    os.makedirs(intermediate_output_path, exist_ok=True)
+
+    nems_cleaned.to_csv(os.path.join(intermediate_output_path, gdboutname), index=False)
     # =========================================================================
 
 ################################### MAIN FUNCTION ###################################
@@ -446,6 +449,10 @@ def cleanMergedAEOEIA860(merged_nems_eia860, battery_duration):
                           (nems_eia860_final['eia860']==0),'battery_duration'] = battery_duration
     nems_eia860_final = nems_eia860_final.reset_index(drop=True)
 
+    # For units that are marked PV in EIA860 but DST (battery) in NEMS, consider them PV
+    nems_eia860_final.loc[((nems_eia860_final['EFDcd']=='DST') | 
+                           (nems_eia860_final['Description'].str.contains('Solar'))),'tech'] = 'pv'
+    
     # Add energy capacity column:
     nems_eia860_final['energy_capacity_MWh'] = nems_eia860_final['battery_duration'] * nems_eia860_final['TC_SUM']
 
@@ -459,4 +466,4 @@ def cleanMergedAEOEIA860(merged_nems_eia860, battery_duration):
 
 main()
 
-print("Finished b_aeo_cleaning.py")
+print("Finished a_data_cleaning.py")
