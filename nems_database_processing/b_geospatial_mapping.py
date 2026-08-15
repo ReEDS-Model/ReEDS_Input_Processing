@@ -14,10 +14,10 @@ import geopandas as gpd
 
 #%%
 dir = os.getcwd()
-#reeds_path = sys.argv[1]
+reeds_path = sys.argv[1]
 
 # For testing
-reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'               # local
+#reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'               # local
 #reeds_path = '//kfs2/projects/stdscen/apham/ReEDS/'                       # kestrel
 
 reeds_path = os.path.expanduser(reeds_path)

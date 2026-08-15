@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import os
 
-def set_retire_years(nems,coal_plant_retirement,current_year):
+def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
 
 # =============================================================================
 # Technology naming convention
@@ -33,8 +33,8 @@ def set_retire_years(nems,coal_plant_retirement,current_year):
 
     ### Update retirement dates of coal plants 
     coal_retirement_upd = pd.read_csv(os.path.join('inputs','Coal_Retirements',coal_plant_retirement))
-    coal_retirement_upd = coal_retirement_upd.rename(columns={'State':'TSTATE', 'Plant Name':'T_PNM', 'Generator ID':'T_UID', 'Plant Code':'T_PID'})
-    coal_retirement_upd = coal_retirement_upd[['TSTATE', 'T_PNM', 'T_UID', 'T_PID', 'Retirement Year', 'MAT Exemptions']]
+    coal_retirement_upd = coal_retirement_upd.rename(columns={'Plant Name':'T_PNM', 'Generator ID':'T_UID', 'Plant Code':'T_PID'})
+    coal_retirement_upd = coal_retirement_upd[['T_PNM', 'T_UID', 'T_PID', 'Retirement Year', 'MAT Exemptions']]
     coal_retirement_upd['Retirement Year']  = coal_retirement_upd['Retirement Year'].fillna(9999)
     
     # Update retirement dates to reflect new MAT exception
@@ -42,11 +42,11 @@ def set_retire_years(nems,coal_plant_retirement,current_year):
     # If the plant is set to be retired after 2027 >> keep its retirement year
     coal_retirement_upd.loc[(coal_retirement_upd['MAT Exemptions']==1) & 
                             (coal_retirement_upd['Retirement Year']<=2027) & 
-                            (coal_retirement_upd['Retirement Year']>=2025),'Retirement Year'] = coal_retirement_upd['Retirement Year'] + 2
+                            (coal_retirement_upd['Retirement Year']>=current_year),
+                            'Retirement Year'] = coal_retirement_upd['Retirement Year'] + 2
     
     nems['T_PNM'] = nems['T_PNM'].apply(lambda x: x.rstrip())
-    nems['TSTATE'] = nems['TSTATE'].apply(lambda x: x.rstrip())
-    nems = nems.merge(coal_retirement_upd, on=['TSTATE', 'T_PNM', 'T_UID', 'T_PID'], how='left')
+    nems = nems.merge(coal_retirement_upd, on=['T_PNM', 'T_UID', 'T_PID'], how='left')
     nems['Retirement Year']  = nems['Retirement Year'].fillna(9999)
 
     for i in list(range(len(nems))):
@@ -63,7 +63,7 @@ def set_retire_years(nems,coal_plant_retirement,current_year):
     nems.loc[no_retires,'RetireYearGiven'] = False
     nems.loc[~no_retires,'RetireYearGiven'] = True
     
-    lifetimes = pd.read_csv(os.path.join('inputs','maxage.csv'))
+    lifetimes = pd.read_csv(os.path.join(reeds_path,'inputs','plant_characteristics','maxage.csv'))
     lifetimes.set_index('tech',inplace=True)
     
     for i in range(0,len(nems),1):
@@ -113,26 +113,26 @@ def set_retire_years(nems,coal_plant_retirement,current_year):
     nems_cleaned = nems.copy()
 
     ### Monroe: Units 3,4 changed to 2029 and units 1,2 to 2033:
-    nems_cleaned.loc[(nems_cleaned['TSTATE']=='MI') & (nems_cleaned['T_PNM'].str.contains('Monroe')) &
+    nems_cleaned.loc[(nems_cleaned['T_PNM'].str.contains('Monroe (MI)')) &
                      (nems_cleaned['tech']=='coaloldscr') & (nems_cleaned['T_RYR'] > 2021) &
                      ((nems_cleaned['T_UID']=='3') | (nems_cleaned['T_UID']=='4')),
                      'T_RYR'] = 2029
     
-    nems_cleaned.loc[(nems_cleaned['TSTATE']=='MI') & (nems_cleaned['T_PNM'].str.contains('Monroe')) &
+    nems_cleaned.loc[(nems_cleaned['T_PNM'].str.contains('Monroe (MI)')) &
                      (nems_cleaned['tech']=='coaloldscr') & (nems_cleaned['T_RYR'] > 2021) & 
                      ((nems_cleaned['T_UID']=='1') | (nems_cleaned['T_UID']=='2')),
                      'T_RYR'] = 2033
     
     ### Belle River: Convert coal units to peakers in 2026:
-    df_temp = nems_cleaned[(nems_cleaned['TSTATE']=='MI') & 
-                     (nems_cleaned['T_PNM'].str.contains('Belle River')) &
-                     (nems_cleaned['EFDcd']=='CSU')].copy()
+    df_temp = nems_cleaned[(nems_cleaned['FIPS']=='p26147') & 
+                           (nems_cleaned['T_PNM'].str.contains('Belle River')) &
+                           (nems_cleaned['EFDcd']=='CSU')].copy()
     df_temp['tech'] = 'o-g-s'
     df_temp['EFDcd'] = 'CTN'
     df_temp['T_SYR'] = 2026
     df_temp['T_RYR'] = 2081
 
-    nems_cleaned.loc[(nems_cleaned['TSTATE']=='MI') & (nems_cleaned['T_RYR'] > 2021) &
+    nems_cleaned.loc[(nems_cleaned['FIPS']=='p26147') & (nems_cleaned['T_RYR'] > 2021) &
                      (nems_cleaned['T_PNM'].str.contains('Belle River')) &
                      (nems_cleaned['EFDcd']=='CSU'),
                      'T_RYR'] = 2026
@@ -141,16 +141,15 @@ def set_retire_years(nems,coal_plant_retirement,current_year):
     nems_cleaned = nems_cleaned.reset_index(drop=True)
 
     ### Edgewater unit 5: Convert coal unis to gas-cc in 2028:
-    df_temp = nems_cleaned[(nems_cleaned['TSTATE']=='WI') & 
-                     (nems_cleaned['T_PNM'].str.contains('Edgewater')) &
-                     (nems_cleaned['T_UID'].str.contains('5')) &
-                     (nems_cleaned['EFDcd']=='CSC')].copy()
+    df_temp = nems_cleaned[(nems_cleaned['T_PNM'].str.contains('Edgewater')) &
+                           (nems_cleaned['T_UID'].str.contains('5')) &
+                           (nems_cleaned['EFDcd']=='CSC')].copy()
     df_temp['tech'] = 'gas-cc'
     df_temp['EFDcd'] = 'CTN'
     df_temp['T_SYR'] = 2028
     df_temp['T_RYR'] = 2108
 
-    nems_cleaned.loc[(nems_cleaned['TSTATE']=='WI') & (nems_cleaned['T_RYR'] > 2021) &
+    nems_cleaned.loc[(nems_cleaned['T_RYR'] > 2021) &
                      (nems_cleaned['T_UID'].str.contains('5')) &
                      (nems_cleaned['T_PNM'].str.contains('Edgewater')) &
                      (nems_cleaned['EFDcd']=='CSC'),
@@ -158,37 +157,16 @@ def set_retire_years(nems,coal_plant_retirement,current_year):
     nems_cleaned = pd.concat([nems_cleaned, df_temp], axis=0)
     nems_cleaned = nems_cleaned.reset_index(drop=True)
 
-    ### River Rouge and St Clair: Retire diesel fuel units in 2024:
-    nems_cleaned.loc[(nems_cleaned['TSTATE']=='MI') & (nems_cleaned['T_RYR'] > 2021) &
-                     (nems_cleaned['T_PNM'].str.contains('River Rouge')) &
-                     (nems_cleaned['EFDcd']=='CTO'),
-                     ['T_RYR','status']] = [2024,'(R) Retired']
-
-    nems_cleaned.loc[(nems_cleaned['TSTATE']=='MI') & (nems_cleaned['T_RYR'] > 2021) &
-                     (nems_cleaned['T_PNM'].str.contains('St Clair')) &
-                     (nems_cleaned['EFDcd']=='CTO'),
-                     ['T_RYR', 'status']] = [2024,'(R) Retired']
-    
     ### Diablo Canyon Nuclear Plant: Retire 1122 MW unit in 2029 and 1118 MW unit in 2030
-    nems_cleaned.loc[(nems_cleaned['TSTATE']=='CA') & (nems_cleaned['T_RYR'] > 2021) &
+    nems_cleaned.loc[(nems_cleaned['T_RYR'] > 2021) &
                      (nems_cleaned['T_PNM'].str.contains('Diablo Canyon')) &
                      (nems_cleaned['tech']=='nuclear') & (nems_cleaned['TC_SUM'] == 1122),
                      'T_RYR'] = 2029
     
-    nems_cleaned.loc[(nems_cleaned['TSTATE']=='CA') & (nems_cleaned['T_RYR'] > 2021) &
+    nems_cleaned.loc[(nems_cleaned['T_RYR'] > 2021) &
                      (nems_cleaned['T_PNM'].str.contains('Diablo Canyon')) &
                      (nems_cleaned['tech']=='nuclear') & (nems_cleaned['TC_SUM'] == 1118),
                      'T_RYR'] = 2030
-
-    ### Palisades Nuclear: Restart in 2026:
-    df_temp = nems_cleaned[(nems_cleaned['TSTATE']=='MI') & 
-                     (nems_cleaned['T_PNM'].str.contains('Palisades')) &
-                     (nems_cleaned['T_PID']==1715) &
-                     (nems_cleaned['T_UID'].str.contains('1')) &
-                     (nems_cleaned['EFDcd']=='CNU')].copy()
-    df_temp['tech'] = 'nuclear'
-    df_temp['T_SYR'] = 2026
-    df_temp[['T_RYR','status']] = [2106,'(OP) Operating']
 
     nems_cleaned.loc[(nems_cleaned['TSTATE']=='MI') & (nems_cleaned['T_RYR'] > 2025) &
                      (nems_cleaned['T_PNM'].str.contains('Palisades')) &
@@ -200,39 +178,35 @@ def set_retire_years(nems,coal_plant_retirement,current_year):
     nems_cleaned = nems_cleaned.reset_index(drop=True)      
 
     ### Duane Arnold Nuclear: Restart in 2029:
-    df_temp = nems_cleaned[(nems_cleaned['TSTATE']=='IA') & 
-                     (nems_cleaned['T_PNM'].str.contains('Duane Arnold')) &
-                     (nems_cleaned['T_PID']==1060) &
-                     (nems_cleaned['T_UID'].str.contains('1')) &
-                     (nems_cleaned['EFDcd']=='CNU')].copy()
+    df_temp = nems_cleaned[(nems_cleaned['T_PNM'].str.contains('Duane Arnold')) &
+                           (nems_cleaned['T_PID']==1060) &
+                           (nems_cleaned['T_UID'].str.contains('1')) &
+                           (nems_cleaned['EFDcd']=='CNU')].copy()
     df_temp['tech'] = 'nuclear'
     df_temp['T_SYR'] = 2029
-    df_temp[['T_RYR','status']] = [2109,'(OP) Operating']
+    df_temp[['T_RYR','status']] = [2109,'(P) Planned']
 
     nems_cleaned = pd.concat([nems_cleaned, df_temp], axis=0)
     nems_cleaned = nems_cleaned.reset_index(drop=True)        
 
     ### Three Mile Island Nuclear: Restart in 2027:
     # Three Mile Island is no longer in the AEO database and is not yet in the EIA860M database
-    # So use Duane Arnold Nuclear as base then fill in old Three Mile Island Data from AEO 2023 with updated retire year
-    df_temp = nems_cleaned[(nems_cleaned['TSTATE']=='IA') & 
-                     (nems_cleaned['T_PNM'].str.contains('Duane Arnold')) &
-                     (nems_cleaned['T_PID']==1060) &
-                     (nems_cleaned['T_UID'].str.contains('1')) &
-                     (nems_cleaned['EFDcd']=='CNU') &
-                     (nems_cleaned['status']=='(R) Retired')].copy()
+    # So use Duane Arnold Nuclear as base then fill in old Three Mile Island Data from AEO 2026 with updated retire year
+    df_temp = nems_cleaned[(nems_cleaned['T_PNM'].str.contains('Duane Arnold')) &
+                           (nems_cleaned['T_PID']==1060) &
+                           (nems_cleaned['T_UID'].str.contains('1')) &
+                           (nems_cleaned['EFDcd']=='CNU') &
+                           (nems_cleaned['status']=='(R) Retired')].copy()
     df_temp['tech'] = 'nuclear'
     df_temp['T_SYR'] = 2027
     df_temp['T_PNM'] = 'Three Mile Island'
     df_temp[['TC_SUM','TC_WIN','TC_NP']] = [802.8,829,980.8]
     df_temp[['T_PID','T_CID','T_UID']] = [8011,'55951','1']
-    df_temp[['TSTATE','county','FIPS','T_PCA','T_IGRP','T_GRP','T_GRP2']] = ['PA','Dauphin County','p42043','PJM',5266,5266,1]
-    df_temp[['TFOWN','T_MRUN','TEFPT','TNOPER','TNOWN','T_CLRG','T_CR','T_GR','TCOUNT']] = [3,0,10,10,10,2,2,2,1]
-    df_temp[['TRFURB','T_SMO','T_RMO','T_CF']] = [1974,2019,9,0.99]
-    df_temp[['M_CF_JAN','M_CF_FEB','M_CF_MAR','M_CF_APR','M_CF_MAY','M_CF_JUN','M_CF_JUL','M_CF_AUG','M_CF_SEP','M_CF_OCT','M_CF_NOV','M_CF_DEC']] = [1,1,1,1,1,1,1,1,0.879,0.892,1,0.893]
+    df_temp[['FIPS','T_PCA','T_IGRP','T_GRP','T_GRP2']] = ['p42043','PJM',5266,5266,1]
+    df_temp[['TRFURB','T_SMO','T_RMO']] = [1974,2019,9]
     df_temp[['T_LONG','T_LAT']] = [-76.723,40.152]
-    df_temp[['T_VOM','T_FOM','T_CAPAD','TOID']] = [0.077,124.414,17.962,12390]
-    df_temp[['T_RYR','status']] = [2107,'(OP) Operating']
+    df_temp[['T_VOM','T_FOM','T_CAPAD']] = [0.077,124.414,17.962]
+    df_temp[['T_RYR','status']] = [2107,'(P) Planned']
 
     nems_cleaned = pd.concat([nems_cleaned, df_temp], axis=0)
     nems_cleaned = nems_cleaned.reset_index(drop=True)                                                                       

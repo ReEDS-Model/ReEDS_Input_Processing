@@ -21,11 +21,11 @@ def params():
     current_year = int(sys.argv[5])                                                   
 
     # For testing:
-    # aeo_file = 'PLTF860_RDB.xlsx'
-    # eia860M_ver_mon = 'june'                                                      
-    # eia860M_ver_year = 2026                                               
-    # battery_duration = 2.9
-    # current_year = 2026
+    #aeo_file = 'PLTF860_RDB.xlsx'
+    #eia860M_ver_mon = 'june'                                                      
+    #eia860M_ver_year = 2026                                               
+    #battery_duration = 2.9
+    #current_year = 2026
 
     gdbinputname = aeo_file
     gdboutname   = 'a_to_b.csv'
@@ -297,10 +297,14 @@ def mergeAEOandEIA860M(aeo_data, eia860M_data, current_year, aeo_cols, eia_cols)
     nems_eia860_merged['T_PNM'] = np.where(nems_eia860_merged['Plant Name'].notna(), 
                                            nems_eia860_merged['Plant Name'],
                                            nems_eia860_merged['T_PNM'])
-    nems_eia860_merged['T_SYR'] = np.where(nems_eia860_merged['T_SYR_EIA860'].notna(), 
+    nems_eia860_merged['T_SYR'] = np.where((nems_eia860_merged['T_SYR_EIA860'].notna()) &
+                                           ((nems_eia860_merged['T_SYR'].isna()) |
+                                            (nems_eia860_merged['T_SYR_EIA860'] > nems_eia860_merged['T_SYR'])), 
                                            nems_eia860_merged['T_SYR_EIA860'],
                                            nems_eia860_merged['T_SYR'])
-    nems_eia860_merged['T_RYR'] = np.where(nems_eia860_merged['T_RYR_EIA860'].notna(), 
+    nems_eia860_merged['T_RYR'] = np.where((nems_eia860_merged['T_RYR_EIA860'].notna()) &
+                                           ((nems_eia860_merged['T_RYR'].isna()) | 
+                                            (nems_eia860_merged['T_RYR']< nems_eia860_merged['T_RYR_EIA860'])), 
                                            nems_eia860_merged['T_RYR_EIA860'],
                                            nems_eia860_merged['T_RYR'])
     nems_eia860_merged['T_LAT'] = np.where(nems_eia860_merged['Latitude'].notna(), 
@@ -449,8 +453,8 @@ def cleanMergedAEOEIA860(merged_nems_eia860, battery_duration):
                           (nems_eia860_final['eia860']==0),'battery_duration'] = battery_duration
     nems_eia860_final = nems_eia860_final.reset_index(drop=True)
 
-    # For units that are marked PV in EIA860 but DST (battery) in NEMS, consider them PV
-    nems_eia860_final.loc[((nems_eia860_final['EFDcd']=='DST') | 
+    # For units that are marked PV in EIA860 but DST (battery) in NEMS, consider them PV 
+    nems_eia860_final.loc[((nems_eia860_final['EFDcd']=='DST') & 
                            (nems_eia860_final['Description'].str.contains('Solar'))),'tech'] = 'pv'
     
     # Add energy capacity column:
@@ -461,6 +465,14 @@ def cleanMergedAEOEIA860(merged_nems_eia860, battery_duration):
     # If pvb units do not have energy cap (assigned as solar PV in EIA860), rename their tech as pvb_pv
     nems_eia860_final.loc[(nems_eia860_final['tech']=='pvb') & (~nems_eia860_final['battery_duration'].isna()), 'tech'] = 'pvb_battery'
     nems_eia860_final.loc[(nems_eia860_final['tech']=='pvb') & (nems_eia860_final['battery_duration'].isna()), 'tech'] = 'pvb_pv'
+
+    # Drop tech = 'others' since they are all Flywheels
+    nems_eia860_final.loc[nems_eia860_final['tech']!='others']
+    
+    # Drop any duplicates in terms of T_PID, T_UID, TC_SUM, T_SYR, and T_RYR
+    # (in case merging creates doubles)
+    nems_eia860_final = nems_eia860_final.drop_duplicates(subset=['T_PID','T_UID','TC_SUM','T_SYR','T_RYR'], 
+                                                          keep='first', inplace=False, ignore_index=False)
 
     return nems_eia860_final
 

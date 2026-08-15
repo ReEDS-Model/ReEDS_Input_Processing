@@ -5,7 +5,6 @@ import sys
 def categorize(eha_file, dispatchability_file, reedsgens):
 
     # Load EHA dataset
-
     eha = pd.read_excel(eha_file, sheet_name="Operational")
     dispatchability = pd.read_csv(dispatchability_file, index_col="Mode")
     eha = eha.join(dispatchability, on="Mode")
@@ -15,9 +14,10 @@ def categorize(eha_file, dispatchability_file, reedsgens):
 
     # Determine plant-level dispatchability classifications
 
-    eha_plants = eha.loc[:, ["Number_of_Units", "CH_MW", "ReEDSPCA", "dispatchable", "nondispatchable", "unknowndispatchable", "EIA_PtID"]].groupby("EIA_PtID").sum()
-    eha_plants.columns = ["eha_units", "eha_capacity", "eha_pca",
-        "eha_units_dispatchable", "eha_units_nondispatchable", "eha_units_unknowndispatchable"]
+    eha_plants = eha.loc[:, ["Number_of_Units", "CH_MW", "ReEDSPCA", "dispatchable", "nondispatchable", 
+                             "unknowndispatchable", "EIA_PtID"]].groupby("EIA_PtID").sum()
+    eha_plants.columns = ["eha_units", "eha_capacity", "eha_pca","eha_units_dispatchable", 
+                          "eha_units_nondispatchable", "eha_units_unknowndispatchable"]
     eha_plants.index.name = "EIAPlantID"
 
     eha_plants["eha_tech"] = "mixed"
@@ -27,9 +27,9 @@ def categorize(eha_file, dispatchability_file, reedsgens):
 
     # Map dispatchabilities to ReEDS units
 
-    result = reedsgens.loc[reedsgens.tech == "hydro", ["T_PID", "T_UID", "TSTATE", "TC_SUM"]]
+    result = reedsgens.loc[reedsgens.tech == "hydro", ["T_PID","T_UID","TC_SUM"]]
     result.rename({"T_PID": "eia_plant_id", "T_UID": "eia_unit_id",
-                   "TSTATE": "state", "TC_SUM": "summer_power_capacity_MW"}, inplace=True, axis=1)
+                   "TC_SUM": "summer_power_capacity_MW"}, inplace=True, axis=1)
 
     result = result.join(eha_plants.loc[:, ["eha_tech", "eha_pca"]], on="eia_plant_id")
 
@@ -67,15 +67,19 @@ def categorize(eha_file, dispatchability_file, reedsgens):
 
 if __name__ == "__main__":
 
-    print("Starting d_hydro_classification.py")
+    print("Starting c_hydro_classification.py")
 
-    gdbinputname = 'c_to_d.csv'
-    gdboutputname = 'd_to_e.csv'
+    gdbinputname = 'b_to_c.csv'
+    gdboutputname = 'c_to_d.csv'
 
     ornl_hydro_unit_ver = sys.argv[1]
     hydro_dispatchability = sys.argv[2]
 
-    gendb = pd.read_csv(os.path.join('outputs', gdbinputname),
+    # For testing
+    #ornl_hydro_unit_ver = 'ORNL_EHAHydroPlant_PublicFY2024.xlsx'
+    #hydro_dispatchability = 'EHA_dispatchability.csv'
+
+    gendb = pd.read_csv(os.path.join('outputs','intermediate_outputs',gdbinputname),
                         float_precision="round_trip", low_memory=False)
 
     eha_techs = categorize(
@@ -89,7 +93,7 @@ if __name__ == "__main__":
     gendb.loc[~gendb.eha_tech.isna(), "tech"] = gendb.loc[~gendb.eha_tech.isna(), "eha_tech"]
     gendb.drop(columns="eha_tech", inplace=True)
 
-    gendb.to_csv(os.path.join('outputs', gdboutputname), index=False)
+    gendb.to_csv(os.path.join('outputs', 'intermediate_outputs', gdboutputname), index=False)
 
-    print("Finished d_hydro_classification.py")
+    print("Finished c_hydro_classification.py")
 

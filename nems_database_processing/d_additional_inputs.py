@@ -9,46 +9,46 @@ import pandas as pd
 import os
 import sys
 import numpy as np
-from e1_set_retire_years import set_retire_years
-from e2_fix_upgrades import fix_upgrades
-from e3_merge_psh_dbs import merge_psh_dbs
+from d1_set_retire_years import set_retire_years
+from d2_fix_upgrades import fix_upgrades
+from d3_merge_psh_dbs import merge_psh_dbs
 
 #%%
-current_fleet_yr = int(sys.argv[1])
-hydro_prjtype = sys.argv[2]
-ornl_hydro_unit_ver = sys.argv[3]
-coal_plant_retirement = sys.argv[4]
-gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_' + str(current_fleet_yr) + '.csv'
-current_year = int(sys.argv[5])
-output_changes = 1
+#current_fleet_yr = int(sys.argv[1])
+#hydro_prjtype = sys.argv[2]
+#ornl_hydro_unit_ver = sys.argv[3]
+#coal_plant_retirement = sys.argv[4]
+#current_year = int(sys.argv[5])
+#reeds_path = sys.argv[6]
 
 # For debugging
-#reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'
-#current_fleet_yr=2024
-#current_year=2025
-#hydro_prjtype='EHA_FY22_post2009_prjtype.xlsx'
-#ornl_hydro_unit_ver='ORNL_EHAHydroUnit_PublicFY2024.xlsx'
-#coal_plant_retirement='EIA860_2025ER_CoalRetirements.csv'
-#gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_2024.csv'
+reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'
+current_fleet_yr=2025
+current_year=2026
+hydro_prjtype='EHA_FY22_post2009_prjtype.xlsx'
+ornl_hydro_unit_ver='ORNL_EHAHydroUnit_PublicFY2024.xlsx'
+coal_plant_retirement='EIA860_2025ER_CoalRetirements.csv'
 
-print("Starting e_additional_inputs.py")
+reeds_path = os.path.expanduser(reeds_path)
+sys.path.append(reeds_path)
+import reeds
 
-gdbinputname = 'd_to_e.csv'
+output_changes = 1
+
+gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_' + str(current_fleet_yr) + '.csv'
+
+print("Starting d_additional_inputs.py")
+
+gdbinputname = 'c_to_d.csv'
 gdbfinalname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
 
-dfin = pd.read_csv(os.path.join('outputs',gdbinputname), low_memory=False)
+dfin = pd.read_csv(os.path.join('outputs','intermediate_outputs',gdbinputname), low_memory=False)
 
-df2 = set_retire_years(dfin,coal_plant_retirement,current_year)
+df2 = set_retire_years(dfin,reeds_path, coal_plant_retirement,current_year)
 
 df2b = fix_upgrades(df2)
 
 df3 = merge_psh_dbs(df2b,hydro_prjtype,ornl_hydro_unit_ver)
-
-# Set California Batteries to have a 4-hour duration.  All others have a 2-hour duration.
-index_battery_CA = (df3['tech'] == 'battery') & (df3['TSTATE'] == 'CA')
-index_battery_notCA = (df3['tech'] == 'battery') & (df3['TSTATE'] != 'CA')
-df3.loc[index_battery_notCA,'tech'] = 'battery_li'
-df3.loc[index_battery_CA,'tech'] = 'battery_li'
 
 #%% Map water techs to those that do not have any
 
@@ -236,4 +236,4 @@ dfout = dfout[columns_to_keep]
 
 dfout.to_csv(os.path.join('outputs',gdbfinalname),index=False)
 
-print("Finished e_additional_inputs.py")
+print("Finished d_additional_inputs.py")

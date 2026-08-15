@@ -34,7 +34,7 @@ gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_july_2026.csv'
 #gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_' + str(current_fleet_yr) + '.csv'
 gdbfinalname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
 
-dfold = pd.read_csv(os.path.join('inputs','inheritance',gdboldname), low_memory=False)
+dfold = pd.read_csv(os.path.join('inputs','Inheritance',gdboldname), low_memory=False)
 dfnew = pd.read_csv(os.path.join('outputs',gdbfinalname), low_memory=False)
 
 # Read county2zone
