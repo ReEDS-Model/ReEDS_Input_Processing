@@ -1,27 +1,36 @@
-aeo_tech,reeds_tech
-Batteries,battery_li
-Hydroelectric Pumped Storage,pumped-hydro
-Coal Integrated Gasification Combined Cycle,coal-igcc
-Conventional Steam Coal,coalolduns
-Conventional Hydroelectric,hydro
-Geothermal,geothermal
-Offshore Wind Turbine,wind-ofs
-Onshore Wind Turbine,wind-ons
-Solar Photovoltaic,pv
-Solar Thermal with Energy Storage,csp-ns
-Solar Thermal without Energy Storage,csp-ns
-Natural Gas Fired Combined Cycle,gas-cc
-Natural Gas Fired Combustion Turbine,gas-ct
-Natural Gas Internal Combustion Engine,gas-ct
-Natural Gas with Compressed Air Storage,gas-ct
-Natural Gas Steam Turbine,o-g-s
-Other Natural Gas,o-g-s
-Other Gases,o-g-s
-Petroleum Coke,o-g-s
-Petroleum Liquids,o-g-s
-Nuclear,nuclear
-Biomass,biopower
-Other Waste Biomass,biopower
-Wood/Wood Waste Biomass,biopower
-Municipal Solid Waste,lfill-gas
-Landfill Gas,lfill-gas
+EFDcd,reeds_tech,Description
+ACC,gas-cc,Advanced Combined Cycle
+ACS,gas-cc-ccs,Adv. Combined Cyc w/Sequestration
+ACT,gas-ct,Advanced Turbine
+ANC,nuclear,Advanced Nuclear
+BMS,biopower,Wood/Biomass
+CAS,coal-ccs,New Adv. Coal with Sequestration
+CAV,coal-igcc,New Advanced Coal
+CCG,gas-cc,Gas Combined Cycle
+CCO,gas-cc,Oil Combined Cycle
+CCX,gas-cc,Oil/Gas Combined Cycle
+CNC,coal-new,New Coal Steam
+CNU,nuclear,Conventional Nuclear
+COU,coalolduns,Coal Steam pre-1965
+CSC,coaloldscr,Coal Steam with Scrubber
+CSU,coalolduns,Coal Steam post-1965
+CTN,o-g-s,Coal to Gas Retrofit
+CTG,gas-ct,Gas Turbine
+CTO,o-g-s,Oil Turbine
+CTX,gas-ct,Oil/Gas Turbine
+DGB,na,Distributed Generation-Base
+DGP,na,Distributed Generation-Peak
+DST,battery_li,Battery Storage
+FCG,o-g-s,Fuel Cell
+GTH,geothermal,Geothermal
+HYC,hydro,Conventional Hydroelectric
+HYR,pumped-hydro,Reversible Hydroelectric
+MSW,lfill-gas,Municipal Solid Waste
+PVT,pvb,PV+Battery Hybrid
+SPV,pv,Solar Photovoltaic
+STG,o-g-s,Gas Steam
+STH,csp-ns,Solar Thermal
+STO,o-g-s,Oil Steam
+STX,o-g-s,Oil/Gas Steam
+WFS,wind-ofs,Offshore Wind
+WND,wind-ons,Land-based Wind

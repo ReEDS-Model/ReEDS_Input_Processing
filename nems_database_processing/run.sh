@@ -33,7 +33,7 @@ battery_duration=2.9
 
 ############## Run scripts to process fleet ##############
 ##########################################################
-python a_data_cleaning.py "$aeo_file" "$eia860M_ver_mon" "$eia860M_ver_year" "$nems_ver" "$battery_duration"
+python a_data_cleaning.py "$aeo_file" "$eia860M_ver_mon" "$eia860M_ver_year" "$nems_ver" "$battery_duration" "$current_year"
 python b_geospatial_mapping.py "$reeds_path"
 python c_hydro_classification.py "$ornl_hydro_plant_ver" "$hydro_dispatchability"
 python d_additional_inputs.py "$current_reeds_fleet_ver" "$hydro_prjtype" "$ornl_hydro_unit_ver" "$coal_plant_retirement" "$current_year"
