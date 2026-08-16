@@ -8,10 +8,12 @@ Created on Tue Mar 26 16:33:51 2019
 import pandas as pd
 
 def fix_upgrades(nems):
+    print('here 1')
 
     nems["Unique ID"] = nems.index
     
-    subset = nems[['tech','summer_power_capacity_MW','RetireYear','StartYear','IsExistUnit','HeatRate','T_PID','TVIN','TRFURB','Unique ID']]
+    subset = nems[['tech','summer_power_capacity_MW','RetireYear','StartYear','IsExistUnit',
+                   'HeatRate','T_PID','TVIN','TRFURB','Unique ID']]
     
     # Note that T_SYR (now StartYear) is the online year for the most recent time the unit
     # came online. TRFURB holds the original start date of the plant.
@@ -39,6 +41,7 @@ def fix_upgrades(nems):
     start = -1
     i = 0
     while i in range(0,len(upgrades),1):
+        print(i)
         # Cycle through the rows until you find a retired unit (TVIN == 6)
         # Log the id, then keep going until you find the refurbed unit (TVIN == 7)
         if start == -1 and upgrades.loc[i,'TVIN'] == 6:
@@ -77,7 +80,6 @@ def fix_upgrades(nems):
     for refurb in range(0,len(plant_refurbs),1):
         nems.loc[plant_refurbs.loc[refurb,'UID_refurb'],'StartYear'] = nems.loc[plant_refurbs.loc[refurb,'UID_retire'],'StartYear']
     
-
     # For plants with upgraded capacity, add the capacity difference as a new plant
     for upgrade in range(0,len(plant_upgrades),1):
         nems.loc[plant_upgrades.loc[upgrade,'UID_retire'],'RetireYear'] = nems.loc[plant_upgrades.loc[upgrade,'UID_refurb'],'RetireYear']
@@ -87,5 +89,6 @@ def fix_upgrades(nems):
     remove_plants = plant_refurbs['UID_retire'].tolist() + intermediate_ids
     
     nems = nems[~nems['Unique ID'].isin(remove_plants)]
+    print('here 2')
         
     return nems

@@ -19,9 +19,9 @@ eia860M_ver_year=2026
 
 # Hydro units files:
 ornl_hydro_plant_ver='ORNL_EHAHydroPlant_PublicFY2024.xlsx'
+ornl_hydro_unit_ver='ORNL_EHAHydroUnit_PublicFY2024.xlsx'
 hydro_dispatchability='EHA_dispatchability.csv'
 hydro_prjtype='EHA_FY22_post2009_prjtype.xlsx'
-ornl_hydro_unit_ver='ORNL_EHAHydroUnit_PublicFY2024.xlsx'
 
 # Coal plant retirement file:
 coal_plant_retirement='EIA860_2025ER_CoalRetirements.csv'

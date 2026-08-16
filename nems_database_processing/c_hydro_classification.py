@@ -26,7 +26,6 @@ def categorize(eha_file, dispatchability_file, reedsgens):
     eha_plants.loc[eha_plants.eha_units == eha_plants.eha_units_unknowndispatchable, "eha_tech"] = "unavailable"
 
     # Map dispatchabilities to ReEDS units
-
     result = reedsgens.loc[reedsgens.tech == "hydro", ["T_PID","T_UID","TC_SUM"]]
     result.rename({"T_PID": "eia_plant_id", "T_UID": "eia_unit_id",
                    "TC_SUM": "summer_power_capacity_MW"}, inplace=True, axis=1)
