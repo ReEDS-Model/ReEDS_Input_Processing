@@ -53,7 +53,7 @@ df3 = merge_psh_dbs(df2b,hydro_prjtype,ornl_hydro_unit_ver)
 #%% Map water techs to those that do not have any
 
 # Gather as many water techs from the original database as possible
-dfold = pd.read_csv(os.path.join('inputs','Inheritance',gdboldname), low_memory=False)
+dfold = pd.read_csv(os.path.join('inputs','inheritance',gdboldname), low_memory=False)
 dfold['merge_id'] = dfold['T_PID'].astype(str).str.strip() + "_" + dfold['T_UID'].astype(str).str.strip()
 dfold = dfold[['merge_id','ctt','wst']].copy()
 dfold_ct = dfold.groupby(by = 'merge_id').first().reset_index()
@@ -170,12 +170,12 @@ if output_changes:
         ]
     if len(checkFVOM):
         print('Some units requiring FOM/VOM assignments still exist. Printing list '
-            'of units out to outputs/debug_fix_FOM_VOM.csv')
-        checkFVOM.to_csv(os.path.join('outputs','debug_fix_FOM_VOM.csv'))
+            'of units out to outputs/debug/debug_fix_FOM_VOM.csv')
+        checkFVOM.to_csv(os.path.join('outputs','debug', 'debug_fix_FOM_VOM.csv'))
         sys.exit()
     else:
-        if os.path.exists(os.path.join('outputs','debug_fix_FOM_VOM.csv')):
-            os.remove(os.path.join('outputs','debug_fix_FOM_VOM.csv'))
+        if os.path.exists(os.path.join('outputs','debug','debug_fix_FOM_VOM.csv')):
+            os.remove(os.path.join('outputs','debug','debug_fix_FOM_VOM.csv'))
 
 # Output changes to FOM/VOM if desired:
 if output_changes:
@@ -188,7 +188,7 @@ if output_changes:
     dfout_OMchange = dfout_OMchange[['summer_power_capacity_MW','T_PID','T_UID','T_PNM',
                                      'old_VOM','new_VOM','VOM_from_Unique_ID',
                                      'old_FOM','new_FOM','FOM_from_Unique_ID']]
-    dfout_OMchange.to_csv(os.path.join('outputs','debug_OM_changes.csv'),
+    dfout_OMchange.to_csv(os.path.join('outputs','debug','debug_OM_changes.csv'),
                           index=True)
     
     dfout = df6.copy()

@@ -82,8 +82,8 @@ if __name__ == "__main__":
                         float_precision="round_trip", low_memory=False)
 
     eha_techs = categorize(
-        os.path.join('inputs','ORNL_EHA',ornl_hydro_unit_ver),
-        os.path.join('inputs','ORNL_EHA',hydro_dispatchability),
+        os.path.join('inputs','ornl_eha',ornl_hydro_unit_ver),
+        os.path.join('inputs','ornl_eha',hydro_dispatchability),
         gendb)
 
     # Merge EHA unit data back into new unit database file

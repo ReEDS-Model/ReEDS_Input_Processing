@@ -45,8 +45,8 @@ def merge_psh_dbs(gendb,hydro_prjtype,ornl_hydro_unit_ver):
     #%% PROCEDURE
 
     # IMPORT DATA FILES
-    db1 = pd.read_excel(os.path.join('inputs','ORNL_EHA',hydro_prjtype))
-    db2 = pd.read_excel(os.path.join('inputs','ORNL_EHA',ornl_hydro_unit_ver),
+    db1 = pd.read_excel(os.path.join('inputs','ornl_eha',hydro_prjtype))
+    db2 = pd.read_excel(os.path.join('inputs','ornl_eha',ornl_hydro_unit_ver),
                         sheet_name='Operational')
     # gendb = pd.read_csv(os.path.join(reedsdir,'inputs','capacitydata',
     #                                  'ReEDS_generator_database_final_EIA-NEMS.csv'),

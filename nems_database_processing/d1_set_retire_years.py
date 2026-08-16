@@ -28,7 +28,7 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
     # =============================================================================
 
     ### Update retirement dates of coal plants 
-    coal_retirement_upd = pd.read_csv(os.path.join('inputs','Coal_Retirements',coal_plant_retirement))
+    coal_retirement_upd = pd.read_csv(os.path.join('inputs','coal_retirements',coal_plant_retirement))
     coal_retirement_upd = coal_retirement_upd.rename(columns={'Plant Name':'T_PNM', 'Generator ID':'T_UID', 'Plant Code':'T_PID'})
     coal_retirement_upd = coal_retirement_upd[['T_PNM', 'T_UID', 'T_PID', 'Retirement Year', 'MAT Exemptions']]
     coal_retirement_upd['Retirement Year']  = coal_retirement_upd['Retirement Year'].fillna(9999)

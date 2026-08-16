@@ -116,7 +116,7 @@ def processAEOandEIA860(dir, current_year, battery_duration, eia860M_ver_mon, ei
 #####################################################################################  
 
 def cleanAEOData(dir, gdbinputname):
-    aeo_data = pd.read_excel(os.path.join(dir,'inputs','AEO_NEMS',gdbinputname))
+    aeo_data = pd.read_excel(os.path.join(dir,'inputs','aeo_nems',gdbinputname))
     aeo_data = aeo_data.astype({'T_PID':'string','T_UID':'string', 'T_SYR': 'int', 'T_RYR': 'int'})
     aeo_data['T_PID'] = aeo_data['T_PID'].str.replace(" ", "")
     aeo_data['T_UID'] = aeo_data['T_UID'].str.replace(" ", "")
@@ -148,7 +148,7 @@ def cleanAEOData(dir, gdbinputname):
   
 def cleanEIA860MData(dir, current_year, ver_mon, ver_year, battery_duration, status):
     
-    eia860M_data = pd.read_excel(os.path.join(dir,'inputs','EIA860M',
+    eia860M_data = pd.read_excel(os.path.join(dir,'inputs','eia860M',
                                               ver_mon+'_generator'+str(ver_year)+'.xlsx'), 
                                               sheet_name=status, header=1, index_col=False)
     # Drop first row since it's empty

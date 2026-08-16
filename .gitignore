@@ -1,19 +1,10 @@
 log.txt
-gens_user_defined_out.csv
-gen_database_updated_test.csv
 *.gdx
 *.lst
-gens_fixme.csv
-ATB/inputs/
-/NEMS_database_processing/Outputs/
-/AEO_Updates/outputs/
-/AEO_Updates/output/AEO_HIGHMACRO_2021_electricity_consumption.csv
-/AEO_Updates/output/AEO_HIGHOGS_2021_ng_prices.csv
-/AEO_Updates/output/AEO_LOWMACRO_2021_electricity_consumption.csv
-/AEO_Updates/output/AEO_REF2021_2021_electricity_consumption.csv
-/AEO_Updates/output/AEO_REF2021_2021_ng_prices.csv
-/ATB/figures/
-
+atb/inputs/
+atb/figures/
+/nems_database_processing/outputs/
+/aeo_updates/outputs/
 # pyc files
 *.pyc
 *__pycache__
