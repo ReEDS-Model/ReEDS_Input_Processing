@@ -27,10 +27,6 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
     # Retire years
     # =============================================================================
 
-    #nems.loc[pd.isna(nems['T_RYR']),'RetireYearGiven'] = False
-    #nems.loc[nems['T_RYR']==' ','RetireYearGiven'] = False
-    #nems.loc[nems['RetireYearGiven']!= False,'RetireYearGiven'] = True
-
     ### Update retirement dates of coal plants 
     coal_retirement_upd = pd.read_csv(os.path.join('inputs','Coal_Retirements',coal_plant_retirement))
     coal_retirement_upd = coal_retirement_upd.rename(columns={'Plant Name':'T_PNM', 'Generator ID':'T_UID', 'Plant Code':'T_PID'})
@@ -63,21 +59,44 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
     nems.loc[no_retires,'RetireYearGiven'] = False
     nems.loc[~no_retires,'RetireYearGiven'] = True
     
-    lifetimes = pd.read_csv(os.path.join(reeds_path,'inputs','plant_characteristics','maxage.csv'))
+    lifetimes = pd.read_csv(os.path.join(reeds_path,'inputs','plant_characteristics','maxage.csv'),
+                            header=None, names=['tech','lifetime'])
+    lifetimes['tech'] = lifetimes['tech'].str.lower()
+
+    # Assign lifetime for lfill-gas and pumped-hydro = 100 years,
+    # assign lifetime for csp-ns = that of upv,
+    # and assign lifetime for pvb = that of pv
+    lifetime_lfill = lifetimes.loc[lifetimes['tech']=='biopower'].copy()
+    lifetime_lfill['tech'] = 'lfill-gas'
+    lifetime_psh = lifetimes.loc[lifetimes['tech']=='hydro'].copy()
+    lifetime_psh['tech'] = 'pumped-hydro'
+    lifetime_csp = lifetimes.loc[lifetimes['tech'].str.contains('upv')].copy()
+    lifetime_csp['tech'] = 'csp-ns'
+    lifetime_pvb_bat = lifetimes.loc[lifetimes['tech'].str.contains('upv')].copy()
+    lifetime_pvb_bat['tech'] = 'pvb_battery'
+    lifetime_pvb_pv = lifetimes.loc[lifetimes['tech'].str.contains('upv')].copy()
+    lifetime_pvb_pv['tech'] = 'pvb_pv'
+    lifetimes = pd.concat([lifetimes,lifetime_lfill, lifetime_psh, 
+                           lifetime_csp, lifetime_pvb_bat, lifetime_pvb_pv], ignore_index=True)
+    lifetimes.loc[lifetimes['tech'].isin(['lfill-gas','pumped-hydro']),'lifetime'] = 100
+    
+    lifetimes.loc[lifetimes['tech']=='geothermal','tech'] = 'geohydro_allkm'
+
     lifetimes.set_index('tech',inplace=True)
     
     for i in range(0,len(nems),1):
         if not nems.loc[i,'RetireYearGiven']:
             tech = nems.loc[i,'tech'].lower()
-            size = nems.loc[i,'TC_SUM']
             StartYear_temp = nems.loc[i,'T_SYR']
-            if size >= 100:
-                lifetime = lifetimes.loc[tech,'lifetime_big']
-            elif size < 100:
-                lifetime = lifetimes.loc[tech,'lifetime_small']
+            try:
+                lifetime = lifetimes.loc[tech,'lifetime']
+            except:
+                lifetime = lifetimes.loc[lifetimes.index.str.contains(tech),
+                                         'lifetime'].values[0]
 
             # Assign retirement years to operating units with T_SYR <= current_year
-            if nems.loc[i,'status'] == '(OP) Operating':
+            if nems.loc[i,'status'] in ['(OP) Operating', 
+                                        '(OA) Out of service but expected to return to service in next calendar year']:
                 
             # if start year is after refurbishment year (or if refurbishment year is null) 
             # and start year + lifetime is before current year, then extend retirement year by 10 years.
@@ -89,7 +108,7 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
                 else:
                     StartYear_temp = nems.loc[i,'TRFURB']
                 
-            if (nems.loc[i,'T_RYR'] <= current_year) or (nems.loc[i,'T_RYR'] == 9999):
+            if (nems.loc[i,'T_RYR'] <= current_year) | (nems.loc[i,'T_RYR'] == 9999):
                 if StartYear_temp + lifetime <= current_year:
                     nems.loc[i,'T_RYR'] = current_year + 10
                 else:
@@ -97,9 +116,7 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
 
         elif nems.loc[i,'RetireYearGiven']:
             pass
-            
-    nems_cats = list(nems)
-    
+                
     exist = nems['T_RYR'] > 2010
     not_exist = nems['T_RYR'] <= 2010
     nems.loc[exist,'IsExistUnit'] = True
@@ -166,16 +183,7 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
     nems_cleaned.loc[(nems_cleaned['T_RYR'] > 2021) &
                      (nems_cleaned['T_PNM'].str.contains('Diablo Canyon')) &
                      (nems_cleaned['tech']=='nuclear') & (nems_cleaned['TC_SUM'] == 1118),
-                     'T_RYR'] = 2030
-
-    nems_cleaned.loc[(nems_cleaned['TSTATE']=='MI') & (nems_cleaned['T_RYR'] > 2025) &
-                     (nems_cleaned['T_PNM'].str.contains('Palisades')) &
-                     (nems_cleaned['T_PID']==1715) &
-                     (nems_cleaned['T_UID'].str.contains('1')) &
-                     (nems_cleaned['EFDcd']=='CNU'),
-                     ['T_RYR','status']] = [2022,'(R) Retired']    
-    nems_cleaned = pd.concat([nems_cleaned, df_temp], axis=0)
-    nems_cleaned = nems_cleaned.reset_index(drop=True)      
+                     'T_RYR'] = 2030  
 
     ### Duane Arnold Nuclear: Restart in 2029:
     df_temp = nems_cleaned[(nems_cleaned['T_PNM'].str.contains('Duane Arnold')) &
@@ -216,29 +224,17 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
     # Formatting
     # =============================================================================
     
-    nems_cleaned.loc[:,'Plant.NAICS.Description'] = 'Utilities'
-    
-    nems_cats_ordered = ['tech','TC_SUM','T_RYR','T_SYR','IsExistUnit','THRATE','FIPS','county']
-    
-    for cat in nems_cats:
-        if cat not in nems_cats_ordered:
-            nems_cats_ordered.append(cat)
-            
-    nems_ordered = nems_cleaned[nems_cats_ordered].copy()
-    
     # Note that T_SYR is the online year for the most recent time the unit
     # came online. TRFURB holds the original start date of the plant.
-    nems_ordered.rename(columns={'TC_SUM':'summer_power_capacity_MW','T_RYR':'RetireYear','T_SYR':'StartYear','THRATE':'HeatRate'},inplace=True)
+    nems_cleaned.rename(columns={'TC_SUM':'summer_power_capacity_MW','T_RYR':'RetireYear',
+                                 'T_SYR':'StartYear','THRATE':'HeatRate'},inplace=True)
+            
+    no_hr = ['hydED','hydEND','hydNPND','hydND','pumped-hydro','wind-ons','wind-ofs',
+             'csp-ns','dupv','upv','battery_li','pvb_pv','pvb_battery']
     
-    #nems_ordered.loc[:,'StartYear'] = nems_ordered.loc[:,'StartYear'].astype(str) + '-1'
+    nems_cleaned.loc[nems_cleaned['tech'].isin(no_hr),'HeatRate'] = np.nan
+    nems_cleaned = nems_cleaned.reset_index(drop=True)
     
-    nems = nems_ordered.copy()
-    
-    no_hr = ['hydED','hydEND','hydNPND','hydND','pumped-hydro','wind-ons','wind-ofs','csp-ns','dupv','upv','battery_li','pvb_pv','pvb_battery']
-    
-    nems.loc[nems['tech'].isin(no_hr),'HeatRate'] = np.nan
-    nems = nems.reset_index(drop=True)
-    
-    return nems
+    return nems_cleaned
 
 

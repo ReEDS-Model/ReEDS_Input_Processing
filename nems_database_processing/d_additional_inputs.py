@@ -224,13 +224,7 @@ dfout['T_PNM'] = dfout['T_PNM'].str.replace('#', 'no. ')
 dfout['T_UID'] = dfout['T_UID'].str.replace('#', 'no. ')
 
 # Reorder columns:
-columns_to_keep = ['tech','summer_power_capacity_MW','energy_capacity_MWh',
-                    'RetireYear','StartYear','IsExistUnit','HeatRate','FIPS',
-                    'T_CID','T_PID','T_UID','T_PNM','TVIN','EFDcd','ECPcd',
-                    'T_PCA','TC_NP','TC_WIN','TRFURB','T_VOM','T_FOM','T_SMO','T_RMO',
-                    'T_CCSROV','T_CCSF','T_CCSV','T_CCSHR','T_CAPAD','T_CCSCAPA','T_CCSLOC',
-                    'T_LONG','T_LAT','coolingwatertech','ctt','wst','in_nems','in_eia860M',
-                    'status','Description','Unique ID']
+columns_to_keep = dfold.columns.tolist()
 
 dfout = dfout[columns_to_keep]
 

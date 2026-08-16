@@ -84,12 +84,11 @@ def merge_psh_dbs(gendb,hydro_prjtype,ornl_hydro_unit_ver):
 
     for col in ['T_UID','T_PID','PrjType','tech']:
         dfmerge.insert(0,col,dfmerge.pop(col))
-    dfmerge.insert(dfmerge.columns.get_loc('State'),'MW',dfmerge.pop('MW'))
     dfmerge.drop(['T_PID_x','T_PID_y'], axis=1,inplace=True)
 
 
-    dfsmall = dfmerge[['tech','PrjType','T_PID','T_UID','CH_OpYear','T_PNM','County',
-                       'State','MW','Lat','Lon']].copy()
+    dfsmall = dfmerge[['tech','PrjType','T_PID','T_UID','CH_OpYear',
+                       'T_PNM','MW','Lat','Lon']].copy()
 
     #%%
 

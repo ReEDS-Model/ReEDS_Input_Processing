@@ -38,11 +38,7 @@ def main():
     (dir, current_year, battery_duration, eia860M_ver_mon, eia860M_ver_year, gdbinputname, gdboutname) = params()
 
     # Add EIA860M planned units, missing operating units, and updated retirement years to NEMS dataset:
-    nems_cleaned = processAEOandEIA860(dir, current_year, battery_duration, eia860M_ver_mon, eia860M_ver_year, gdbinputname)
-        
-    # Rename all "pv" to "upv" and "geothermal" to "geohydro_allkm":
-    nems_cleaned.loc[(nems_cleaned['tech'] == 'pv'), 'tech'] = 'upv'
-    nems_cleaned.loc[(nems_cleaned['tech'] == 'geothermal'), 'tech'] = 'geohydro_allkm'     
+    nems_cleaned = processAEOandEIA860(dir, current_year, battery_duration, eia860M_ver_mon, eia860M_ver_year, gdbinputname) 
 
     # =========================================================================
     # Save output file:
@@ -107,7 +103,6 @@ def processAEOandEIA860(dir, current_year, battery_duration, eia860M_ver_mon, ei
     ## 3. Merge AEO NEMS and EIA860M together
     nems_eia860 = mergeAEOandEIA860M(aeo_data, eia860M_data, current_year, aeo_cols, eia_cols)
 
-    
     # =========================================================================
     ## 4. Clean up final merged nems_eia file
     nems_eia860_operating_retired_planned_cleaned = cleanMergedAEOEIA860(nems_eia860, battery_duration)
@@ -297,14 +292,10 @@ def mergeAEOandEIA860M(aeo_data, eia860M_data, current_year, aeo_cols, eia_cols)
     nems_eia860_merged['T_PNM'] = np.where(nems_eia860_merged['Plant Name'].notna(), 
                                            nems_eia860_merged['Plant Name'],
                                            nems_eia860_merged['T_PNM'])
-    nems_eia860_merged['T_SYR'] = np.where((nems_eia860_merged['T_SYR_EIA860'].notna()) &
-                                           ((nems_eia860_merged['T_SYR'].isna()) |
-                                            (nems_eia860_merged['T_SYR_EIA860'] > nems_eia860_merged['T_SYR'])), 
+    nems_eia860_merged['T_SYR'] = np.where(nems_eia860_merged['T_SYR_EIA860'].notna(),
                                            nems_eia860_merged['T_SYR_EIA860'],
                                            nems_eia860_merged['T_SYR'])
-    nems_eia860_merged['T_RYR'] = np.where((nems_eia860_merged['T_RYR_EIA860'].notna()) &
-                                           ((nems_eia860_merged['T_RYR'].isna()) | 
-                                            (nems_eia860_merged['T_RYR']< nems_eia860_merged['T_RYR_EIA860'])), 
+    nems_eia860_merged['T_RYR'] = np.where(nems_eia860_merged['T_RYR_EIA860'].notna(),
                                            nems_eia860_merged['T_RYR_EIA860'],
                                            nems_eia860_merged['T_RYR'])
     nems_eia860_merged['T_LAT'] = np.where(nems_eia860_merged['Latitude'].notna(), 
@@ -467,8 +458,12 @@ def cleanMergedAEOEIA860(merged_nems_eia860, battery_duration):
     nems_eia860_final.loc[(nems_eia860_final['tech']=='pvb') & (nems_eia860_final['battery_duration'].isna()), 'tech'] = 'pvb_pv'
 
     # Drop tech = 'others' since they are all Flywheels
-    nems_eia860_final.loc[nems_eia860_final['tech']!='others']
-    
+    nems_eia860_final = nems_eia860_final[nems_eia860_final['tech']!='others']
+
+    # Rename all "pv" to "upv" and "geothermal" to "geohydro_allkm":
+    nems_eia860_final.loc[(nems_eia860_final['tech'] == 'pv'), 'tech'] = 'upv'
+    nems_eia860_final.loc[(nems_eia860_final['tech'] == 'geothermal'), 'tech'] = 'geohydro_allkm'    
+
     # Drop any duplicates in terms of T_PID, T_UID, TC_SUM, T_SYR, and T_RYR
     # (in case merging creates doubles)
     nems_eia860_final = nems_eia860_final.drop_duplicates(subset=['T_PID','T_UID','TC_SUM','T_SYR','T_RYR'], 
