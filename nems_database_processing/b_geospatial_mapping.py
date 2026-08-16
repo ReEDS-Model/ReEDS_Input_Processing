@@ -72,12 +72,12 @@ def main():
     ## Map long/lat to county and FIPS
     # read county shapefile directly from census
     print("Mapping long/lat to FIPS")
-    county_data = reeds.spatial.get_map('county', source='tiger').to_crs("ESRI:102008")
+    crs = 'ESRI:102008'
+    county_data = reeds.spatial.get_map('county', source='tiger').to_crs(crs)
     ## Format for ReEDS
     county_data['FIPS'] = county_data.index.values
     county_data['rb'] = 'p' + county_data['FIPS']
     # Spatial join units' long/lat with county and FIPS:
-    crs = 'ESRI:102008'
     data_raw_geo = reeds.plots.df2gdf(
         data_raw,
         lat='T_LAT',
