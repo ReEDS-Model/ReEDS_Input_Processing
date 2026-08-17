@@ -74,21 +74,49 @@ Whether this step generates cost files and financial files, which technologies
 it processes, and whether it copies results into ReEDS are all controlled under
 `processing:` in `config.yaml`.
 
-The optional `processing.smooth_cost_curves` block uses an anchor-aware rule.
-Moving backward from 2022, a contiguous historical tail below the anchor value
-is raised to the anchor; the scan stops when it reaches a value already at or
-above 2022. Moving forward, temporary increases and compact clusters of slope
-changes are removed. Consecutive near-equal values are grouped using the
-configured relative and absolute tolerances; the last year of each group is
-retained as a change point and the intervening years are interpolated. A
-separate major-step threshold preserves genuine technology transitions. Set
-`technologies: all` and `columns: all` to cover every technology and every
-`capcost*`, `fom*`, and `vom` column. Heat rate, capacity factor, and efficiency
-are preserved unless
-`include_capacity_factor_multiplier: true` is set; that option applies the same
-anchor-aware treatment to `cf_improvement`/`CF_mult`. Heat rate and efficiency
-remain unchanged. The older flat-history/anchor-to-target behavior remains
-available as `method: linear_bridge`.
+### Selective smoothing logic
+
+The optional `processing.smooth_cost_curves` block removes short-lived dips,
+bumps, and rounded stair steps without replacing each ATB trajectory with one
+fully smoothed curve. The `selective` method follows these rules:
+
+1. **Use 2022 as the projection anchor.** Moving backward from 2022, a
+   contiguous historical tail below the anchor value is raised to the anchor.
+   The scan stops at the first earlier value that already meets or exceeds it.
+2. **Remove movement in the wrong direction.** For a series that declines from
+   the anchor to its endpoint, temporary future increases are removed. For an
+   improving series, such as a capacity-factor multiplier, temporary decreases
+   are removed instead.
+3. **Bridge near-equal plateaus.** Consecutive future values within the relative
+   or absolute tolerance are treated as one group. The last year of each group
+   is retained as a change point, and the years between change points are
+   linearly interpolated. This removes small rounded stair steps.
+4. **Bridge compact dips and bumps.** A cluster of nearby abrupt slope changes
+   is interpolated between the years immediately outside the disturbance. This
+   removes patterns such as the coal-CCS dip around 2033--2035.
+5. **Preserve major transitions.** A year-to-year change at or above the major
+   step threshold is not bridged. For example, the large fuel-cell capital-cost
+   transition in 2035 remains explicit. A single isolated slope change is also
+   retained as a normal ATB milestone.
+6. **Limit the affected metrics.** With the current configuration, smoothing
+   covers every `capcost*`, `fom*`, and `vom` column, including battery energy
+   costs, plus `cf_improvement`/`CF_mult`. Heat rate and efficiency are not
+   changed.
+
+The current defaults in `config.yaml` are:
+
+| Setting | Default | Meaning |
+| --- | ---: | --- |
+| `projection_start_year` | `2022` | Historical/projection anchor |
+| `similar_value_relative_tolerance` | `0.001` | Values within 0.1% can form one plateau |
+| `similar_value_absolute_tolerance` | `1e-9` | Numerical tolerance near zero |
+| `slope_change_threshold` | `0.4` | Detect a normalized slope change of 40% or more |
+| `max_kink_years` | `4` | Maximum span of a compact slope-change cluster |
+| `major_step_relative_threshold` | `0.1` | Preserve year-to-year changes of 10% or more |
+| `include_capacity_factor_multiplier` | `true` | Apply the same rules to capacity-factor multipliers |
+
+The older flat-history/anchor-to-target behavior remains available as
+`method: linear_bridge`.
 
 ### File names and column schemas expected by ReEDS
 
