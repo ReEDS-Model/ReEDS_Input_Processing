@@ -237,17 +237,9 @@ def cleanEIA860MData(dir, current_year, ver_mon, ver_year, battery_duration, sta
     eia860M_data = pd.merge(eia860M_data, cooling_tech, on=['tech'], how='left')
 
     # Clean up:
-    if status == 'Operating':
-        # if operating units are out of service but are expected to return next year, 
-        # delay their start year by one year from currentyear
-        eia860M_data.loc[eia860M_data['Status']=='(OA) Out of service but expected to return to service in next calendar year',
-                         'T_SYR_EIA860'] = current_year + 1
-        # if operating units are on standby/backup or out of service and are NOT expected to return, 
-        # they are considered retired and their retirement year is set to 2010
-        eia860M_data.loc[(eia860M_data['Status']!='(OP) Operating') & 
-                         (eia860M_data['Status']!='(OA) Out of service but expected to return to service in next calendar year'),
-                         'T_RYR_EIA860'] = 2010
-    elif status == 'Retired':
+    # Note: if operating units are out of service but are out of service or on standby, 
+    # we still consider them operating and available for dispatch
+    if status == 'Retired':
         eia860M_data['Status'] = '(R) Retired'
     
     eia860M_data = eia860M_data.rename(columns={'Plant ID':'T_PID','Generator ID':'T_UID'})
@@ -464,9 +456,9 @@ def cleanMergedAEOEIA860(merged_nems_eia860, battery_duration):
     nems_eia860_final.loc[(nems_eia860_final['tech'] == 'pv'), 'tech'] = 'upv'
     nems_eia860_final.loc[(nems_eia860_final['tech'] == 'geothermal'), 'tech'] = 'geohydro_allkm'    
 
-    # Drop any duplicates in terms of T_PID, T_UID, TC_SUM, T_SYR, and T_RYR
+    # Drop any duplicates in terms of T_PID, T_UID, TC_SUM, T_SYR, TVIN and T_RYR
     # (in case merging creates doubles)
-    nems_eia860_final = nems_eia860_final.drop_duplicates(subset=['T_PID','T_UID','TC_SUM','T_SYR','T_RYR'], 
+    nems_eia860_final = nems_eia860_final.drop_duplicates(subset=['T_PID','T_UID','TC_SUM','TVIN','T_SYR','T_RYR'], 
                                                           keep='first', inplace=False, ignore_index=False)
 
     return nems_eia860_final
