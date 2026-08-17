@@ -7,8 +7,17 @@ gens_fixme.csv
 ATB/inputs/
 atb/output/
 atb/inputs/
-atb/figures/
-atb/comparison/
+# Raw ATB figures remain local. The smoothing comparisons are intentionally
+# versioned so reviewers can see the effect without rerunning the workflow.
+atb/figures/*
+!atb/figures/smoothing_comparison/
+atb/figures/smoothing_comparison/*
+!atb/figures/smoothing_comparison/*.png
+# Keep the local ATB comparison utility, but never version generated plots or
+# legacy tabular reports.
+atb/comparison/*
+!atb/comparison/README.md
+!atb/comparison/compare_atb_outputs.py
 atb/_dev/
 # Raw ATB downloads; reproduced by scripts/scrape_atb_inputs.py from the URLs
 # pinned in atb/config.yaml, so they are never committed (see the File Size
@@ -27,8 +36,6 @@ atb/manual_input/historic_capacity_factors.csv
 /AEO_Updates/output/AEO_LOWMACRO_2021_electricity_consumption.csv
 /AEO_Updates/output/AEO_REF2021_2021_electricity_consumption.csv
 /AEO_Updates/output/AEO_REF2021_2021_ng_prices.csv
-/ATB/figures/
-
 # pyc files
 *.pyc
 *__pycache__

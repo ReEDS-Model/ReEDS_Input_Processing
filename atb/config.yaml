@@ -6,6 +6,7 @@ workflow:
   scrape_raw_data: true
   format_reeds_inputs: true
   make_plots: true
+  make_comparison_plots: true
 
 atb:
   year: 2024
@@ -36,6 +37,33 @@ processing:
   sensitivity_name: null
   reeds_start_year: 2010
   decimals: 6
+  # Optionally remove the transition discontinuity between the historical
+  # series and the current ATB projection. Selective smoothing uses 2022 as an
+  # anchor: a contiguous historical tail below that value is raised to 2022,
+  # future increases are removed, near-equal plateaus are bridged from their
+  # last points, and short clusters of slope changes are smoothed. Higher
+  # historical costs and isolated ATB milestones (such as CSP in 2030) are
+  # preserved. Other performance inputs are intentionally not changed.
+  # Keep disabled for the published ReEDS-compatible outputs.
+  smooth_cost_curves:
+    enabled: true
+    method: selective
+    technologies: all
+    # "all" selects capcost*, fom*, and vom, including battery energy costs.
+    columns: all
+    # Apply the same anchor-aware rule to CF_mult/cf_improvement when present.
+    include_capacity_factor_multiplier: true
+    projection_start_year: 2022
+    # A relative change in adjacent annual slopes at or above this value is a
+    # possible kink. Only clusters of 2+ changes are smoothed.
+    slope_change_threshold: 0.4
+    max_kink_years: 4
+    # Consecutive future values within 0.1% are treated as one rounded plateau.
+    # Its last year becomes the interpolation point, removing small stair steps
+    # and short flat dips. Transitions of 10% or more remain explicit steps.
+    similar_value_relative_tolerance: 0.001
+    similar_value_absolute_tolerance: 1.0e-9
+    major_step_relative_threshold: 0.1
 
 # Versioned ReEDS history used before each ATB projection series begins.
 # Set seed_missing_from_reeds to true only when initializing a missing file from
@@ -55,6 +83,9 @@ plotting:
   crp_years: 20
   figure_format: png
   output_directory: figures
+  # Before/after plots are versioned; their unsmoothed inputs are held only in
+  # a temporary directory while the full pipeline is running.
+  smoothing_comparison_directory: figures/smoothing_comparison
   technologies:
     - Biopower
     - Coal_FE

@@ -500,6 +500,352 @@ def smooth_hist_cf(tech, settings, df):
 
     return df
 
+
+def _relative_change(left, right, epsilon):
+    """Return a scale-independent change between two finite values."""
+    return abs(right - left) / max(abs(left), abs(right), epsilon)
+
+
+def _bridge_similar_value_runs(
+    years,
+    values,
+    start,
+    relative_tolerance,
+    absolute_tolerance,
+    major_step_threshold,
+):
+    """Interpolate between the last points of near-equal value runs.
+
+    Rounded ATB trajectories can appear as small stairs or as a short flat dip
+    in an otherwise sloped curve.  This follows the change-point idea used by
+    ``state_policies`` but retains the *last* year in each similar-value run.
+    Large transitions are retained on both sides so real technology milestones
+    are not spread over several years.
+    """
+    bridged = np.asarray(values, dtype=float).copy()
+    if len(bridged) - start < 3:
+        return bridged
+
+    epsilon = max(np.max(np.abs(bridged)) * 1e-12, 1e-12)
+    knots = {start, len(bridged) - 1}
+    run_reference = bridged[start]
+
+    for position in range(start + 1, len(bridged)):
+        if np.isclose(
+            bridged[position],
+            run_reference,
+            rtol=relative_tolerance,
+            atol=absolute_tolerance,
+        ):
+            continue
+
+        run_end = position - 1
+        knots.add(run_end)
+        if (
+            _relative_change(
+                bridged[run_end], bridged[position], epsilon
+            )
+            >= major_step_threshold
+        ):
+            knots.add(position)
+        run_reference = bridged[position]
+
+    knot_positions = np.asarray(sorted(knots), dtype=int)
+    projection_positions = np.arange(start, len(bridged))
+    bridged[projection_positions] = np.interp(
+        years[projection_positions],
+        years[knot_positions],
+        bridged[knot_positions],
+    )
+    return bridged
+
+
+def _selective_smooth_cost_values(
+    years,
+    values,
+    projection_start_year,
+    slope_change_threshold,
+    max_kink_years,
+    similar_value_relative_tolerance,
+    similar_value_absolute_tolerance,
+    major_step_threshold,
+):
+    """Remove boundary dips and short kinks while retaining long-term steps."""
+    years = np.asarray(years, dtype=float)
+    smoothed = np.asarray(values, dtype=float).copy()
+    if len(smoothed) < 3:
+        return smoothed
+
+    year_span = years[-1] - years[0]
+    if year_span <= 0:
+        return smoothed
+
+    anchor_candidates = np.flatnonzero(years == projection_start_year)
+    if len(anchor_candidates) != 1:
+        raise ValueError(
+            "Selective cost smoothing requires exactly one row for "
+            f"projection_start_year={projection_start_year}."
+        )
+    anchor = int(anchor_candidates[0])
+
+    # Determine direction from the anchor and the projection endpoint, so a
+    # low historical dip cannot become the ceiling for the future trajectory.
+    decreasing = smoothed[-1] <= smoothed[anchor]
+    if decreasing:
+        # Remove isolated upward historical spikes locally. This avoids using
+        # one abnormal year (for example, nuclear 2021) as a new plateau.
+        for position in range(1, anchor):
+            if (
+                smoothed[position] > smoothed[position - 1]
+                and smoothed[position] > smoothed[position + 1]
+            ):
+                smoothed[position] = np.interp(
+                    years[position],
+                    [years[position - 1], years[position + 1]],
+                    [smoothed[position - 1], smoothed[position + 1]],
+                )
+        smoothed[anchor:] = np.minimum.accumulate(smoothed[anchor:])
+    else:
+        # For an improving multiplier, remove isolated historical dips rather
+        # than upward spikes.
+        for position in range(1, anchor):
+            if (
+                smoothed[position] < smoothed[position - 1]
+                and smoothed[position] < smoothed[position + 1]
+            ):
+                smoothed[position] = np.interp(
+                    years[position],
+                    [years[position - 1], years[position + 1]],
+                    [smoothed[position - 1], smoothed[position + 1]],
+                )
+        smoothed[anchor:] = np.maximum.accumulate(smoothed[anchor:])
+
+    # Raise only the historical tail below the anchor value. Stop as soon as
+    # an earlier value already meets or exceeds the anchor. This removes gas
+    # and coal-CCS cost dips and levels low capacity-factor history without
+    # lowering technologies whose historical values are already higher.
+    position = anchor - 1
+    while position >= 0 and smoothed[position] < smoothed[anchor]:
+        smoothed[position] = smoothed[anchor]
+        position -= 1
+
+    # Replace rounded stair steps and short flat spots with transitions between
+    # the last points of their near-equal runs before evaluating residual
+    # slope kinks. Large published steps remain explicit milestones.
+    smoothed = _bridge_similar_value_runs(
+        years,
+        smoothed,
+        anchor,
+        similar_value_relative_tolerance,
+        similar_value_absolute_tolerance,
+        major_step_threshold,
+    )
+
+    year_deltas = np.diff(years)
+    if np.any(year_deltas <= 0):
+        raise ValueError("Cost smoothing requires unique, increasing years.")
+    slopes = np.diff(smoothed) / year_deltas
+    baseline_slope = abs((smoothed[-1] - smoothed[0]) / year_span)
+    epsilon = max(np.max(np.abs(smoothed)) * 1e-12, 1e-12)
+
+    candidate_knots = []
+    for knot in range(1, len(smoothed) - 1):
+        if knot < anchor:
+            continue
+        left_slope = slopes[knot - 1]
+        right_slope = slopes[knot]
+        scale = max(abs(left_slope), abs(right_slope), baseline_slope, epsilon)
+        if abs(right_slope - left_slope) / scale >= slope_change_threshold:
+            candidate_knots.append(knot)
+
+    # A single slope change is a normal ATB milestone (for example, CSP in
+    # 2030). Several adjacent changes indicate a short-lived kink. Interpolate
+    # between the outside shoulders of those compact clusters; using the kink
+    # points themselves as endpoints can leave the steep side of a dip intact.
+    clusters = []
+    for knot in candidate_knots:
+        if clusters and knot == clusters[-1][-1] + 1:
+            clusters[-1].append(knot)
+        else:
+            clusters.append([knot])
+    for cluster in clusters:
+        first, last = cluster[0], cluster[-1]
+        if len(cluster) < 2 or years[last] - years[first] > max_kink_years:
+            continue
+        left = max(anchor, first - 1)
+        # Include the following segment as well as the immediate shoulder. A
+        # short plateau can otherwise hide the exit side of a dip after the
+        # near-equal-run pass has already bridged its flat bottom.
+        right = min(len(smoothed) - 1, last + 2)
+        step_changes = [
+            _relative_change(smoothed[position], smoothed[position + 1], epsilon)
+            for position in range(left, right)
+        ]
+        if any(change >= major_step_threshold for change in step_changes):
+            continue
+        interpolation_index = np.arange(left, right + 1)
+        smoothed[interpolation_index] = np.interp(
+            years[interpolation_index],
+            [years[left], years[right]],
+            [smoothed[left], smoothed[right]],
+        )
+
+    return smoothed
+
+
+def smooth_cost_curve(tech, settings, df):
+    """Smooth monetary costs without erasing normal ATB trajectory changes.
+
+    ``selective`` mode removes temporary direction reversals, bridges the last
+    points of near-equal value runs, and bridges clusters of adjacent slope
+    changes. A single slope change and any configured major step are retained
+    as published milestones. ``linear_bridge`` preserves the earlier behavior
+    for users who explicitly want a flat history and one anchor-to-target line.
+    """
+    smoothing = settings['config']['processing'].get('smooth_cost_curves', {})
+    if not smoothing.get('enabled', False):
+        return df
+    configured_techs = smoothing.get('technologies', [])
+    smooth_all_techs = configured_techs == 'all' or configured_techs == ['all']
+    if not smooth_all_techs and tech not in configured_techs:
+        return df
+
+    configured_columns = smoothing.get('columns', 'all')
+    if configured_columns == 'all' or configured_columns == ['all']:
+        columns = _cost_columns(df)
+    elif isinstance(configured_columns, list):
+        columns = list(configured_columns)
+    else:
+        raise TypeError(
+            "processing.smooth_cost_curves.columns must be 'all' or a list."
+        )
+    if (
+        smoothing.get('include_capacity_factor_multiplier', False)
+        and 'cf_improvement' in df.columns
+        and 'cf_improvement' not in columns
+    ):
+        columns.append('cf_improvement')
+    if not columns:
+        raise ValueError(
+            f"Cannot smooth {tech}; no monetary cost columns were selected."
+        )
+    missing = [column for column in columns if column not in df.columns]
+    if missing:
+        raise ValueError(
+            f"Cannot smooth {tech}; configured cost columns are missing: {missing}."
+        )
+
+    method = smoothing.get('method', 'selective')
+    if method not in ['selective', 'linear_bridge']:
+        raise ValueError(
+            "processing.smooth_cost_curves.method must be 'selective' "
+            "or 'linear_bridge'."
+        )
+
+    anchor_year = int(smoothing.get('anchor_year', 2022))
+    target_year = int(smoothing.get('target_year', 2035))
+    if method == 'linear_bridge' and target_year <= anchor_year:
+        raise ValueError(
+            "processing.smooth_cost_curves.target_year must be later than anchor_year."
+        )
+    projection_start_year = int(
+        smoothing.get('projection_start_year', anchor_year)
+    )
+    slope_change_threshold = float(
+        smoothing.get('slope_change_threshold', 0.5)
+    )
+    max_kink_years = int(smoothing.get('max_kink_years', 4))
+    similar_value_relative_tolerance = float(
+        smoothing.get('similar_value_relative_tolerance', 0.001)
+    )
+    similar_value_absolute_tolerance = float(
+        smoothing.get('similar_value_absolute_tolerance', 1e-9)
+    )
+    major_step_threshold = float(
+        smoothing.get('major_step_relative_threshold', 0.1)
+    )
+    if slope_change_threshold <= 0:
+        raise ValueError("slope_change_threshold must be greater than zero.")
+    if max_kink_years < 1:
+        raise ValueError("max_kink_years must be at least one.")
+    if similar_value_relative_tolerance < 0:
+        raise ValueError(
+            "similar_value_relative_tolerance must be nonnegative."
+        )
+    if similar_value_absolute_tolerance < 0:
+        raise ValueError(
+            "similar_value_absolute_tolerance must be nonnegative."
+        )
+    if major_step_threshold <= similar_value_relative_tolerance:
+        raise ValueError(
+            "major_step_relative_threshold must be greater than "
+            "similar_value_relative_tolerance."
+        )
+
+    tech_settings = settings['techs'][tech]
+    idcols = [
+        column for column in tech_settings['indexcols']
+        if column not in ['Scenario', 't']
+    ]
+    groupcols = ['Scenario', *idcols]
+    output = df.sort_values([*groupcols, 't']).copy()
+    # Interpolation generally creates fractional values even when an input
+    # frame happened to infer an integer dtype.
+    output[columns] = output[columns].astype(float)
+    groups = output.groupby(groupcols, dropna=False, sort=False).groups
+
+    print(f"Smoothing {tech} cost curves: method={method}, columns={columns}")
+    for group_values, index in groups.items():
+        group = output.loc[index].sort_values('t')
+        if method == 'selective':
+            for column in columns:
+                output.loc[group.index, column] = _selective_smooth_cost_values(
+                    group['t'],
+                    group[column],
+                    projection_start_year,
+                    slope_change_threshold,
+                    max_kink_years,
+                    similar_value_relative_tolerance,
+                    similar_value_absolute_tolerance,
+                    major_step_threshold,
+                )
+            continue
+
+        anchor_rows = group.loc[group['t'] == anchor_year]
+        target_rows = group.loc[group['t'] == target_year]
+        label_values = (
+            group_values if isinstance(group_values, tuple) else (group_values,)
+        )
+        label = dict(zip(groupcols, label_values))
+        if len(anchor_rows) != 1 or len(target_rows) != 1:
+            raise ValueError(
+                f"Cannot smooth {tech} series {label}: expected exactly one row "
+                f"for anchor year {anchor_year} and target year {target_year}."
+            )
+
+        anchor_index = anchor_rows.index[0]
+        target_index = target_rows.index[0]
+        if smoothing.get('flatten_historical', True):
+            historical_index = group.index[group['t'] <= anchor_year]
+            output.loc[historical_index, columns] = output.loc[
+                anchor_index, columns
+            ].to_numpy()
+
+        bridge_index = group.index[
+            (group['t'] > anchor_year) & (group['t'] < target_year)
+        ]
+        for column in columns:
+            anchor_value = float(output.at[anchor_index, column])
+            target_value = float(output.at[target_index, column])
+            bridge_years = output.loc[bridge_index, 't'].astype(float)
+            output.loc[bridge_index, column] = anchor_value + (
+                (target_value - anchor_value)
+                * (bridge_years - anchor_year)
+                / (target_year - anchor_year)
+            )
+
+    return output.sort_index()
+
 def add_beccs_techs(tech, settings, df, techcol='i'):
     """
     function to copy costs for beccs_mod to beccs_max
@@ -658,6 +1004,72 @@ def format_reeds_output(df, tech_settings):
     return df[list(output_cols)].rename(columns=output_cols)
 
 
+def write_technology_outputs(
+    tech_data,
+    tech,
+    settings,
+    tech_settings,
+    sensitivity_name,
+    outfolder,
+    filenames=None,
+    output_label="",
+):
+    """Write one technology's scenario files using the ReEDS output schema."""
+    tech_data = tech_data.copy()
+    tech_data['Scenario'] = tech_data['Scenario'].str.lower()
+    scenarios = list(tech_data['Scenario'].unique())
+    if 'moderate' in scenarios:
+        scenarios.insert(0, scenarios.pop(scenarios.index('moderate')))
+
+    filename_root = tech_settings.get('reeds_name', tech)
+    baseline = None
+    written = []
+    os.makedirs(outfolder, exist_ok=True)
+
+    for scenario in scenarios:
+        if sensitivity_name is not None:
+            filename = (
+                f"{filename_root}_ATB_{settings['atbyear']}_{scenario}_"
+                f"{sensitivity_name}.csv"
+            )
+        else:
+            filename = f"{filename_root}_ATB_{settings['atbyear']}_{scenario}.csv"
+
+        check_columns(tech_data, tech_settings['cols'], 'cols', tech)
+        scendata = tech_data.loc[
+            tech_data.Scenario == scenario, tech_settings['cols']
+        ]
+        scendata = scendata.round(
+            tech_settings.get('decimals', settings['decimals'])
+        )
+        scendata = scendata.sort_values(
+            by=scendata.columns.to_list()
+        ).reset_index(drop=True)
+
+        if baseline is None:
+            baseline = scendata.copy()
+        elif scendata.equals(baseline):
+            print(
+                f"...{scenario} is identical to the {scenarios[0]} scenario, "
+                "skipping."
+            )
+            continue
+
+        scendata_out = format_reeds_output(scendata, tech_settings)
+        label = f" {output_label}" if output_label else ""
+        print(f"Saving{label} {filename}")
+        scendata_out.to_csv(
+            os.path.join(outfolder, filename),
+            index=False,
+            lineterminator=CSV_LINE_TERMINATOR,
+        )
+        written.append(filename)
+        if filenames is not None:
+            filenames.append(filename)
+
+    return written
+
+
 def process_tech_file(atb_data, tech, settings, filenames, dollaryear, deflator, sensitivity_name, outfolder, args):
     """
     function to format per-technology output files
@@ -766,63 +1178,48 @@ def process_tech_file(atb_data, tech, settings, filenames, dollaryear, deflator,
     tech_data_out = merge_historical_atb_data(
         tech_data_out, tech, settings, dollaryear, deflator
     )
+    tech_data_unsmoothed = tech_data_out.copy()
+
+    # This user-facing option is intentionally applied after history is merged,
+    # so it can bridge the history/current-ATB boundary without changing the
+    # versioned historical source files. It is disabled by default.
+    tech_data_out = smooth_cost_curve(tech, settings, tech_data_out)
 
     # for fuel cells, backfill capcost values as 9999 for all pre-2035 years
     if tech == 'fuelcell' and 'capcost' in tech_data_out.columns:
         print("Assigning capcost = 9999 for fuelcell years before 2035")
         tech_data_out.loc[tech_data_out['t'] < 2035, 'capcost'] = 9999
+        tech_data_unsmoothed.loc[
+            tech_data_unsmoothed['t'] < 2035, 'capcost'
+        ] = 9999
 
-    ## save to file by scenario
-        
-    # if moderate is a scenario, process it first so we use it to check for duplicates
-    tech_data_out['Scenario'] = tech_data_out['Scenario'].str.lower()
-    scenarios = list(tech_data_out['Scenario'].unique())
-    if 'moderate' in scenarios:
-        scenarios.insert(0, scenarios.pop(scenarios.index('moderate')))
-
-    # the file prefix ReEDS expects, which can differ from the internal tech key
-    # (e.g. 'wind-ons' is named 'ons-wind' in ReEDS)
-    filename_root = tech_settings.get('reeds_name', tech)
-    # the baseline every other scenario is compared against; always the moderate
-    # scenario when one exists, so a scenario is only skipped when it genuinely
-    # duplicates moderate rather than the previously written scenario
-    baseline = None
-
-    for scenario in scenarios:
-        if sensitivity_name is not None:
-            filename = f"{filename_root}_ATB_{settings['atbyear']}_{scenario}_{sensitivity_name}.csv"
-        else:
-            filename = f"{filename_root}_ATB_{settings['atbyear']}_{scenario}.csv"
-        # subset to scenario
-        check_columns(tech_data_out, tech_settings['cols'], 'cols', tech)
-        scendata = tech_data_out.loc[tech_data_out.Scenario == scenario, tech_settings['cols']]
-        # round to specified decimal places
-        scendata = scendata.round(
-            tech_settings.get('decimals', settings['decimals'])
+    smoothing = settings['config']['processing'].get('smooth_cost_curves', {})
+    baseline_directory = settings.get('unsmoothed_output_dir')
+    if smoothing.get('enabled', False) and baseline_directory:
+        baseline_folder = (
+            baseline_directory
+            if os.path.isabs(baseline_directory)
+            else os.path.join(ATBDIR, baseline_directory)
         )
-        # sort in order of columns
-        scendata = scendata.sort_values(by=scendata.columns.to_list()).reset_index(drop=True)
-
-        if baseline is None:
-            baseline = scendata.copy()
-        # if the current case is identical to the baseline, skip saving it and
-        # continue to the next scenario
-        elif scendata.equals(baseline):
-            print(f"...{scenario} is identical to the {scenarios[0]} scenario, skipping.")
-            continue
-
-        # apply the ReEDS output schema (column order and headers) if specified
-        scendata_out = format_reeds_output(scendata, tech_settings)
-
-        # save file
-        print(f"Saving {filename}")
-        scendata_out.to_csv(
-            os.path.join(outfolder, filename),
-            index=False,
-            lineterminator=CSV_LINE_TERMINATOR,
+        write_technology_outputs(
+            tech_data_unsmoothed,
+            tech,
+            settings,
+            tech_settings,
+            sensitivity_name,
+            baseline_folder,
+            output_label="temporary pre-smoothing",
         )
-        # keep list of filenames for copying to ReEDS later
-        filenames.append(filename)
+
+    write_technology_outputs(
+        tech_data_out,
+        tech,
+        settings,
+        tech_settings,
+        sensitivity_name,
+        outfolder,
+        filenames=filenames,
+    )
 
 def update_dollaryear(settings, filenames, dollaryear):
     """
@@ -1031,12 +1428,46 @@ def update_financials(settings, atb_data, outfolder):
 ### ===========================================================================
 def main(args):    
     settings = load_processing_settings(args.config)
+    settings['unsmoothed_output_dir'] = getattr(
+        args, 'unsmoothed_output_dir', None
+    )
     processing = settings['config']['processing']
     outfolder = settings['output_dir']
     args.skip_costs = args.skip_costs or not processing.get('update_costs', True)
     should_update_financials = processing.get('update_financials', True)
     if args.sensitivity_name is None:
         args.sensitivity_name = processing.get('sensitivity_name')
+
+    smoothing = processing.get('smooth_cost_curves', {})
+    if smoothing.get('enabled', False):
+        smoothing_techs = smoothing.get('technologies', [])
+        smooth_all_techs = smoothing_techs == 'all' or smoothing_techs == ['all']
+        if not smooth_all_techs and not isinstance(smoothing_techs, list):
+            raise TypeError(
+                "processing.smooth_cost_curves.technologies must be 'all' "
+                "or a list."
+            )
+        unknown_smoothing_techs = [] if smooth_all_techs else [
+            tech for tech in smoothing_techs
+            if tech not in settings['techs']
+        ]
+        if unknown_smoothing_techs:
+            raise ValueError(
+                "Unknown technologies in processing.smooth_cost_curves: "
+                f"{unknown_smoothing_techs}"
+            )
+        baseline_directory = settings.get('unsmoothed_output_dir')
+        if baseline_directory:
+            baseline_folder = (
+                baseline_directory
+                if os.path.isabs(baseline_directory)
+                else os.path.join(ATBDIR, baseline_directory)
+            )
+            os.makedirs(baseline_folder, exist_ok=True)
+            year_marker = f"_ATB_{settings['atbyear']}_"
+            for filename in os.listdir(baseline_folder):
+                if year_marker in filename and filename.endswith('.csv'):
+                    os.remove(os.path.join(baseline_folder, filename))
 
     # if output folder does not exist, create it
     os.makedirs(outfolder, exist_ok=True)
@@ -1114,6 +1545,13 @@ if __name__ == "__main__":
                     help='skip updating cost files for this run')
     parser.add_argument('--debug', '-d', action="store_true",
                     help='option to run in debug mode')
+    parser.add_argument(
+        '--unsmoothed-output-dir',
+        help=(
+            'temporary directory for pre-smoothing outputs used by the '
+            'comparison stage'
+        ),
+    )
     args = parser.parse_args()
 
     # list of supported custom functions to call from settings.yml

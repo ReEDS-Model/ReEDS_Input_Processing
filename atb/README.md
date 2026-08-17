@@ -74,6 +74,22 @@ Whether this step generates cost files and financial files, which technologies
 it processes, and whether it copies results into ReEDS are all controlled under
 `processing:` in `config.yaml`.
 
+The optional `processing.smooth_cost_curves` block uses an anchor-aware rule.
+Moving backward from 2022, a contiguous historical tail below the anchor value
+is raised to the anchor; the scan stops when it reaches a value already at or
+above 2022. Moving forward, temporary increases and compact clusters of slope
+changes are removed. Consecutive near-equal values are grouped using the
+configured relative and absolute tolerances; the last year of each group is
+retained as a change point and the intervening years are interpolated. A
+separate major-step threshold preserves genuine technology transitions. Set
+`technologies: all` and `columns: all` to cover every technology and every
+`capcost*`, `fom*`, and `vom` column. Heat rate, capacity factor, and efficiency
+are preserved unless
+`include_capacity_factor_multiplier: true` is set; that option applies the same
+anchor-aware treatment to `cf_improvement`/`CF_mult`. Heat rate and efficiency
+remain unchanged. The older flat-history/anchor-to-target behavior remains
+available as `method: linear_bridge`.
+
 ### File names and column schemas expected by ReEDS
 
 Generated files must match what ReEDS expects exactly, because ReEDS resolves
@@ -158,6 +174,14 @@ config.yaml
 The flat file and workbook are independent upstream downloads. Neither is
 generated from the other. The formatter and plotter do not download data; they
 only consume the raw files created by the scraper.
+
+The normal pipeline validates the formatted pre-smoothing data against the
+configured ReEDS repository when `workflow.make_comparison_plots` is enabled.
+It holds that data in a temporary directory, prints the validation summary to
+the terminal, writes local validation plots under `comparison/plots/`, and
+writes versioned before/after plots under `figures/smoothing_comparison/`. The
+temporary CSVs are deleted when the pipeline exits; no row-level or summary CSV
+reports are created.
 
 For ATB 2024, the URLs are intentionally pinned to corrected release v3.
 Changing the release can change technology trajectories; update both source
