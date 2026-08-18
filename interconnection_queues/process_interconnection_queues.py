@@ -3,36 +3,40 @@ import sys
 import pandas as pd
 from itertools import product
 import altair as alt
-reeds_path = os.path.expanduser('~/Documents/Github/ReEDS/ReEDS')
+reeds_path = os.environ.get('REEDS_PATH', os.path.expanduser('~/Documents/Github/ReEDS/ReEDS'))
 sys.path.append(reeds_path)
 
 '''
 This script processes the raw LBNL's interconnection queues data (https://emp.lbl.gov/queues) to
-apply capacity deployment limit in ReEDS. Specifically, it determines 2026 and 2030 cumulative queues 
-at FIPS level by technology:
-- 2027 cumulative queues: q_status = "active" and IA_status_clean = "IA Executed"
-- 2030 cumulative queues: q_status = "active" regardless of IA_status_clean status
-- 2027-2029 cumulative values are interpolated from 2026 and 2030 values
-- 2026 values are interpolated from 0 and 2027 values (half of 2027 values)
+apply capacity deployment limit in ReEDS. Specifically, it determines t_1 and t_2 cumulative queues
+at FIPS level by technology (for the 2025 data vintage, t_1 = 2028 and t_2 = 2031):
+- t_1 cumulative queues: q_status = "active" and IA_status_clean = "IA Executed"
+- t_2 cumulative queues: q_status = "active" regardless of IA_status_clean status
+- values between t_1 and t_2 are interpolated from the t_1 and t_2 values
+- t_1-1 values are interpolated from 0 and t_1 values (half of t_1 values)
+
+Note: starting with the 2025 data vintage, LBNL folded the "Pumped Storage" and "Biofuel" resource
+types into "Other Storage" and "Other", so the pumped-hydro and biomass tech groups no longer appear
+in the output.
 '''
 
 dir = os.getcwd()
 
 ##################### INPUTS ######################
 # Most updated version of interconnection queue
-filename = 'lbnl_ix_queue_data_file_thru2024.xlsx'
-version = 2025              # release year
-t_1 = 2027                  # first year to calculate queue
-t_2 = 2030                  # last year to calculate queue
+filename = 'LBNL_Ix_Queue_Data_File_thru2025.xlsx'
+version = 2026              # release year
+t_1 = 2028                  # first year to calculate queue
+t_2 = 2031                  # last year to calculate queue
 year_range = list(range(t_1-1, t_2+1))
 year_range_str = [str(x) for x in year_range]
 
 # To compare two versions of interconnection queue
-version_1 = 2024            # version 1 release year
-version_2 = 2025            # version 2 release year
+version_1 = 2025            # version 1 release year
+version_2 = 2026            # version 2 release year
 
-version_1_t_1 = 2026        # first year to calculate queue in version 1
-version_1_t_2 = 2029        # last year to calculate queue in version 1
+version_1_t_1 = 2027        # first year to calculate queue in version 1
+version_1_t_2 = 2030        # last year to calculate queue in version 1
 year_range_version_1 = list(range(version_1_t_1-1, version_1_t_2+1))
 year_range_str_version_1 = [str(x) for x in year_range_version_1]
 ###################################################
@@ -47,7 +51,7 @@ else:
     queue_data.columns = queue_data.iloc[0]
     queue_data = queue_data[1:]
 
-county2zone = pd.read_csv(os.path.join(reeds_path,'inputs','county2zone.csv'))
+county2zone = pd.read_csv(os.path.join(reeds_path,'inputs','zones','county_state.csv'))
 county2zone['FIPS'] = 'p' + county2zone['FIPS'].astype(str).str.zfill(5)
 
 # Assuming zero queue for csp
@@ -72,9 +76,17 @@ for pt in list(range(type_no)):
     if version < 2025:
         queue_data_temp = queue_data[['q_status', 'county_'+str(item), 'state', 'IA_status_clean', 'type'+str(item),'mw'+str(item)]]
         queue_data_temp = queue_data_temp.rename(columns={'county_'+str(item): 'county_name', 'type'+str(item): 'tech','mw'+str(item):'cap'+str(item)})
-    else:
+    elif version < 2026:
         queue_data_temp = queue_data[['q_status', 'county', 'state', 'IA_status_clean', 'type'+str(item),'mw'+str(item)]]
         queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'type'+str(item): 'tech','mw'+str(item):'cap'+str(item)})
+    else:
+        # In version 2026, IA_status_* was renamed to IA_phase_* and the type/mw columns gained an underscore
+        queue_data_temp = queue_data[['q_status', 'county', 'state', 'IA_phase_clean', 'type_'+str(item),'mw_'+str(item)]]
+        queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'IA_phase_clean': 'IA_status_clean',
+                                                          'type_'+str(item): 'tech','mw_'+str(item):'cap'+str(item)})
+
+    # Capacities are read as objects because of the header offset, so cast them back to numbers
+    queue_data_temp['cap'+str(item)] = pd.to_numeric(queue_data_temp['cap'+str(item)], errors='coerce')
 
     # Only consider queues that have active status
     queue_data_active_temp = queue_data_temp[queue_data_temp['q_status']=='active']
@@ -184,7 +196,7 @@ queue_compare['cap_2'] = queue_compare['cap_2'].fillna(0)
 queue_compare['cap_diff'] = queue_compare['cap_2'] - queue_compare['cap_1']
 
 # Graph version 1:
-sch_order = year_range
+sch_order = year_range_version_1
 status_cat = ['pv','csp','wind-ons', 'wind-ofs', 'nuclear', 'battery', 'pumped-hydro',
               'biomass', 'gas', 'coal','hydro', 'geothermal', 'h2']
 
@@ -210,7 +222,12 @@ chart = alt.Chart(queue_compare).mark_bar(size=30).encode(
     title='Interconnection Queue Version ' + str(version_1-1)
 )
 
-chart.save(os.path.join(dir,'outputs','figures','queue_versions_'+str(version_1-1)+'.html'))
+# Version 1 is a historical vintage, so only write its figure if it was never generated before
+version_1_figure = os.path.join(dir,'outputs','figures','queue_versions_'+str(version_1-1)+'.html')
+if os.path.exists(version_1_figure):
+    print('Keeping existing ' + os.path.basename(version_1_figure) + ' (historical version, not regenerated)')
+else:
+    chart.save(version_1_figure)
 
 # Graph version 2:
 sch_order = year_range
@@ -268,7 +285,7 @@ chart = alt.Chart(queue_compare).mark_bar(size=30).encode(
                 ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
     width=500,
     height=300,
-    title='Interconnection Queue Difference (Version 2025 - Version 2024)'
+    title='Interconnection Queue Difference (Version ' + str(version_2-1) + ' - Version ' + str(version_1-1) + ')'
 )
 
 chart.save(os.path.join(dir,'outputs','figures','compare_queue_versions.html'))

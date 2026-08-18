@@ -12,7 +12,9 @@ This repo includes scripts and inputs to preprocess interconnection queues that 
 ![interconnection queue inputs](interconnection_queue_inputs.png)
 
 # Input files and params to run process_interconnection_queues.py
-All the input files to run the scripts are located in `inputs` folder, including original queue data from LBNL (most recently `lbnl_ix_queue_data_file_thru2024.xlsx`) and county2zone file (read from ReEDS repo) to match ReEDS counties to appropriate bas.
+All the input files to run the scripts are located in `inputs` folder, including original queue data from LBNL (most recently `LBNL_Ix_Queue_Data_File_thru2025.xlsx`) and the county-to-state file (read from the ReEDS repo at `inputs/zones/county_state.csv`) to match ReEDS counties to appropriate bas. Point the script at your ReEDS checkout with the `REEDS_PATH` environment variable.
+
+Note: starting with the 2025 data vintage, LBNL renamed several columns (`IA_status_*` &rarr; `IA_phase_*`, `type1`/`mw1` &rarr; `type_1`/`mw_1`) and folded the `Pumped Storage` and `Biofuel` resource types into `Other Storage`/`Other`, so the `pumped-hydro` and `biomass` tech groups no longer appear in the output.
 
 # Output
 - Located in the `outputs` folder
