@@ -124,9 +124,9 @@ active_queue_county = active_queue_county.merge(unique_year_FIPS_tech, on=['FIPS
 active_queue_county = active_queue_county[['FIPS','tech','online_year','cap']]
 active_queue_county['cap'] = active_queue_county['cap'].fillna(0)
 
-# Sum queue capacity by year to get cumulative queue cap by year
-active_queue_county[str(t_2)] = active_queue_county['cap']
-active_queue_county[str(t_2)] = active_queue_county.groupby(['FIPS','tech'])[str(t_2)].transform("max")
+# Sum queue capacity by year to get cumulative queue cap by year.
+active_queue_county[str(t_2)] = active_queue_county['cap'].where(active_queue_county['online_year']==t_2, 0)
+active_queue_county[str(t_2)] = active_queue_county.groupby(['FIPS','tech'])[str(t_2)].transform("sum")
 
 active_queue_county =active_queue_county.rename(columns={'cap': str(t_1)})
 active_queue_county = active_queue_county[active_queue_county['online_year']==t_1]
