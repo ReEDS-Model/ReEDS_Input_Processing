@@ -2,8 +2,8 @@
 
 ############## Input parameters ##############
 ##############################################
-# Specify reeds_path (to get data from ReEDS repo, locally or on super computer):
-reeds_path='~/Documents/Github/ReEDS/ReEDS/'
+# Specify reeds_path (to get data from ReEDS repo, locally or on HPC):
+reeds_path='~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'
 
 # Most recent ReEDS fleet and AEO versions:
 current_reeds_fleet_ver=2024

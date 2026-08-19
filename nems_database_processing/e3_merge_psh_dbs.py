@@ -45,8 +45,8 @@ def merge_psh_dbs(gendb,hydro_prjtype,ornl_hydro_unit_ver):
     #%% PROCEDURE
 
     # IMPORT DATA FILES
-    db1 = pd.read_excel(os.path.join('Inputs','ORNL_EHA',hydro_prjtype))
-    db2 = pd.read_excel(os.path.join('Inputs','ORNL_EHA',ornl_hydro_unit_ver),
+    db1 = pd.read_excel(os.path.join('inputs','ORNL_EHA',hydro_prjtype))
+    db2 = pd.read_excel(os.path.join('inputs','ORNL_EHA',ornl_hydro_unit_ver),
                         sheet_name='Operational')
     # gendb = pd.read_csv(os.path.join(reedsdir,'inputs','capacitydata',
     #                                  'ReEDS_generator_database_final_EIA-NEMS.csv'),
@@ -61,8 +61,8 @@ def merge_psh_dbs(gendb,hydro_prjtype,ornl_hydro_unit_ver):
         .drop(['ReEDSPCA'], axis=1)
         )
     db1['db1'] = 1
-    db2 = (db2[['PtName','EIA_PtID','EIA_GnID','MW','OpYear','ReEDSPCA']]
-        .rename(columns={'PtName':'T_PNM','EIA_PtID':'T_PID','EIA_GnID':'T_UID','ReEDSPCA':'reeds_ba'})
+    db2 = (db2[['PtName','EIA_PtID','EIA_GnID','MW','OpYear']]
+        .rename(columns={'PtName':'T_PNM','EIA_PtID':'T_PID','EIA_GnID':'T_UID'})
         )
     db2['db2'] = 1
 
@@ -85,12 +85,11 @@ def merge_psh_dbs(gendb,hydro_prjtype,ornl_hydro_unit_ver):
     for col in ['T_UID','T_PID','PrjType','tech']:
         dfmerge.insert(0,col,dfmerge.pop(col))
     dfmerge.insert(dfmerge.columns.get_loc('State'),'MW',dfmerge.pop('MW'))
-    dfmerge.insert(dfmerge.columns.get_loc('State'),'reeds_ba',dfmerge.pop('reeds_ba'))
     dfmerge.drop(['T_PID_x','T_PID_y'], axis=1,inplace=True)
 
 
-    dfsmall = dfmerge[['tech','PrjType','T_PID','T_UID','CH_OpYear','T_PNM','County','reeds_ba',
-                    'State','MW','Lat','Lon']].copy()
+    dfsmall = dfmerge[['tech','PrjType','T_PID','T_UID','CH_OpYear','T_PNM','County',
+                       'State','MW','Lat','Lon']].copy()
 
     #%%
 
@@ -137,7 +136,6 @@ def merge_psh_dbs(gendb,hydro_prjtype,ornl_hydro_unit_ver):
         gendb_year = gendb.loc[(gendb['T_PID']==int(row['T_PID'])) & (gendb['T_UID']==str(row['T_UID'])),'StartYear'].iloc[0]
         print(f'                  {gendb_tech} ---> {row.tech}')
         print(f'                  {gendb_year} ---> {int(row.CH_OpYear)}')
-        print(f'                  p{str(int(row.reeds_ba))}')
         print('')
         gendb.loc[(gendb['T_PID']==row['T_PID']) & (gendb['T_UID']==row['T_UID']),'tech'] = row['tech']
         check = pd.concat([check,gendb.loc[(gendb['T_PID']==row['T_PID']) & (gendb['T_UID']==row['T_UID'])]],ignore_index=True)
@@ -147,9 +145,9 @@ def merge_psh_dbs(gendb,hydro_prjtype,ornl_hydro_unit_ver):
     check.rename(columns={'tech':'new_tech'},inplace=True)
     check.insert(0,'PrjType',check.pop('PrjType'))
     check.insert(0,'old_tech',check.pop('old_tech'))
-    check.to_csv(os.path.join('Outputs','updated_generators.csv'),     
+    check.to_csv(os.path.join('outputs','updated_generators.csv'),     
                 header=True,index=False)
-    notingendb.to_csv(os.path.join('Outputs','unaccounted_generators.csv'),
+    notingendb.to_csv(os.path.join('outputs','unaccounted_generators.csv'),
                     header=True,index=False)
-    #gendb.to_csv(os.path.join('Outputs','updated_gendb.csv'), header=True,index=False)
+    #gendb.to_csv(os.path.join('outputs','updated_gendb.csv'), header=True,index=False)
     return gendb
