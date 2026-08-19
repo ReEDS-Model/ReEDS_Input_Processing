@@ -77,12 +77,14 @@ for pt in list(range(type_no)):
         queue_data_temp = queue_data[['q_status', 'county_'+str(item), 'state', 'IA_status_clean', 'type'+str(item),'mw'+str(item)]]
         queue_data_temp = queue_data_temp.rename(columns={'county_'+str(item): 'county_name', 'type'+str(item): 'tech','mw'+str(item):'cap'+str(item)})
     elif version < 2026:
-        queue_data_temp = queue_data[['q_status', 'county', 'state', 'IA_status_clean', 'type'+str(item),'mw'+str(item)]]
-        queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'type'+str(item): 'tech','mw'+str(item):'cap'+str(item)})
+        queue_data_temp = queue_data[['q_status', 'county', 'state', 'fips_codes', 'IA_status_clean', 'type'+str(item),'mw'+str(item)]]
+        queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'fips_codes': 'FIPS',
+                                                          'type'+str(item): 'tech','mw'+str(item):'cap'+str(item)})
     else:
         # In version 2026, IA_status_* was renamed to IA_phase_* and the type/mw columns gained an underscore
-        queue_data_temp = queue_data[['q_status', 'county', 'state', 'IA_phase_clean', 'type_'+str(item),'mw_'+str(item)]]
-        queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'IA_phase_clean': 'IA_status_clean',
+        queue_data_temp = queue_data[['q_status', 'county', 'state', 'fips_code', 'IA_phase_clean', 'type_'+str(item),'mw_'+str(item)]]
+        queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'fips_code': 'FIPS',
+                                                          'IA_phase_clean': 'IA_status_clean',
                                                           'type_'+str(item): 'tech','mw_'+str(item):'cap'+str(item)})
 
     # Capacities are read as objects because of the header offset, so cast them back to numbers
@@ -103,15 +105,28 @@ for pt in list(range(type_no)):
     queue_data_active_temp = queue_data_active_temp.rename(columns={'cap'+str(item):'cap'})
     active_queue = pd.concat([active_queue, queue_data_active_temp], axis=0).reset_index(drop=True)
     
-# Sum up the queue capacities by county, state, tech, and online year
-active_queue['county_name'] = active_queue['county_name'].str.lower()    
-active_queue_agg = active_queue.groupby(['county_name', 'state','tech', 'online_year'])['cap'].sum().reset_index()
-
-# Merge the queue data with county2zone to assign FIPS to each county and state pair and clean up
-active_queue_county = county2zone.merge(active_queue_agg, on=['county_name','state'], how='outer')
-active_queue_county = active_queue_county[active_queue_county['county_name']!= '0']
-active_queue_county = active_queue_county.dropna(subset=['tech'])
-active_queue_county = active_queue_county.dropna(subset=['FIPS'])
+# Sum up the queue capacities by county, tech, and online year, then keep only ReEDS counties.
+# Match on the FIPS code reported by LBNL rather than the county name: LBNL county names do not
+# always use the ReEDS spelling (e.g. Louisiana is written "Acadia Parish" vs ReEDS "acadia"),
+# which silently dropped those queues.
+if 'FIPS' in active_queue.columns:
+    fips_reported = 'p' + pd.to_numeric(active_queue['FIPS'], errors='coerce').map(
+        lambda x: str(int(x)).zfill(5) if pd.notna(x) else '')
+    # LBNL sometimes reports a stale code (e.g. Oglala Lakota SD) or concatenates several codes for
+    # projects spanning multiple counties, so fall back to the county name when the code is unusable
+    name2fips = county2zone.set_index(county2zone['county_name']+'|'+county2zone['state'])['FIPS']
+    fips_byname = (active_queue['county_name'].str.lower()+'|'+active_queue['state']).map(name2fips)
+    active_queue['FIPS'] = fips_reported.where(fips_reported.isin(county2zone['FIPS']), fips_byname)
+    active_queue_agg = active_queue.groupby(['FIPS','tech','online_year'])['cap'].sum().reset_index()
+    active_queue_county = county2zone.merge(active_queue_agg, on='FIPS', how='inner')
+else:
+    # Vintages before 2024 report no FIPS code, so fall back to matching on county name and state
+    active_queue['county_name'] = active_queue['county_name'].str.lower()
+    active_queue_agg = active_queue.groupby(['county_name', 'state','tech', 'online_year'])['cap'].sum().reset_index()
+    active_queue_county = county2zone.merge(active_queue_agg, on=['county_name','state'], how='outer')
+    active_queue_county = active_queue_county[active_queue_county['county_name']!= '0']
+    active_queue_county = active_queue_county.dropna(subset=['tech'])
+    active_queue_county = active_queue_county.dropna(subset=['FIPS'])
 
 # Assign 0 queue cap value to county-year pair with no value
 unique_year_FIPS = pd.DataFrame(product(active_queue_county['FIPS'].unique(),[t_1,t_2]),columns=['FIPS','online_year'])
