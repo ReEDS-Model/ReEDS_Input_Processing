@@ -58,3 +58,6 @@ zones/*/*.gpkg
 state_policies/outputs/
 
 atb/
+
+# local-only analysis of the interconnection queue bug fixes
+interconnection_queues/2024 debug comparison/
