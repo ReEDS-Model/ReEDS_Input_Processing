@@ -63,37 +63,23 @@ def processAEOandEIA860(dir, current_year, battery_duration, eia860M_ver_mon, ei
 
     # =============================================================================================
     ## 1. Process AEO file
-    aeo_data = cleanAEOData(dir, gdbinputname)
-    aeo_cols = ['T_PID','T_UID','tech','ctt','wst','T_SYR','T_RYR','THRATE','TCOUNT',
-                'TC_SUM','TC_NP','TC_WIN','battery_duration','EFDcd','ECPcd',
-                'T_CID','T_PNM','TVIN','T_PCA','TRFURB','T_VOM','T_FOM','T_SMO',
-                'T_RMO','T_CCSROV','T_CCSF','T_CCSV','T_CCSHR','T_CAPAD','sector',
-                'T_CCSCAPA','T_CCSLOC','T_LONG','T_LAT','status','nems']
-    aeo_data = aeo_data[aeo_cols]
+    (aeo_data, aeo_cols) = cleanAEOData(dir, current_year, gdbinputname)
     # =============================================================================================
 
     # =============================================================================================
     ## 2. Process EIA860M files and append operating, planned, and retired EIA860M units
     # Operating
-    eia860M_data_operating = cleanEIA860MData(dir, current_year, eia860M_ver_mon, eia860M_ver_year, 
-                                              battery_duration, status='Operating')
+    (eia860M_data_operating, eia_cols) = cleanEIA860MData(dir, current_year, eia860M_ver_mon, eia860M_ver_year, 
+                                                          battery_duration, status='Operating')
     # Planned
-    eia860M_data_planned = cleanEIA860MData(dir, current_year, eia860M_ver_mon, eia860M_ver_year, 
-                                            battery_duration, status='Planned')
+    (eia860M_data_planned, eia_cols) = cleanEIA860MData(dir, current_year, eia860M_ver_mon, eia860M_ver_year, 
+                                                        battery_duration, status='Planned')
     # Retired
-    eia860M_data_retired = cleanEIA860MData(dir, current_year, eia860M_ver_mon, eia860M_ver_year, 
-                                            battery_duration, status='Retired')
+    (eia860M_data_retired, eia_cols) = cleanEIA860MData(dir, current_year, eia860M_ver_mon, eia860M_ver_year, 
+                                                        battery_duration, status='Retired')
     # Append them together
-    eia_cols = ['T_PID','T_UID','Plant Name','T_PCA','Sector','Unit Code',
-                'Nameplate Capacity (MW)','Net Summer Capacity (MW)',
-                'Net Winter Capacity (MW)','Nameplate Energy Capacity (MWh)',
-                'Technology','tech','reeds_tech', 'ctt', 'wst',
-                'Energy Source Code','T_SYR_EIA860','T_RYR_EIA860', 
-                'Latitude', 'Longitude','Battery Duration','Status','eia860']
-    eia860M_data = pd.concat([eia860M_data_operating[eia_cols],
-                               eia860M_data_planned[eia_cols], 
-                               eia860M_data_retired[eia_cols]], 
-                               ignore_index=True)
+    eia860M_data = pd.concat([eia860M_data_operating,eia860M_data_planned,eia860M_data_retired],
+                             ignore_index=True)
     # if summer capacity is missing, replace it with nameplate capacity
     eia860M_data.loc[eia860M_data['Net Summer Capacity (MW)'].isna(),
                      'Net Summer Capacity (MW)'] = eia860M_data['Nameplate Capacity (MW)']
@@ -105,7 +91,7 @@ def processAEOandEIA860(dir, current_year, battery_duration, eia860M_ver_mon, ei
 
     # =========================================================================
     ## 4. Clean up final merged nems_eia file
-    nems_eia860_operating_retired_planned_cleaned = cleanMergedAEOEIA860(nems_eia860, battery_duration)
+    nems_eia860_operating_retired_planned_cleaned = cleanMergedAEOEIA860(aeo_data, nems_eia860, battery_duration)
     # =========================================================================
     
     return nems_eia860_operating_retired_planned_cleaned
@@ -115,7 +101,7 @@ def processAEOandEIA860(dir, current_year, battery_duration, eia860M_ver_mon, ei
 # to get from previous step them ready to be merged with each other
 #####################################################################################  
 
-def cleanAEOData(dir, gdbinputname):
+def cleanAEOData(dir, current_year, gdbinputname):
     aeo_data = pd.read_excel(os.path.join(dir,'inputs','aeo_nems',gdbinputname))
     aeo_data = aeo_data.astype({'T_PID':'string','T_UID':'string', 'T_SYR': 'int', 'T_RYR': 'int'})
     aeo_data['T_PID'] = aeo_data['T_PID'].str.replace(" ", "")
@@ -142,9 +128,40 @@ def cleanAEOData(dir, gdbinputname):
     aeo_data = aeo_data.merge(cooling_tech, on=['tech'], how='left')
     aeo_data = aeo_data.drop(columns='reeds_tech')
     aeo_data['status'] = '(OP) Operating'
+    aeo_data.loc[aeo_data['T_RYR']<current_year,'status'] = '(R) Retired'
     aeo_data['sector'] = 'Electric Utility'
     aeo_data['nems'] = 1
-    return aeo_data
+
+    aeo_cols = ['T_PID','T_UID','tech','ctt','wst','T_SYR','T_RYR','THRATE','TCOUNT',
+                'TC_SUM','TC_NP','TC_WIN','battery_duration','EFDcd','ECPcd',
+                'T_CID','T_PNM','TVIN','T_PCA','TRFURB','T_VOM','T_FOM','T_SMO',
+                'T_RMO','T_CCSROV','T_CCSF','T_CCSV','T_CCSHR','T_CAPAD','sector',
+                'T_CCSCAPA','T_CCSLOC','T_LONG','T_LAT','status','nems']
+    aeo_data = aeo_data[aeo_cols]
+
+    # Handle units with multiple owners:
+    # Set aside units with single owners
+    aeo_data_single = aeo_data[aeo_data['TCOUNT']==1]
+    # Units with multiple owners
+    aeo_data_mult = aeo_data[aeo_data['TCOUNT']<1]
+    
+    # Collapse units that are shared across different owners into ones with single owners
+    # First, retain the original online year for upgraded units
+    aeo_data_mult_g = aeo_data_mult.groupby(['T_PID','T_UID','TVIN','T_CID'], as_index=False).first()
+    # Then, collapse on T_PID and T_UID
+    aeo_data_mult_g = aeo_data_mult_g.groupby(['T_PID','T_UID','TVIN'],
+                                            as_index=False).agg(
+                                                {'ctt':'first','wst':'first','THRATE':'mean','TC_SUM':'sum',
+                                                 'TC_NP':'sum','TC_WIN':'sum','battery_duration':'mean','T_SYR':'min',
+                                                 'T_RYR':'first','tech':'first','EFDcd':'first','ECPcd':'first',
+                                                 'T_PNM':'first','T_PCA':'first','TRFURB':'first','T_VOM':'mean',
+                                                 'T_FOM':'mean','T_SMO':'first','T_RMO':'first','T_CCSROV':'first',
+                                                 'T_CCSF':'first','T_CCSV':'first','T_CCSHR':'first','T_CAPAD':'first',
+                                                 'T_CCSCAPA':'first','T_CCSLOC':'first','sector':'first','TCOUNT':'sum',
+                                                 'T_LONG':'first','T_LAT':'first','status':'first','nems':'first'})
+    aeo_data_mult_g['TCOUNT'] = 1
+    aeo_data_final = pd.concat([aeo_data_single,aeo_data_mult_g])
+    return aeo_data_final, aeo_cols
   
 def cleanEIA860MData(dir, current_year, ver_mon, ver_year, battery_duration, status):
     
@@ -250,14 +267,22 @@ def cleanEIA860MData(dir, current_year, ver_mon, ver_year, battery_duration, sta
     eia860M_data = eia860M_data.reset_index(drop=True)
     eia860M_data['eia860'] = 1
 
-    return  eia860M_data
+    eia_cols = ['T_PID','T_UID','Plant Name','T_PCA','Sector','Unit Code',
+                'Nameplate Capacity (MW)','Net Summer Capacity (MW)',
+                'Net Winter Capacity (MW)','Nameplate Energy Capacity (MWh)',
+                'Technology','tech','reeds_tech', 'ctt', 'wst',
+                'Energy Source Code','T_SYR_EIA860','T_RYR_EIA860',
+                'Latitude', 'Longitude','Battery Duration','Status','eia860']
+
+    eia860M_data_final = eia860M_data[eia_cols]
+    return  eia860M_data_final, eia_cols
 
 def mergeAEOandEIA860M(aeo_data, eia860M_data, current_year, aeo_cols, eia_cols):
 
     aeo_eia_cols = ['tech','TC_SUM','TC_NP','TC_WIN','T_RYR','T_SYR','THRATE',
-                    'T_CID','T_PID','T_UID','T_PNM','TVIN','EFDcd','ECPcd',
-                    'T_PCA','TRFURB','T_VOM','T_FOM','T_SMO','T_RMO','TCOUNT',
-                    'T_CCSROV','T_CCSF','T_CCSV','T_CCSHR','T_CAPAD','T_CCSCAPA','T_CCSLOC',
+                    'T_PID','T_UID','T_PNM','TVIN','EFDcd','ECPcd','T_PCA',
+                    'TRFURB','T_VOM','T_FOM','T_SMO','T_RMO', 'T_CCSROV','T_CCSF',
+                    'T_CCSV','T_CCSHR','T_CAPAD','T_CCSCAPA','T_CCSLOC',
                     'T_LONG','T_LAT','ctt','wst','nems','eia860',
                     'sector','status','Technology','battery_duration']
     nems_eia860 = pd.merge(aeo_data, eia860M_data, on=['T_PID','T_UID'], 
@@ -343,15 +368,15 @@ def mergeAEOandEIA860M(aeo_data, eia860M_data, current_year, aeo_cols, eia_cols)
     eia860_only['tech'] = 'others'
     eia860_only.loc[eia860_only['reeds_tech'].notna(), 'tech'] = eia860_only['reeds_tech']
 
-    # Aggregate unmatched units by T_PID, T_SYR and T_RYR
-    nems_only = nems_only.groupby(['tech','T_PID','T_SYR','T_RYR'], 
+    # Aggregate unmatched units by T_PID, T_SYR, T_RYR, and TVIN
+    nems_only = nems_only.groupby(['tech','T_PID','T_SYR','T_RYR','TVIN'], 
                                   as_index=False).agg({'ctt':'first','wst':'first','THRATE':'mean','TC_SUM':'sum',
                                                         'TC_NP':'sum','TC_WIN':'sum','battery_duration':'mean','T_UID':'first',
                                                         'EFDcd':'first','ECPcd':'first','T_CID':'first','T_PNM':'first',
-                                                        'TVIN':'first','T_PCA':'first','TRFURB':'first','T_VOM':'mean',
-                                                        'T_FOM':'mean','T_SMO':'first','T_RMO':'first','T_CCSROV':'first',
-                                                        'T_CCSF':'first','T_CCSV':'first','T_CCSHR':'first','T_CAPAD':'first',
-                                                        'T_CCSCAPA':'first','T_CCSLOC':'first','sector':'first','TCOUNT':'first',
+                                                        'T_PCA':'first','TRFURB':'first','T_VOM':'mean','T_FOM':'mean',
+                                                        'T_SMO':'first','T_RMO':'first','T_CCSROV':'first','T_CCSF':'first',
+                                                        'T_CCSV':'first','T_CCSHR':'first','T_CAPAD':'first','T_CCSCAPA':'first',
+                                                        'T_CCSLOC':'first','sector':'first','TCOUNT':'first',
                                                         'T_LONG':'first','T_LAT':'first','status':'first','nems':'first'})
     eia860_only = eia860_only.groupby(['Technology','T_PID','T_SYR_EIA860','T_RYR_EIA860'], 
                                       as_index=False).agg({'ctt':'first','wst':'first','Nameplate Capacity (MW)':'sum',
@@ -407,23 +432,35 @@ def addHeatrates(nems_eia860):
 
     return nems_eia860
 
-def cleanMergedAEOEIA860(merged_nems_eia860, battery_duration):
-    # Correct capacity based on TCOUNT:
-    merged_nems_eia860.loc[((merged_nems_eia860['TCOUNT'].isna()) & 
-                           (merged_nems_eia860['nems']==0) & 
-                           (merged_nems_eia860['eia860']==1)),'TCOUNT'] = 1
+def cleanMergedAEOEIA860(aeo_orig, nems_eia860, battery_duration):
+    # Handling upgrades
+    nems_eia860['TVIN'] = nems_eia860['TVIN'].fillna(1)
+    # Set aside units that are not upgrades
+    nems_eia_non_upgrades = nems_eia860[nems_eia860['TVIN']<6]
+    # For upgraded units, there are two rows in AEO-NEMS (one with TVIN=6 and one with TVIN=7), 
+    # but there is only one row with original start year and no TVIN in EIA860M. So during
+    # merging, EIA860M might override start years and retire years for these units.
+    # As a result, here we put back the start years and retire years of these units to
+    # original values in AEO-NEMS
+    nems_eia_upgrades = nems_eia860[(nems_eia860['TVIN']==6)| (nems_eia860['TVIN']==7)]
+    aeo_orig = aeo_orig[(aeo_orig['TVIN']==6) | (aeo_orig['TVIN']==7)]
+    aeo_orig = aeo_orig.rename(columns={'T_SYR':'T_SYR_aeo','T_RYR':'T_RYR_aeo'})
+    aeo_orig = aeo_orig[['T_PID','T_UID','TVIN','T_SYR_aeo','T_RYR_aeo']]
+    aeo_orig = aeo_orig.drop_duplicates()
+    nems_eia_upgrades = nems_eia_upgrades.merge(aeo_orig, on=['T_PID','T_UID','TVIN'], how='left')
+    nems_eia_upgrades[['T_SYR','T_RYR']] = nems_eia_upgrades[['T_SYR_aeo','T_RYR_aeo']]
+    nems_eia_upgrades = nems_eia_upgrades.drop(columns=['T_SYR_aeo','T_RYR_aeo'])
 
-    merged_nems_eia860['TC_NP'] = merged_nems_eia860['TC_NP'] * merged_nems_eia860['TCOUNT']
-    merged_nems_eia860['TC_WIN'] = merged_nems_eia860['TC_WIN'] * merged_nems_eia860['TCOUNT']
-    merged_nems_eia860['TC_SUM'] = merged_nems_eia860['TC_SUM'] * merged_nems_eia860['TCOUNT']
+    nems_eia860 = pd.concat([nems_eia_non_upgrades, nems_eia_upgrades])
 
+    # Rounding
     rounding_cols = ['TC_NP', 'TC_WIN','TC_SUM','T_VOM','T_FOM',
                      'T_CCSROV','T_CCSF','T_CCSV','T_CCSHR','T_CAPAD']
-    merged_nems_eia860[rounding_cols] = merged_nems_eia860[rounding_cols].round(2)
+    nems_eia860[rounding_cols] = nems_eia860[rounding_cols].round(2)
 
     ## Further clean up
     # Add heat rate for unmatched EIA860M units:
-    nems_eia860_final = addHeatrates(merged_nems_eia860)
+    nems_eia860_final = addHeatrates(nems_eia860)
     
     # coal-new technologies are scrubbed coal units with an online data of 1995 of later
     coal_new_filter = (nems_eia860_final['tech'].isin(['coaloldscr'])) & (nems_eia860_final['TRFURB'] >= 1995)
@@ -455,11 +492,6 @@ def cleanMergedAEOEIA860(merged_nems_eia860, battery_duration):
     # Rename all "pv" to "upv" and "geothermal" to "geohydro_allkm":
     nems_eia860_final.loc[(nems_eia860_final['tech'] == 'pv'), 'tech'] = 'upv'
     nems_eia860_final.loc[(nems_eia860_final['tech'] == 'geothermal'), 'tech'] = 'geohydro_allkm'    
-
-    # Drop any duplicates in terms of T_PID, T_UID, TC_SUM, T_SYR, TVIN and T_RYR
-    # (in case merging creates doubles)
-    nems_eia860_final = nems_eia860_final.drop_duplicates(subset=['T_PID','T_UID','TC_SUM','TVIN','T_SYR','T_RYR'], 
-                                                          keep='first', inplace=False, ignore_index=False)
 
     return nems_eia860_final
 

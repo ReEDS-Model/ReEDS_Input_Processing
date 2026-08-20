@@ -1,94 +1,67 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Mar 26 16:33:51 2019
-
-@author: afrazier
-"""
-
 import pandas as pd
+import sys
 
 def fix_upgrades(nems):
-    print('here 1')
 
-    nems["Unique ID"] = nems.index
-    
-    subset = nems[['tech','summer_power_capacity_MW','RetireYear','StartYear','IsExistUnit',
-                   'HeatRate','T_PID','TVIN','TRFURB','Unique ID']]
-    
     # Note that T_SYR (now StartYear) is the online year for the most recent time the unit
     # came online. TRFURB holds the original start date of the plant.
     
     # TVIN == 6 means that the unit was retired and 7 corresponds to a unit that was refurbished
-    retires = (subset['TVIN'] == 6) & (subset['RetireYear'] >= 2009)
-    refurbs = (subset['TVIN'] == 7) & (subset['StartYear'] >= 2010)
-    
-    rets = subset[retires].reset_index(drop=True)
-    refs = subset[refurbs].reset_index(drop=True)
-    
-    upgrades = pd.concat([refs,rets], sort=False).reset_index(drop=True)
-    upgrades = upgrades.sort_values('Unique ID').reset_index(drop=True)
-    
+    upgrate_cat = ((nems['TVIN'] == 6) & (nems['RetireYear'] >= 2009)) | ((nems['TVIN'] == 7) & (nems['StartYear'] >= 2010))
+    upgrades = nems[upgrate_cat]
+    non_upgrades = nems[~upgrate_cat]
+
     # Make sure units before they retire
-    upgrades = upgrades[upgrades['TRFURB']<=upgrades['RetireYear']].reset_index(drop=True)
-    upgrades_by_id = upgrades.set_index('Unique ID')
-    
-    plant_refurbs = pd.DataFrame(columns=['UID_retire','UID_refurb'])
-    plant_upgrades = pd.DataFrame(columns=['UID_retire','UID_refurb'])
-    plant_downgrades = pd.DataFrame(columns=['UID_retire','UID_refurb'])
-    intermediate_ids = []
-    no_match_ids = []
-    
-    start = -1
-    i = 0
-    while i in range(0,len(upgrades),1):
-        print(i)
-        # Cycle through the rows until you find a retired unit (TVIN == 6)
-        # Log the id, then keep going until you find the refurbed unit (TVIN == 7)
-        if start == -1 and upgrades.loc[i,'TVIN'] == 6:
-            start = i
-            id_ret = upgrades.loc[i,'Unique ID']
-        elif start != -1 and upgrades.loc[i,'TVIN'] == 6:
-            id_intermediate = upgrades.loc[i,'Unique ID']
-            if upgrades_by_id.loc[id_ret,'TRFURB'] == upgrades_by_id.loc[id_intermediate,'TRFURB']:
-                intermediate_ids.append(id_intermediate)
-        elif start != -1 and upgrades.loc[i,'TVIN'] == 7:
-            id_refurb = upgrades.loc[i,'Unique ID']
-            # If the retired and refurbished plants have the same original online year, then
-            # adjust the plant as a refurbishment, capacity upgrade, or capacity downgrade
-            if upgrades_by_id.loc[id_ret,'TRFURB'] == upgrades_by_id.loc[id_refurb,'TRFURB']:
-                if upgrades_by_id.loc[id_refurb,'summer_power_capacity_MW'] == upgrades_by_id.loc[id_ret,'summer_power_capacity_MW']:
-                    plant_refurb = pd.DataFrame(columns=['UID_retire','UID_refurb'], data=[[id_ret,id_refurb]])
-                    plant_refurbs = pd.concat([plant_refurbs,plant_refurb], sort=False).reset_index(drop=True)
-                elif upgrades_by_id.loc[id_refurb,'summer_power_capacity_MW'] > upgrades_by_id.loc[id_ret,'summer_power_capacity_MW']:
-                    plant_upgrade = pd.DataFrame(columns=['UID_retire','UID_refurb'], data=[[id_ret,id_refurb]])
-                    plant_upgrades = pd.concat([plant_upgrades,plant_upgrade], sort=False).reset_index(drop=True)
-                elif upgrades_by_id.loc[id_refurb,'summer_power_capacity_MW'] < upgrades_by_id.loc[id_ret,'summer_power_capacity_MW']:
-                    plant_downgrade = pd.DataFrame(columns=['UID_retire','UID_refurb'], data=[[id_ret,id_refurb]])
-                    plant_downgrades = pd.concat([plant_downgrades,plant_downgrade], sort=False).reset_index(drop=True)
-            else:
-                no_match_ids.append(id_ret)
-                i -= 2
-            start = -1
-        elif start == -1 and upgrades.loc[i,'TVIN'] == 7:
-            pass
-        i += 1
+    upgrades = upgrades[upgrades['TRFURB']<=upgrades['RetireYear']]
+
+    # Handle upgraded units
+    upgrades_unique = upgrades.drop_duplicates(subset=['T_PID', 'T_UID'])
+    for idx in upgrades_unique.index:
+        idx_cat = (upgrades['T_PID']==upgrades_unique['T_PID'][idx]) & (upgrades['T_UID']==upgrades_unique['T_UID'][idx])
+        unit_idx = upgrades[idx_cat]
+        if len(unit_idx) == 1:
+            continue
+        elif len(unit_idx) == 2:
+            # Get the index id for retired and upgraded plant
+            retire_id = unit_idx[unit_idx['StartYear']==unit_idx['StartYear'].min()].index.values[0]
+            upgrade_id = unit_idx[unit_idx['StartYear']==unit_idx['StartYear'].max()].index.values[0]
+
+            # Get start years, retire years and capacity values of the retired and upgraded plants
+            # Retired plant
+            startyear_ret = unit_idx.loc[unit_idx.index==retire_id, 'StartYear'].values[0]
+            retireyear_ret = unit_idx.loc[unit_idx.index==retire_id, 'RetireYear'].values[0]
+            cap_ret = unit_idx.loc[unit_idx.index==retire_id, 'summer_power_capacity_MW'].values[0]
+            # Upgraded plant
+            startyear_ref = unit_idx.loc[unit_idx.index==upgrade_id, 'StartYear'].values[0]
+            retireyear_ref = unit_idx.loc[unit_idx.index==upgrade_id, 'RetireYear'].values[0]
+            cap_ref = unit_idx.loc[unit_idx.index==retire_id, 'summer_power_capacity_MW'].values[0]
+
+            # If the upgraded plant's start year does not immediately follow the 
+            # retired plant's retire year, keep both plants in the database
+            if startyear_ref - retireyear_ret > 1:
+                print('Upgraded plant does not start immediately after original plant retires, ' \
+                'keep both plants in database')
+                continue
+            # If the upgraded plant's start year immediately follows the retired plant's retire year,
+            # update start year for the upgraded plant and keep only the upgraded plant in database, 
+            # unless the upgraded capacity is higher, in which case, add the capacity difference as the new plant
+            elif startyear_ref - retireyear_ret == 1:
+                if cap_ref - cap_ret <= 0:
+                    print('No change in capacity after upgrading, or upgraded capacity is lower,' \
+                          'update start year for the upgraded plant')
+                    # Update start year for the upgraded plant and drop retired plant
+                    upgrades.loc[upgrades.index==upgrade_id,'StartYear'] = startyear_ret
+                    upgrades = upgrades.drop(index=retire_id)
+                elif cap_ref - cap_ret > 0:
+                    cap_diff = cap_ref - cap_ret
+                    print('Capacity increases after upgrading, add the capacity difference as the new plant')
+                    # Update retire year for the retired plan
+                    upgrades.loc[upgrades.index==retire_id,'RetireYear'] = retireyear_ref
+                    # Add capacity difference as the new plant
+                    upgrades.loc[upgrades.index==upgrade_id,'summer_power_capacity_MW'] = cap_diff
+        elif len(unit_idx) > 2:
+            sys.exit()
+
+    nems_final = pd.concat([non_upgrades,upgrades])
         
-    nems.loc[:,'index'] = nems.loc[:,'Unique ID']
-    nems = nems.set_index('index')
-    
-    # Assign the start date of the retired refurbished unit to the refurbished unit
-    for refurb in range(0,len(plant_refurbs),1):
-        nems.loc[plant_refurbs.loc[refurb,'UID_refurb'],'StartYear'] = nems.loc[plant_refurbs.loc[refurb,'UID_retire'],'StartYear']
-    
-    # For plants with upgraded capacity, add the capacity difference as a new plant
-    for upgrade in range(0,len(plant_upgrades),1):
-        nems.loc[plant_upgrades.loc[upgrade,'UID_retire'],'RetireYear'] = nems.loc[plant_upgrades.loc[upgrade,'UID_refurb'],'RetireYear']
-        cap_dif = nems.loc[plant_upgrades.loc[upgrade,'UID_refurb'],'summer_power_capacity_MW'] - nems.loc[plant_upgrades.loc[upgrade,'UID_retire'],'summer_power_capacity_MW']
-        nems.loc[plant_upgrades.loc[upgrade,'UID_refurb'],'summer_power_capacity_MW'] = cap_dif
-        
-    remove_plants = plant_refurbs['UID_retire'].tolist() + intermediate_ids
-    
-    nems = nems[~nems['Unique ID'].isin(remove_plants)]
-    print('here 2')
-        
-    return nems
+    return nems_final

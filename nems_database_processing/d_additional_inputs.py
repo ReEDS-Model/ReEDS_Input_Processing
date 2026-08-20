@@ -52,9 +52,16 @@ df3 = merge_psh_dbs(df2b,hydro_prjtype,ornl_hydro_unit_ver)
 
 #%% Map water techs to those that do not have any
 
-# Gather as many water techs from the original database as possible
+# Read current AEO-NEMS dataset
 dfold = pd.read_csv(os.path.join('inputs','inheritance',gdboldname), low_memory=False)
+
+# Retain columns to keep in final dataset
+columns_to_keep = dfold.columns.tolist()
+columns_to_keep.remove('T_CID')
+
 dfold['merge_id'] = dfold['T_PID'].astype(str).str.strip() + "_" + dfold['T_UID'].astype(str).str.strip()
+
+# Gather as many water techs from the original database as possible
 dfold = dfold[['merge_id','ctt','wst']].copy()
 dfold_ct = dfold.groupby(by = 'merge_id').first().reset_index()
 
@@ -86,7 +93,7 @@ df4.loc[missing_ct,'wst_x'] = df4.loc[missing_ct,'wst_y']
 df4.drop(['ctt_y','wst_y'], inplace = True, axis = 1)
 df4.rename(columns={'ctt_x':'ctt', 'wst_x':'wst'}, inplace=True)
 
-tech_ct_map = pd.read_csv(os.path.join('inputs','tech_to_cooling_tech_map.csv'))
+tech_ct_map = pd.read_csv(os.path.join('inputs','tech_mappings','tech_to_cooling_tech_map.csv'))
 tech_ct_map['tech'] = tech_ct_map['tech'].str.lower()
 
 # Find the rows with missing cooling tech data
@@ -203,7 +210,6 @@ dfout['RetireYear'] = dfout['RetireYear'].astype(int)
 dfout['StartYear2'] = dfout['StartYear']
 dfout['TRFURB'] = dfout['TRFURB'].fillna(dfout.pop('StartYear2')).astype(int)
 
-dfout['TCOUNT'] = dfout['TCOUNT'].fillna(1)
 dfout['nems'] = dfout['nems'].fillna(0)
 dfout['eia860'] = dfout['eia860'].fillna(0)
 
@@ -223,11 +229,10 @@ dfout['in_eia860M'] = dfout['in_eia860M'].astype(int)
 dfout['T_PNM'] = dfout['T_PNM'].str.replace('#', 'no. ')
 dfout['T_UID'] = dfout['T_UID'].str.replace('#', 'no. ')
 
-# Reorder columns:
-columns_to_keep = dfold.columns.tolist()
-
+# Reorder columns to be consistent with previous version
 dfout = dfout[columns_to_keep]
 
+# Save output
 dfout.to_csv(os.path.join('outputs',gdbfinalname),index=False)
 
 print("Finished d_additional_inputs.py")
