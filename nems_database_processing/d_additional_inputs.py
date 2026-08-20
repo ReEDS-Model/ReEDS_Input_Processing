@@ -1,8 +1,10 @@
-# -*- coding: utf-8 -*-
 """
-Created on Mon May 30 17:37:00 2022
+Updated Aug 15 2026
 
-@author: wcole
+This script:
+    1. Assigns retire years to units without retire years from AEO-NEMS and EIA860M
+    2. Update start years and retire years for units that are retired and upgraded
+    3. Reclassify hydro units using ONRL's EHA hydro databases
 """
 
 import pandas as pd

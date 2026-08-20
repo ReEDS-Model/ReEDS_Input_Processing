@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
 """
-by apham
 Updated Aug 1 2026
 
 This script matches the units' long/lats to the FIPS that contain them.

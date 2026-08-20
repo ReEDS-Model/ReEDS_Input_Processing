@@ -1,8 +1,10 @@
-# -*- coding: utf-8 -*-
 """
-Created on Mon Mar 25 15:43:20 2019
+Updated August 19 2026
 
-@author: afrazier
+This sub-script:
+    1. Assigns retire years to units without retire years from AEO-NEMS and EIA860M using maxage.csv
+    2. Updated retire years for coal plants that are MAT exempted
+    3. Revise retire years and technology conversion of a few special units
 """
 
 import pandas as pd

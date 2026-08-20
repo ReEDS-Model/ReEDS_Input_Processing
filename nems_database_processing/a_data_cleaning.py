@@ -1,5 +1,4 @@
 """
-by apham
 Updated Aug 1 2026
 
 This script cleans the original generator fleet data from AEO and merges it with EIA860M,
