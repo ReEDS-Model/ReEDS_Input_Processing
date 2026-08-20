@@ -99,6 +99,8 @@ def main(dfnew, dfold, finalyear_online, finalyear_retire, techs, color_techs):
                                               on=['tech','r','StartYear'], 
                                               how='outer').rename(columns={'r_x':'r'})
     online_data_diff = online_data_diff.rename(columns={'summer_power_capacity_GW':'cap_old'})
+    online_data_diff['cap_old'] = online_data_diff['cap_old'].fillna(0)
+    online_data_diff['cap_new'] = online_data_diff['cap_new'].fillna(0)
     online_data_diff['summer_power_capacity_GW'] = online_data_diff['cap_new'] - online_data_diff['cap_old']
 
     # Raw and diff online data at national level
@@ -157,6 +159,8 @@ def main(dfnew, dfold, finalyear_online, finalyear_retire, techs, color_techs):
                                               on=['tech','r','RetireYear'], 
                                               how='outer').rename(columns={'r_x':'r'})
     retire_data_diff = retire_data_diff.rename(columns={'summer_power_capacity_GW':'cap_old'})
+    retire_data_diff['cap_old'] = retire_data_diff['cap_old'].fillna(0)
+    retire_data_diff['cap_new'] = retire_data_diff['cap_new'].fillna(0)
     retire_data_diff['summer_power_capacity_GW'] = retire_data_diff['cap_new'] - retire_data_diff['cap_old']
 
     # Raw and diff online data at national level
