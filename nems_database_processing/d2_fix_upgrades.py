@@ -60,6 +60,8 @@ def fix_upgrades(nems):
                     # Add capacity difference as the new plant
                     upgrades.loc[upgrades.index==upgrade_id,'summer_power_capacity_MW'] = cap_diff
         elif len(unit_idx) > 2:
+            print('There are mismatched numbers of retired and upgraded units. Please check dataset to confirm ' \
+            'and adjust data clean up process in a_data_cleaning.py if needed. Exiting...')
             sys.exit()
 
     nems_final = pd.concat([non_upgrades,upgrades])
