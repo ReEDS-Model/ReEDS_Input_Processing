@@ -5,31 +5,31 @@
 
 #%% Imports
 import os
-import site
+import sys
 import numpy as np
 import pandas as pd
+from pathlib import Path
 import matplotlib.pyplot as plt
 import h5py
 from rex import NSRDBX
 from tqdm import tqdm
 
-reeds_path = os.path.expanduser('~/github/ReEDS')
-reeds_path = '/projects/reedsweto/pbrown/github/ReEDS'
+reeds_path = Path('../../ReEDS').resolve()
 
-site.addsitedir(os.path.join(reeds_path))
+sys.path.append(str(reeds_path))
 import reeds
-from reeds import plots
 
 pd.options.display.max_columns = 200
-plots.plotparams()
+reeds.plots.plotparams()
 
 #%% User inputs
 country = 'USA'
-level = 'st'
+crs = 'EPSG:5070'
+outpath = Path.cwd()
 
 #%% Setup
-years = range(1998, 2025)
-# years = range(2006,2015)
+# years = range(1998, 2026)
+years = range(2006, 2026)
 nsrdb_fpath_base = '/kfs2/datasets/NSRDB/current'
 
 ### Dummy year for meta file
@@ -45,61 +45,37 @@ for col in ['country','state','county']:
     meta[col] = meta[col].map(lambda x: x.decode())
 if country.lower() in ['usa','us','united states', 'united states of america']:
     meta = meta.loc[meta.country == 'United States'].copy()
-dfmeta = plots.df2gdf(meta)
+dfmeta = reeds.plots.df2gdf(meta, crs=crs)
 
 #%%### Unweighted average temperature for all regions and years
-### Get list of regions
-hierarchy = reeds.io.get_hierarchy().reset_index()
-dfmap = reeds.io.get_dfmap()
+### Get list of ReEDS sites
+sitemap = reeds.io.get_sitemap(crs=crs)
 
-if level not in hierarchy:
-    raise ValueError(f"Provided level={level} but must be in {hierarchy.columns.tolist()}")
-
-regions = sorted(hierarchy[level].unique())
-
-# abbrevs = sorted(set(hierarchy.st.unique().tolist() + ['DC']))
-
-# abbrev2state = pd.read_csv(
-#     os.path.join(reeds_path, 'hourlize', 'inputs', 'resource', 'state_abbrev.csv'),
-#     index_col='ST',
-# ).squeeze()
-
-#%% Get sites for desired region resolution
-print('Getting site list for desired region resolution')
-gids = {}
-for r in tqdm(regions):
-    geom = dfmap[level].loc[r,'geometry']
-    gids[r] = dfmeta.loc[dfmeta.intersects(geom)].index.values
+#%% Get closest NSRDB site to each ReEDS site
+nsrdb_gids = dfmeta.assign(nsrdb_gid=dfmeta.index)[['nsrdb_gid','geometry']].copy()
+sitemap = sitemap.sjoin_nearest(nsrdb_gids, how='left')
 
 #%% Run it
 dictout = {}
-for year in years:
+for year in tqdm(years):
     dictyear = {}
     nsrdb_fpath = os.path.join(nsrdb_fpath_base, f'nsrdb_{year}.h5')
-    for r in tqdm(regions, desc=str(year)):
-    # for r in tqdm(['p132'], desc=str(year)):
-        with NSRDBX(nsrdb_fpath, hsds=False) as f:
-            dfregion = f.get_gid_df('air_temperature', gids[r])
-            # dfstate = f.get_region_df(
-            #     'air_temperature', region=abbrev2state[abbrev], region_col='state',
-            # )
-        ## Only keep the hourly values, not half-hourly
-        dictyear[r] = dfregion.iloc[::2].mean(axis=1).astype(np.float32)
-
-    dictout[year] = pd.concat(dictyear, axis=1, names=[level])
+    with NSRDBX(nsrdb_fpath, hsds=False) as f:
+        dfdata = f.get_gid_df('air_temperature', sitemap.nsrdb_gid.values)
+        dfdata.columns = sitemap.index
+    ## Only keep the hourly values, not half-hourly
+    dictout[year] = dfdata.iloc[::2].round(0).astype(np.int8)
 
 #%% Write it
-outfile = os.path.join(
-    reeds_path, 'inputs', 'variability', 'multi_year', f'temperature_celsius-{level}.h5')
-os.makedirs(os.path.dirname(outfile), exist_ok=True)
+outfile = Path(outpath, 'temperature_celsius.h5').resolve()
+os.makedirs(outfile.parent, exist_ok=True)
 if os.path.exists(outfile):
     os.remove(outfile)
 with h5py.File(outfile, 'w') as f:
-    f.create_dataset('columns', data=dictout[years[0]].columns, dtype='S29')
+    f.create_dataset('columns', data=dictout[years[0]].columns, dtype=np.int32)
     for year in dictout:
         f.create_dataset(
-            str(year), data=dictout[year],
-            dtype=np.float32,
+            str(year), data=dictout[year], dtype=np.int8,
             compression='gzip', compression_opts=4,
         )
         f.create_dataset(f'index_{year}', data=dictout[year].index, dtype='S29')
@@ -109,34 +85,42 @@ year = years[-1]
 with h5py.File(outfile, 'r') as f:
     df = pd.DataFrame(
         data=f[str(year)],
-        columns=pd.Series(f['columns']).map(lambda x: x.decode()),
+        columns=pd.Series(f['columns']),
         index=pd.to_datetime(pd.Series(f[f'index_{year}']).map(lambda x: x.decode())),
     )
-
 print(df.shape)
 
+#%% Take a look
 cmap = plt.cm.turbo
-dfplot = dfmap[level].copy()
+dfplot = sitemap.copy()
+dfplot.geometry = dfplot.buffer(11530/2, cap_style='square')
 dfplot['temp_mean'] = df.mean()
 dfplot['temp_max'] = df.max()
 dfplot['temp_min'] = df.min()
+timestamps = df.sample(5).index
+tcols = []
+for timestamp in timestamps:
+    tcol = timestamp.strftime('%Y%m%dT%H00%Z')
+    dfplot[tcol] = df.loc[timestamp]
+    tcols.append(tcol)
 vmin = np.floor(dfplot.temp_min.min())
 vmax = np.ceil(dfplot.temp_max.max())
-for col in ['temp_mean', 'temp_max', 'temp_min']:
+for col in ['temp_mean', 'temp_max', 'temp_min'] + tcols:
     plt.close()
     f,ax = plt.subplots()
     dfplot.plot(
         ax=ax, column=col, cmap=cmap, edgecolor='none',
         vmin=vmin, vmax=vmax,
     )
-    plots.addcolorbarhist(
+    reeds.plots.addcolorbarhist(
         f=f, ax0=ax, data=dfplot[col].values, cmap=cmap,
         vmin=vmin, vmax=vmax,
         title=f'{year}\n{col}\n[°C]', nbins=51,
     )
     ax.axis('off')
-    plt.savefig(os.path.join(reeds_path, 'runs', f'{col}-{year}.png'))
+    plt.savefig(os.path.join(outpath, f'{col}-{year}.png'))
 
+dfsites = df.sample(10, axis=1)
 plt.close()
-f,ax = plots.plotyearbymonth(df, style='line')
-plt.savefig(os.path.join(reeds_path, 'runs', f'temperature-{year}.png'))
+f,ax = reeds.plots.plotyearbymonth(dfsites, style='line')
+plt.savefig(os.path.join(outpath, f'temperature-{year}.png'))
