@@ -14,20 +14,20 @@ from d2_fix_upgrades import fix_upgrades
 from d3_merge_psh_dbs import merge_psh_dbs
 
 #%%
-#current_fleet_yr = int(sys.argv[1])
-#hydro_prjtype = sys.argv[2]
-#ornl_hydro_unit_ver = sys.argv[3]
-#coal_plant_retirement = sys.argv[4]
-#current_year = int(sys.argv[5])
-#reeds_path = sys.argv[6]
+current_fleet_yr = int(sys.argv[1])
+hydro_prjtype = sys.argv[2]
+ornl_hydro_unit_ver = sys.argv[3]
+coal_plant_retirement = sys.argv[4]
+current_year = int(sys.argv[5])
+reeds_path = sys.argv[6]
 
 # For debugging
-reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'
-current_fleet_yr=2025
-current_year=2026
-hydro_prjtype='EHA_FY22_post2009_prjtype.xlsx'
-ornl_hydro_unit_ver='ORNL_EHAHydroUnit_PublicFY2024.xlsx'
-coal_plant_retirement='EIA860_2025ER_CoalRetirements.csv'
+#reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'
+#current_fleet_yr=2025
+#current_year=2026
+#hydro_prjtype='EHA_FY22_post2009_prjtype.xlsx'
+#ornl_hydro_unit_ver='ORNL_EHAHydroUnit_PublicFY2024.xlsx'
+#coal_plant_retirement='EIA860_2025ER_CoalRetirements.csv'
 
 reeds_path = os.path.expanduser(reeds_path)
 sys.path.append(reeds_path)
@@ -228,6 +228,10 @@ dfout['in_eia860M'] = dfout['in_eia860M'].astype(int)
 # Replace all character '#' in T_PNM and T_UID as 'no. '
 dfout['T_PNM'] = dfout['T_PNM'].str.replace('#', 'no. ')
 dfout['T_UID'] = dfout['T_UID'].str.replace('#', 'no. ')
+
+# Reset index and Unique ID
+dfout = dfout.reset_index(drop=True)
+dfout['Unique ID'] = dfout.index
 
 # Reorder columns to be consistent with previous version
 dfout = dfout[columns_to_keep]

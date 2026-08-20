@@ -29,7 +29,7 @@ sys.path.append(reeds_path)
 import reeds
 
 # Read in NEMS capacity input files to compare
-gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_july_2026.csv'
+gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_2025.csv'
 
 #gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_' + str(current_fleet_yr) + '.csv'
 gdbfinalname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
@@ -59,7 +59,7 @@ color_techs = {'battery_li':'#FF4A88','pvb_battery':"#A75F8A",'pumped-hydro':"#C
                'biopower':'#5B9844','lfill-gas':"#3B692A",
                'geohydro_allkm':'#A96235',
                'hydEND':'#187F94','hydED':"#37A5BB",'hydNPND':"#31D6E2",'hydND':"#5FA6A8",
-               'gas-cc':'#52216B','gas-ct':'#C2A1DB','o-g-s':'#52216B',
+               'gas-cc':'#52216B','gas-ct':'#C2A1DB','o-g-s':"#765189",
                'coaloldscr':'#222222','coalolduns':"#3E3C3C",'coal-igcc':"#5B5A5A",'coal-new':"#A19E9E",
                'nuclear':'#820000'}
 

@@ -144,9 +144,9 @@ def merge_psh_dbs(gendb,hydro_prjtype,ornl_hydro_unit_ver):
     check.rename(columns={'tech':'new_tech'},inplace=True)
     check.insert(0,'PrjType',check.pop('PrjType'))
     check.insert(0,'old_tech',check.pop('old_tech'))
-    check.to_csv(os.path.join('outputs','updated_generators.csv'),     
+    check.to_csv(os.path.join('outputs','intermediate_outputs','updated_generators.csv'),     
                 header=True,index=False)
-    notingendb.to_csv(os.path.join('outputs','unaccounted_generators.csv'),
+    notingendb.to_csv(os.path.join('outputs','intermediate_outputs','unaccounted_generators.csv'),
                     header=True,index=False)
     #gendb.to_csv(os.path.join('outputs','updated_gendb.csv'), header=True,index=False)
     return gendb
