@@ -54,7 +54,7 @@ techs = ['battery_li','pvb_battery','pumped-hydro','upv','dupv','pvb_pv','csp-ns
          'gas-cc','gas-ct','o-g-s','coaloldscr','coalolduns','coal-igcc','coal-new','nuclear']
 
 color_techs = {'battery_li':'#FF4A88','pvb_battery':"#A75F8A",'pumped-hydro':"#C630B2",
-               'upv':'#FFC903','dupv':'#FEE603','pvb_pv':"#B88D16",'csp-ns':"#F3660E",
+               'upv':'#FFC903','dupv':'#FEE603','pvb_pv':"#A27C12",'csp-ns':"#F3660E",
                'wind-ons':'#00B6EF','wind-ofs':'#106BA7',
                'biopower':'#5B9844','lfill-gas':"#3B692A",
                'geohydro_allkm':'#A96235',
@@ -266,7 +266,7 @@ def comparison_plotting_r(df, zones, finalyear,  techs, color_techs, figname, x,
                 ax.plot([], c='#C630B2', marker='s', markersize=markersize_plot, linestyle='', label='pumped-hydro')
                 ax.plot([], c='#FFC903', marker='s', markersize=markersize_plot, linestyle='', label='upv')
                 ax.plot([], c='#FEE603', marker='s', markersize=markersize_plot, linestyle='', label='dupv')
-                ax.plot([], c='#B88D16', marker='s', markersize=markersize_plot, linestyle='', label='pvb_pv')
+                ax.plot([], c='#A27C12', marker='s', markersize=markersize_plot, linestyle='', label='pvb_pv')
                 ax.plot([], c='#F3660E', marker='s', markersize=markersize_plot, linestyle='', label='csp-ns')
                 ax.plot([], c='#00B6EF', marker='s', markersize=markersize_plot, linestyle='', label='wind-ons')
                 ax.plot([], c='#106BA7', marker='s', markersize=markersize_plot, linestyle='', label='wind-ofs')
@@ -278,7 +278,7 @@ def comparison_plotting_r(df, zones, finalyear,  techs, color_techs, figname, x,
                 ax.plot([], c='#5FA6A8', marker='s', markersize=markersize_plot, linestyle='', label='hydND')
                 ax.plot([], c='#52216B', marker='s', markersize=markersize_plot, linestyle='', label='gas-cc')
                 ax.plot([], c='#C2A1DB', marker='s', markersize=markersize_plot, linestyle='', label='gas-ct')
-                ax.plot([], c='#52216B', marker='s', markersize=markersize_plot, linestyle='', label='o-g-s')
+                ax.plot([], c='#765189', marker='s', markersize=markersize_plot, linestyle='', label='o-g-s')
                 ax.plot([], c='#222222', marker='s', markersize=markersize_plot, linestyle='', label='coaloldscr')
                 ax.plot([], c='#3E3C3C', marker='s', markersize=markersize_plot, linestyle='', label='coalolduns')
                 ax.plot([], c='#5B5A5A', marker='s', markersize=markersize_plot, linestyle='', label='coal-igcc')
@@ -365,7 +365,7 @@ def comparison_plotting_nat(df, finalyear, figname, x, title):
     ax.plot([], c='#C630B2', marker='s', markersize=markersize_plot, linestyle='', label='pumped-hydro')
     ax.plot([], c='#FFC903', marker='s', markersize=markersize_plot, linestyle='', label='upv')
     ax.plot([], c='#FEE603', marker='s', markersize=markersize_plot, linestyle='', label='dupv')
-    ax.plot([], c='#B88D16', marker='s', markersize=markersize_plot, linestyle='', label='pvb_pv')
+    ax.plot([], c='#A27C12', marker='s', markersize=markersize_plot, linestyle='', label='pvb_pv')
     ax.plot([], c='#F3660E', marker='s', markersize=markersize_plot, linestyle='', label='csp-ns')
     ax.plot([], c='#00B6EF', marker='s', markersize=markersize_plot, linestyle='', label='wind-ons')
     ax.plot([], c='#106BA7', marker='s', markersize=markersize_plot, linestyle='', label='wind-ofs')
@@ -377,7 +377,7 @@ def comparison_plotting_nat(df, finalyear, figname, x, title):
     ax.plot([], c='#5FA6A8', marker='s', markersize=markersize_plot, linestyle='', label='hydND')
     ax.plot([], c='#52216B', marker='s', markersize=markersize_plot, linestyle='', label='gas-cc')
     ax.plot([], c='#C2A1DB', marker='s', markersize=markersize_plot, linestyle='', label='gas-ct')
-    ax.plot([], c='#52216B', marker='s', markersize=markersize_plot, linestyle='', label='o-g-s')
+    ax.plot([], c='#765189', marker='s', markersize=markersize_plot, linestyle='', label='o-g-s')
     ax.plot([], c='#222222', marker='s', markersize=markersize_plot, linestyle='', label='coaloldscr')
     ax.plot([], c='#3E3C3C', marker='s', markersize=markersize_plot, linestyle='', label='coalolduns')
     ax.plot([], c='#5B5A5A', marker='s', markersize=markersize_plot, linestyle='', label='coal-igcc')
