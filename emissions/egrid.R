@@ -8,10 +8,10 @@ library(dplyr)
 ## paths
 
 # path to this script
-setwd("~/Documents/github/ReEDS-2.0_Input_Processing/Emissions")
+setwd("~/Documents/github/ReEDS_Input_Processing/Emissions")
 
-# set this path to your ReEDS-2.0 repo 
-reedspath <- "/Users/bsergi/Documents/github/ReEDS-2.0"
+# set this path to your ReEDS repo 
+reedspath <- "/Users/bsergi/Documents/github/ReEDS"
 
 
 ## load data ###

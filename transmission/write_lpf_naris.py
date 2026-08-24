@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 ## Local imports
 sys.path.append(os.path.expanduser('~/github/TSC'))
 import tsc
-sys.path.append(os.path.expanduser('~/github/ReEDS-2.0'))
+sys.path.append(os.path.expanduser('~/github/ReEDS'))
 import reeds
 
 ## https://github.nrel.gov/cobika/DLR

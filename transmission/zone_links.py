@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
 import geopandas as gpd
 
-sys.path.append(os.path.expanduser('~/github/ReEDS-2.0'))
+sys.path.append(os.path.expanduser('~/github/ReEDS'))
 import reeds
 # sys.path.append(os.path.expanduser('~/github/DLR'))
 # import dlr.helpers

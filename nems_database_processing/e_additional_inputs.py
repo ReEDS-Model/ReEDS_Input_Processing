@@ -14,7 +14,6 @@ from e2_fix_upgrades import fix_upgrades
 from e3_merge_psh_dbs import merge_psh_dbs
 
 #%%
-
 current_fleet_yr = int(sys.argv[1])
 hydro_prjtype = sys.argv[2]
 ornl_hydro_unit_ver = sys.argv[3]
@@ -24,6 +23,7 @@ current_year = int(sys.argv[5])
 output_changes = 1
 
 # For debugging
+#reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'
 #current_fleet_yr=2024
 #current_year=2025
 #hydro_prjtype='EHA_FY22_post2009_prjtype.xlsx'
@@ -31,30 +31,14 @@ output_changes = 1
 #coal_plant_retirement='EIA860_2025ER_CoalRetirements.csv'
 #gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_2024.csv'
 
+print("Starting e_additional_inputs.py")
+
 gdbinputname = 'd_to_e.csv'
 gdbfinalname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
 
-dfin = pd.read_csv(os.path.join('Outputs',gdbinputname), low_memory=False)
-#dfin = pd.read_csv("/Users/apham/Documents/GitHub/ReEDS-2.0_Input_Processing/NEMS_database_processing/Outputs/d_to_e.csv")
+dfin = pd.read_csv(os.path.join('outputs',gdbinputname), low_memory=False)
 
-# Add nuclear retirement bins
-# Bin 1 indicates that the plant is at greater risk of retirement, which is due
-# to it being a single reactor plant or residing in a restructured market.
-# Bin 2 indicates that the plant is has less retirement risk, which is due to
-# it being a multi-unit plant in a non-restructured market, or due to
-# requesting a license to operate to 80 years.
-
-nukebins = pd.read_csv(os.path.join('Inputs','NuclearBins.csv'))
-#nukebins = pd.read_csv(os.path.join('/Users/apham/Documents/GitHub/ReEDS-2.0_Input_Processing/NEMS_database_processing/Inputs','NuclearBins.csv'))
-
-nukebins.rename(columns={'PLANT_NAME':'T_PNM'}, inplace=True)
-
-# Remove duplicated values based on plant names
-nukebins_short = nukebins[~nukebins.duplicated(['T_PNM'])][['T_PNM','tech','reeds_ba','NukeRetireBin']]
-
-df = dfin.merge(nukebins_short, on = ['T_PNM','tech','reeds_ba'], how = 'left')
-
-df2 = set_retire_years(df,coal_plant_retirement,current_year)
+df2 = set_retire_years(dfin,coal_plant_retirement,current_year)
 
 df2b = fix_upgrades(df2)
 
@@ -69,7 +53,7 @@ df3.loc[index_battery_CA,'tech'] = 'battery_li'
 #%% Map water techs to those that do not have any
 
 # Gather as many water techs from the original database as possible
-dfold = pd.read_csv(os.path.join('Inputs','Inheritance',gdboldname), low_memory=False)
+dfold = pd.read_csv(os.path.join('inputs','Inheritance',gdboldname), low_memory=False)
 dfold['merge_id'] = dfold['T_PID'].astype(str).str.strip() + "_" + dfold['T_UID'].astype(str).str.strip()
 dfold = dfold[['merge_id','ctt','wst']].copy()
 dfold_ct = dfold.groupby(by = 'merge_id').first().reset_index()
@@ -102,7 +86,7 @@ df4.loc[missing_ct,'wst_x'] = df4.loc[missing_ct,'wst_y']
 df4.drop(['ctt_y','wst_y'], inplace = True, axis = 1)
 df4.rename(columns={'ctt_x':'ctt', 'wst_x':'wst'}, inplace=True)
 
-tech_ct_map = pd.read_csv(os.path.join('Inputs','tech_to_cooling_tech_map.csv'))
+tech_ct_map = pd.read_csv(os.path.join('inputs','tech_to_cooling_tech_map.csv'))
 tech_ct_map['tech'] = tech_ct_map['tech'].str.lower()
 
 # Find the rows with missing cooling tech data
@@ -142,7 +126,7 @@ if output_changes:
         # First, find units of similar tech, region:
         print(f'[{i: >5}]   [{row["tech"]}] {row["T_PNM"]}')
         df_i = df6.loc[df6['tech'] == row['tech']]        
-        df_ir = df6.loc[(df6['tech'] == row['tech']) & (df6['reeds_ba'] == row['reeds_ba'])]
+        df_ir = df6.loc[(df6['tech'] == row['tech']) & (df6['FIPS'] == row['FIPS'])]
         ## Fix FOM first, then VOM
         for OM in ['FOM','VOM']:
             T_OM = f'T_{OM}'
@@ -173,7 +157,7 @@ if output_changes:
                 closest_index_df.loc[i,f'{OM}_from_Unique_ID'] = closest_uniqueID
             else:
                 # No fix necesary for FOM/VOM - just 
-                closest_index_df.loc[i,f'{OM}_from_Unique_ID'] = ''
+                closest_index_df.loc[i,f'{OM}_from_Unique_ID'] = np.nan
                 
     # Replace data in df6 with fixed FOM/VOM data
     df6.loc[fixedFVOM.index] = fixedFVOM.copy()
@@ -186,12 +170,12 @@ if output_changes:
         ]
     if len(checkFVOM):
         print('Some units requiring FOM/VOM assignments still exist. Printing list '
-            'of units out to Outputs/debug_fix_FOM_VOM.csv')
-        checkFVOM.to_csv(os.path.join('Outputs','debug_fix_FOM_VOM.csv'))
+            'of units out to outputs/debug_fix_FOM_VOM.csv')
+        checkFVOM.to_csv(os.path.join('outputs','debug_fix_FOM_VOM.csv'))
         sys.exit()
     else:
-        if os.path.exists(os.path.join('Outputs','debug_fix_FOM_VOM.csv')):
-            os.remove(os.path.join('Outputs','debug_fix_FOM_VOM.csv'))
+        if os.path.exists(os.path.join('outputs','debug_fix_FOM_VOM.csv')):
+            os.remove(os.path.join('outputs','debug_fix_FOM_VOM.csv'))
 
 # Output changes to FOM/VOM if desired:
 if output_changes:
@@ -204,24 +188,20 @@ if output_changes:
     dfout_OMchange = dfout_OMchange[['summer_power_capacity_MW','T_PID','T_UID','T_PNM',
                                      'old_VOM','new_VOM','VOM_from_Unique_ID',
                                      'old_FOM','new_FOM','FOM_from_Unique_ID']]
-    dfout_OMchange.to_csv(os.path.join('Outputs','debug_OM_changes.csv'),
+    dfout_OMchange.to_csv(os.path.join('outputs','debug_OM_changes.csv'),
                           index=True)
     
     dfout = df6.copy()
 else:
     dfout = df5.copy()
+
 #%%
 ## Further clean up
-
 # Format years and region ans integers:
 dfout['StartYear'] = dfout['StartYear'].astype(int)
 dfout['RetireYear'] = dfout['RetireYear'].astype(int)
 dfout['StartYear2'] = dfout['StartYear']
 dfout['TRFURB'] = dfout['TRFURB'].fillna(dfout.pop('StartYear2')).astype(int)
-dfout['NukeRefRetireYear'] = dfout['NukeRefRetireYear'].astype(int)
-dfout['Nuke60RetireYear'] = dfout['Nuke60RetireYear'].astype(int)
-dfout['Nuke80RetireYear'] = dfout['Nuke80RetireYear'].astype(int)
-dfout['NukeEarlyRetireYear'] = dfout['NukeEarlyRetireYear'].astype(int)
 
 dfout['TCOUNT'] = dfout['TCOUNT'].fillna(1)
 dfout['nems'] = dfout['nems'].fillna(0)
@@ -239,20 +219,21 @@ dfout.rename(columns={'nems': 'in_nems', 'eia860': 'in_eia860M'}, inplace=True)
 dfout['in_nems'] = dfout['in_nems'].astype(int)
 dfout['in_eia860M'] = dfout['in_eia860M'].astype(int)
 
-# Replace all character '#' in T_PNM as 'no. '
+# Replace all character '#' in T_PNM and T_UID as 'no. '
 dfout['T_PNM'] = dfout['T_PNM'].str.replace('#', 'no. ')
-
-# Remove reeds_ba & resource_region columns:
-dfout.drop('reeds_ba', inplace = True, axis = 1)
-dfout.drop('resource_region', inplace = True, axis = 1)
+dfout['T_UID'] = dfout['T_UID'].str.replace('#', 'no. ')
 
 # Reorder columns:
-dfout_column_list = dfout.columns.tolist()
-dfout_energy_cap = dfout_column_list.index('energy_capacity_MWh')
-dfout_power_cap = dfout_column_list.index('summer_power_capacity_MW')
-dfout_column_list.insert(dfout_power_cap + 1, dfout_column_list.pop(dfout_energy_cap))
-dfout_bat_duration = dfout_column_list.index('battery_duration')
-dfout_column_list.insert(dfout_power_cap + 2, dfout_column_list.pop(dfout_bat_duration))
-dfout = dfout[dfout_column_list]
+columns_to_keep = ['tech','summer_power_capacity_MW','energy_capacity_MWh',
+                    'RetireYear','StartYear','IsExistUnit','HeatRate','FIPS',
+                    'T_CID','T_PID','T_UID','T_PNM','TVIN','EFDcd','ECPcd',
+                    'T_PCA','TC_NP','TC_WIN','TRFURB','T_VOM','T_FOM','T_SMO','T_RMO',
+                    'T_CCSROV','T_CCSF','T_CCSV','T_CCSHR','T_CAPAD','T_CCSCAPA','T_CCSLOC',
+                    'T_LONG','T_LAT','coolingwatertech','ctt','wst','in_nems','in_eia860M',
+                    'status','Description','Unique ID']
 
-dfout.to_csv(os.path.join('Outputs',gdbfinalname),index=False)
+dfout = dfout[columns_to_keep]
+
+dfout.to_csv(os.path.join('outputs',gdbfinalname),index=False)
+
+print("Finished e_additional_inputs.py")
