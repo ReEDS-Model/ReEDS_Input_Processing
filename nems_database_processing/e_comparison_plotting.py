@@ -16,11 +16,9 @@ os.system('rm -rf '+os.path.expanduser(debug_path)+'/*')
 
 #%%
 
-#current_fleet_yr = int(sys.argv[1])
-#reeds_path = sys.argv[2]
+#reeds_path = sys.argv[1]
 
 # For debugging
-current_fleet_yr=2025
 reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'                 # local
 #reeds_path = '//kfs2/projects/stdscen/apham/ReEDS/'                        # kestrel
 
@@ -30,11 +28,9 @@ import reeds
 
 # Read in NEMS capacity input files to compare
 gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_2025.csv'
-
-#gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_' + str(current_fleet_yr) + '.csv'
 gdbfinalname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
 
-dfold = pd.read_csv(os.path.join('inputs','inheritance',gdboldname), low_memory=False)
+dfold = pd.read_csv(os.path.join(reeds_path,'inputs','capacity_exogenous',gdboldname), low_memory=False)
 dfnew = pd.read_csv(os.path.join('outputs',gdbfinalname), low_memory=False)
 
 # Read county2zone

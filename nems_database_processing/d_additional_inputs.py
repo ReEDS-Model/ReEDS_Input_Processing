@@ -16,16 +16,14 @@ from d2_fix_upgrades import fix_upgrades
 from d3_merge_psh_dbs import merge_psh_dbs
 
 #%%
-current_fleet_yr = int(sys.argv[1])
-hydro_prjtype = sys.argv[2]
-ornl_hydro_unit_ver = sys.argv[3]
-coal_plant_retirement = sys.argv[4]
-current_year = int(sys.argv[5])
-reeds_path = sys.argv[6]
+hydro_prjtype = sys.argv[1]
+ornl_hydro_unit_ver = sys.argv[2]
+coal_plant_retirement = sys.argv[3]
+current_year = int(sys.argv[4])
+reeds_path = sys.argv[5]
 
 # For debugging
 #reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'
-#current_fleet_yr=2025
 #current_year=2026
 #hydro_prjtype='EHA_FY22_post2009_prjtype.xlsx'
 #ornl_hydro_unit_ver='ORNL_EHAHydroUnit_PublicFY2024.xlsx'
@@ -37,7 +35,7 @@ import reeds
 
 output_changes = 1
 
-gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_' + str(current_fleet_yr) + '.csv'
+gdboldname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
 
 print("Starting d_additional_inputs.py")
 
@@ -55,7 +53,7 @@ df3 = merge_psh_dbs(df2b,hydro_prjtype,ornl_hydro_unit_ver)
 #%% Map water techs to those that do not have any
 
 # Read current AEO-NEMS dataset
-dfold = pd.read_csv(os.path.join('inputs','inheritance',gdboldname), low_memory=False)
+dfold = pd.read_csv(os.path.join(reeds_path,'inputs','capacity_exogenous',gdboldname), low_memory=False)
 
 # Retain columns to keep in final dataset
 columns_to_keep = dfold.columns.tolist()

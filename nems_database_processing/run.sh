@@ -5,28 +5,26 @@
 # Specify reeds_path (to get data from ReEDS repo, locally or on HPC):
 reeds_path='~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'
 
-# Most recent ReEDS fleet and AEO versions:
-current_reeds_fleet_ver=2025
+# Specify current year:
 current_year=2026
-# Data source: https://github.com/EIAgov/NEMS/blob/main/input/emm/emm_db/PLTF860_RDB.xlsx
+# Specify AEO-NEMS data file: 
+# (source: https://github.com/EIAgov/NEMS/blob/main/input/emm/emm_db/PLTF860_RDB.xlsx)
 aeo_file='PLTF860_RDB.xlsx'
 
-# Most recent EIA 860M and nems versions:
-# Most recent EIA 860M version month:
+# Specify most recent EIA860M version by month and year:
 eia860M_ver_mon='june'
-# Most recent EIA 860M version year:                       
 eia860M_ver_year=2026                                 
 
-# Hydro units files:
+# Specify hydro units data files:
 ornl_hydro_plant_ver='ORNL_EHAHydroPlant_PublicFY2024.xlsx'
 ornl_hydro_unit_ver='ORNL_EHAHydroUnit_PublicFY2024.xlsx'
 hydro_dispatchability='EHA_dispatchability.csv'
 hydro_prjtype='EHA_FY22_post2009_prjtype.xlsx'
 
-# Coal plant retirement file:
+# Specify coal plant retirement file:
 coal_plant_retirement='EIA860_2025ER_CoalRetirements.csv'
 
-# Average lithium battery duration:
+# Assumed average duration for planned storage units:
 battery_duration=2.9
 
 ############## Run scripts to process fleet ##############
@@ -34,5 +32,5 @@ battery_duration=2.9
 python a_data_cleaning.py "$aeo_file" "$eia860M_ver_mon" "$eia860M_ver_year" "$battery_duration" "$current_year"
 python b_geospatial_mapping.py "$reeds_path"
 python c_hydro_classification.py "$ornl_hydro_plant_ver" "$hydro_dispatchability"
-python d_additional_inputs.py "$current_reeds_fleet_ver" "$hydro_prjtype" "$ornl_hydro_unit_ver" "$coal_plant_retirement" "$current_year" "$reeds_path"
-#python e_comparison_plotting.py "$current_reeds_fleet_ver" "$reeds_path"
+python d_additional_inputs.py "$hydro_prjtype" "$ornl_hydro_unit_ver" "$coal_plant_retirement" "$current_year" "$reeds_path"
+python e_comparison_plotting.py "$reeds_path"
