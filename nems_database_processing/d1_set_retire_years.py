@@ -36,6 +36,7 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
     coal_retirement_upd['Retirement Year']  = coal_retirement_upd['Retirement Year'].fillna(9999)
     
     # Update retirement dates to reflect new MAT exception
+    # (source: https://www.epa.gov/system/files/documents/2025-04/regulatory-relief-for-certain-stationary-annex-1.pdf)
     # If the plant is set to retired by 2027 >> extend retirement years by two more years
     # If the plant is set to be retired after 2027 >> keep its retirement year
     coal_retirement_upd.loc[(coal_retirement_upd['MAT Exemptions']==1) & 

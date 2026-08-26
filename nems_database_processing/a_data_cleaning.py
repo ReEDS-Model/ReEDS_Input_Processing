@@ -70,6 +70,9 @@ def processAEOandEIA860(dir, current_year, battery_duration, eia860M_ver_mon, ei
     # if summer capacity is missing, replace it with nameplate capacity
     eia860M_data.loc[eia860M_data['Net Summer Capacity (MW)'].isna(),
                      'Net Summer Capacity (MW)'] = eia860M_data['Nameplate Capacity (MW)']
+    # if winter capacity is missing, replace it with nameplate capacity
+    eia860M_data.loc[eia860M_data['Net Winter Capacity (MW)'].isna(),
+                     'Net Winter Capacity (MW)'] = eia860M_data['Nameplate Capacity (MW)']
     # =============================================================================================
     
     # =============================================================================================
