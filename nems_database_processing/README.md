@@ -44,4 +44,5 @@ Located in `outputs/figures`. This folder includes figures of online/retire capa
 A `debug` folder, which stores the FIPS that have mismatched online/retire capacity between two NEMS versions, is created for easy debugging. If the two NEMS versions have no changes at all at FIPS-level, this folder is not created or is empty.
 
 # Note
-Sometimes when running `b_geospatial_mapping.py`, geopandas operation results in invalid geometry - point (inf, inf) or polygon (inf, inf). If this occurs, run `conda install -c conda-forge proj-data` to pre-download projection data in the current environment before rerunning the script.
+- When read in EIA860M csv file, make sure to check if the file has empty first row and empty last two rows to drop them out of the dataframe before processing.
+- Sometimes when running `b_geospatial_mapping.py`, geopandas operation results in invalid geometry - point (inf, inf) or polygon (inf, inf). If this occurs, run `conda install -c conda-forge proj-data` to pre-download projection data in the current environment before rerunning the script.

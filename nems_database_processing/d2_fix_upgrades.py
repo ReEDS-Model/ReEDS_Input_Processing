@@ -13,9 +13,9 @@ def fix_upgrades(nems):
     # came online. TRFURB holds the original start date of the plant.
     
     # TVIN == 6 means that the unit was retired and 7 corresponds to a unit that was refurbished
-    upgrate_cat = ((nems['TVIN'] == 6) & (nems['RetireYear'] >= 2009)) | ((nems['TVIN'] == 7) & (nems['StartYear'] >= 2010))
-    upgrades = nems[upgrate_cat]
-    non_upgrades = nems[~upgrate_cat]
+    upgrate_cap = ((nems['TVIN'] == 6) & (nems['RetireYear'] >= 2009)) | ((nems['TVIN'] == 7) & (nems['StartYear'] >= 2010))
+    upgrades = nems[upgrate_cap]
+    non_upgrades = nems[~upgrate_cap]
 
     # Make sure units before they retire
     upgrades = upgrades[upgrades['TRFURB']<=upgrades['RetireYear']]

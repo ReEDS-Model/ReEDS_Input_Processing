@@ -13,18 +13,18 @@ def params():
     dir = os.getcwd()                                                                   # Main directory                                            
 
     # Key parameters:
-    aeo_file = sys.argv[1]
-    eia860M_ver_mon = sys.argv[2]                                                       # Most recent EIA 860M version month
-    eia860M_ver_year = int(sys.argv[3])                                                 # Most recent EIA 860M version year
-    battery_duration = float(sys.argv[4])
-    current_year = int(sys.argv[5])                                                   
+    #aeo_file = sys.argv[1]
+    #eia860M_ver_mon = sys.argv[2]                                                       # Most recent EIA 860M version month
+    #eia860M_ver_year = int(sys.argv[3])                                                 # Most recent EIA 860M version year
+    #battery_duration = float(sys.argv[4])
+    #current_year = int(sys.argv[5])                                                   
 
     # For testing:
-    #aeo_file = 'PLTF860_RDB.xlsx'
-    #eia860M_ver_mon = 'june'                                                      
-    #eia860M_ver_year = 2026                                               
-    #battery_duration = 2.9
-    #current_year = 2026
+    aeo_file = 'PLTF860_RDB.xlsx'
+    eia860M_ver_mon = 'june'                                                      
+    eia860M_ver_year = 2026                                               
+    battery_duration = 2.9
+    current_year = 2026
 
     gdbinputname = aeo_file
     gdboutname   = 'a_to_b.csv'
@@ -109,7 +109,6 @@ def cleanAEOData(dir, current_year, gdbinputname):
     aeo_data['battery_duration'] = pd.Series(np.nan, dtype=float, index=aeo_data.index)
 
     # Add techs to match with NEMS:
-    aeo_data['tech'] = aeo_data['EFDcd']
     aeo_data['tech'] = 'others'
     aeo_reeds_tech_map = pd.read_csv(os.path.join(dir,'inputs','tech_mappings','aeo_reeds_tech_map.csv'))
     aeo_data = aeo_data.merge(aeo_reeds_tech_map, on='EFDcd', how='left')
@@ -167,12 +166,16 @@ def cleanEIA860MData(dir, current_year, ver_mon, ver_year, battery_duration, sta
     eia860M_data = pd.read_excel(os.path.join(dir,'inputs','eia860M',
                                               ver_mon+'_generator'+str(ver_year)+'.xlsx'), 
                                               sheet_name=status, header=1, index_col=False)
-    # Drop first row since it's empty
-    eia860M_data.columns = eia860M_data.iloc[0]
-    eia860M_data = eia860M_data[1:]
+    # Check first row if it does not have any numeric value 
+    # or it is empty, then drop it if that's the case
+    if pd.to_numeric(eia860M_data.iloc[0], errors='coerce').isna().all():
+        eia860M_data.columns = eia860M_data.iloc[0]
+        eia860M_data = eia860M_data[1:]
     
-    # Drop last 2 rows as they are notes
-    eia860M_data.drop(eia860M_data.tail(2).index,inplace = True)
+    # Check last two rows if they are just note 
+    # (do not have any numeric value), then drop it if that's the case
+    if not eia860M_data.tail(2).map(lambda x: isinstance(x, (int, float)) and not pd.isna(x)).any().any():
+        eia860M_data.drop(eia860M_data.tail(2).index,inplace = True)
 
     # Convert nan capacity values to float type:
     eia860M_data['Net Summer Capacity (MW)'] = eia860M_data['Net Summer Capacity (MW)'].replace(r'^\s*$', np.nan, regex=True)
