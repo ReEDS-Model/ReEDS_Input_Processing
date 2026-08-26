@@ -132,12 +132,12 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
     nems_cleaned = nems.copy()
 
     ### Monroe: Units 3,4 changed to 2029 and units 1,2 to 2033:
-    nems_cleaned.loc[(nems_cleaned['T_PNM'].str.contains('Monroe (MI)')) &
+    nems_cleaned.loc[(nems_cleaned['T_PNM'].str.contains('Monroe \\(MI\\)')) &
                      (nems_cleaned['tech']=='coaloldscr') & (nems_cleaned['T_RYR'] > 2021) &
                      ((nems_cleaned['T_UID']=='3') | (nems_cleaned['T_UID']=='4')),
                      'T_RYR'] = 2029
     
-    nems_cleaned.loc[(nems_cleaned['T_PNM'].str.contains('Monroe (MI)')) &
+    nems_cleaned.loc[(nems_cleaned['T_PNM'].str.contains('Monroe \\(MI\\)')) &
                      (nems_cleaned['tech']=='coaloldscr') & (nems_cleaned['T_RYR'] > 2021) & 
                      ((nems_cleaned['T_UID']=='1') | (nems_cleaned['T_UID']=='2')),
                      'T_RYR'] = 2033
