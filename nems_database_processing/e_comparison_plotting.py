@@ -59,135 +59,6 @@ color_techs = {'battery_li':'#FF4A88','pvb_battery':"#A75F8A",'pumped-hydro':"#C
                'coaloldscr':'#222222','coalolduns':"#3E3C3C",'coal-igcc':"#5B5A5A",'coal-new':"#A19E9E",
                'nuclear':'#820000'}
 
-def main(dfnew, dfold, finalyear_online, finalyear_retire, techs, color_techs):
-
-    # Merge data with county2zone
-    dfnew = dfnew.merge(county2zone, on='FIPS', how='left')
-    dfold = dfold.merge(county2zone, on='FIPS', how='left')
-
-    # Establish all zones
-    zones = sorted(dfnew['r'].unique().tolist())
-    #################################
-    ### Planned online comparison ###
-    #################################
-
-    # Raw online data
-    online_data_new = dfnew.loc[dfnew['StartYear']>=startyear]
-    online_data_new['summer_power_capacity_GW'] = online_data_new['summer_power_capacity_MW']/1000
-    
-    online_data_old = dfold.loc[dfold['StartYear']>=startyear]
-    online_data_old['summer_power_capacity_GW'] = online_data_old['summer_power_capacity_MW']/1000
-
-    # Find FIPS that have different online years for each tech
-    mismatching_FIPS(online_data_old, online_data_new, x='StartYear', type='online')
-
-    # Aggredate across r
-    online_data_new = online_data_new[['tech','r','StartYear','summer_power_capacity_GW']]
-    online_data_new = online_data_new.groupby(['tech','r','StartYear'], as_index=False).sum()
-    
-    online_data_old = online_data_old[['tech','r','StartYear','summer_power_capacity_GW']]
-    online_data_old = online_data_old.groupby(['tech','r','StartYear'], as_index=False).sum()
-
-    # Diff online data
-    online_data_diff = online_data_new.copy()
-    online_data_diff = online_data_diff.rename(columns={'summer_power_capacity_GW':'cap_new'})
-    online_data_diff = online_data_diff.merge(online_data_old, 
-                                              on=['tech','r','StartYear'], 
-                                              how='outer').rename(columns={'r_x':'r'})
-    online_data_diff = online_data_diff.rename(columns={'summer_power_capacity_GW':'cap_old'})
-    online_data_diff['cap_old'] = online_data_diff['cap_old'].fillna(0)
-    online_data_diff['cap_new'] = online_data_diff['cap_new'].fillna(0)
-    online_data_diff['summer_power_capacity_GW'] = online_data_diff['cap_new'] - online_data_diff['cap_old']
-
-    # Raw and diff online data at national level
-    online_data_new_nat = online_data_new.groupby(['tech','StartYear'], as_index=False).sum()
-    online_data_old_nat = online_data_old.groupby(['tech','StartYear'], as_index=False).sum()
-    online_data_diff_nat = online_data_diff.groupby(['tech','StartYear'], as_index=False).sum()
-
-    # Plot new, old NEMS at national level and their difference
-    comparison_plotting_nat(online_data_new_nat, finalyear_online, 
-                            figname='planned_oneline_new_conus', x='StartYear', 
-                            title='Planned online capacity - CONUS - new NEMS [GW]')
-    comparison_plotting_nat(online_data_old_nat, finalyear_online, 
-                                figname='planned_oneline_current_conus', x='StartYear', 
-                                title='Planned online capacity - CONUS - current NEMS [GW]')
-    comparison_plotting_nat(online_data_diff_nat, finalyear_online, 
-                                figname='planned_oneline_diff_conus', x='StartYear', 
-                                title='Planned online capacity difference - CONUS [GW]')
-
-    # Plot new, old NEMS at zonal level and their difference
-    comparison_plotting_r(online_data_new, zones, finalyear_online, techs, color_techs, 
-                          figname='planned_online_new_r', x='StartYear',
-                          title='Planned online capacity by zone - new NEMS [GW]')
-    comparison_plotting_r(online_data_old, zones, finalyear_online, techs, color_techs,
-                          figname='planned_online_current_r', x='StartYear', 
-                          title='Planned online capacity by zone - current NEMS [GW]')
-    # Difference (new NEMS - current NEMS)
-    comparison_plotting_r(online_data_diff, zones, finalyear_online, techs, color_techs, 
-                          figname='planned_online_diff_r', x='StartYear', 
-                          title='Planned online capacity difference by zone (new NEMS - current NEMS) [GW]')
-
-    #################################
-    ### Planned retire comparison ###
-    #################################
-
-    # Raw retire data
-    retire_data_new = dfnew.loc[dfnew['RetireYear']<=finalyear_retire]
-    retire_data_new['summer_power_capacity_GW'] = retire_data_new['summer_power_capacity_MW']/1000
-    
-    retire_data_old = dfold.loc[dfold['RetireYear']<=finalyear_retire]
-    retire_data_old['summer_power_capacity_GW'] = retire_data_old['summer_power_capacity_MW']/1000
-
-    # Find FIPS that have different retire years for each tech
-    mismatching_FIPS(retire_data_old, retire_data_new, x='RetireYear', type='retire')
-
-    # Aggredate across r
-    retire_data_old = retire_data_old[['tech','r','RetireYear','summer_power_capacity_GW']]
-    retire_data_old = retire_data_old.groupby(['tech','r','RetireYear'], as_index=False).sum()
-
-    retire_data_new = retire_data_new[['tech','r','RetireYear','summer_power_capacity_GW']]
-    retire_data_new = retire_data_new.groupby(['tech','r','RetireYear'], as_index=False).sum()
-
-    # Diff retire data
-    retire_data_diff = retire_data_new.copy()
-    retire_data_diff = retire_data_diff.rename(columns={'summer_power_capacity_GW':'cap_new'})
-    retire_data_diff = retire_data_diff.merge(retire_data_old, 
-                                              on=['tech','r','RetireYear'], 
-                                              how='outer').rename(columns={'r_x':'r'})
-    retire_data_diff = retire_data_diff.rename(columns={'summer_power_capacity_GW':'cap_old'})
-    retire_data_diff['cap_old'] = retire_data_diff['cap_old'].fillna(0)
-    retire_data_diff['cap_new'] = retire_data_diff['cap_new'].fillna(0)
-    retire_data_diff['summer_power_capacity_GW'] = retire_data_diff['cap_new'] - retire_data_diff['cap_old']
-
-    # Raw and diff online data at national level
-    retire_data_new_nat = retire_data_new.groupby(['tech','RetireYear'], as_index=False).sum()
-    retire_data_old_nat = retire_data_old.groupby(['tech','RetireYear'], as_index=False).sum()
-    retire_data_diff_nat = retire_data_diff.groupby(['tech','RetireYear'], as_index=False).sum()
-
-    # Plot new, old NEMS at national level and their difference
-    comparison_plotting_nat(retire_data_new_nat, finalyear_retire, 
-                            figname='planned_retire_new_conus', x='RetireYear', 
-                            title='Planned retire capacity - CONUS - new NEMS [GW]')
-    comparison_plotting_nat(retire_data_old_nat, finalyear_retire, 
-                            figname='planned_retire_current_conus', x='RetireYear', 
-                            title='Planned retire capacity - CONUS - current NEMS [GW]')
-    comparison_plotting_nat(retire_data_diff_nat, finalyear_retire, 
-                            figname='planned_retire_diff_conus', x='RetireYear', 
-                            title='Planned retire capacity difference - CONUS [GW]')
-    
-    # Plot new, old NEMS at zonal level and their difference
-    comparison_plotting_r(retire_data_new, zones, finalyear_retire,  techs, color_techs, 
-                          figname='planned_retire_new_r',x='RetireYear', 
-                          title='Planned retire capacity [GW] - new NEMS')
-    comparison_plotting_r(retire_data_old, zones, finalyear_retire,  techs, color_techs, 
-                          figname='planned_retire_current_r', x='RetireYear', 
-                          title='Planned retire capacity [GW] - current NEMS')
-    # Difference (new NEMS - current NEMS)
-    comparison_plotting_r(retire_data_diff, zones, finalyear_retire,  techs, color_techs, 
-                          figname='planned_retire_diff_r', x='RetireYear', 
-                          title='Planned retire capacity difference (new NEMS - current NEMS) [GW]')
-
-
 def comparison_plotting_r(df, zones, finalyear,  techs, color_techs, figname, x, title):
     ncols = 10
     nrows = 9
@@ -424,6 +295,130 @@ def mismatching_FIPS(df_old, df_new, x, type):
         else:
             print(f"FIPS {f} has no mismatched {type} capacities between two versions of NEMS")
 
-main(dfnew, dfold, finalyear_online, finalyear_retire, techs, color_techs)
 
+if __name__ == "__main__":
+    # Merge data with county2zone
+    dfnew = dfnew.merge(county2zone, on='FIPS', how='left')
+    dfold = dfold.merge(county2zone, on='FIPS', how='left')
 
+    # Establish all zones
+    zones = sorted(dfnew['r'].unique().tolist())
+
+    #################################
+    ### Planned online comparison ###
+    #################################
+    # Raw online data
+    online_data_new = dfnew.loc[dfnew['StartYear']>=startyear]
+    online_data_new['summer_power_capacity_GW'] = online_data_new['summer_power_capacity_MW']/1000
+    
+    online_data_old = dfold.loc[dfold['StartYear']>=startyear]
+    online_data_old['summer_power_capacity_GW'] = online_data_old['summer_power_capacity_MW']/1000
+
+    # Find FIPS that have different online years for each tech
+    mismatching_FIPS(online_data_old, online_data_new, x='StartYear', type='online')
+
+    # Aggredate across r
+    online_data_new = online_data_new[['tech','r','StartYear','summer_power_capacity_GW']]
+    online_data_new = online_data_new.groupby(['tech','r','StartYear'], as_index=False).sum()
+    
+    online_data_old = online_data_old[['tech','r','StartYear','summer_power_capacity_GW']]
+    online_data_old = online_data_old.groupby(['tech','r','StartYear'], as_index=False).sum()
+
+    # Diff online data
+    online_data_diff = online_data_new.copy()
+    online_data_diff = online_data_diff.rename(columns={'summer_power_capacity_GW':'cap_new'})
+    online_data_diff = online_data_diff.merge(online_data_old, 
+                                              on=['tech','r','StartYear'], 
+                                              how='outer').rename(columns={'r_x':'r'})
+    online_data_diff = online_data_diff.rename(columns={'summer_power_capacity_GW':'cap_old'})
+    online_data_diff['cap_old'] = online_data_diff['cap_old'].fillna(0)
+    online_data_diff['cap_new'] = online_data_diff['cap_new'].fillna(0)
+    online_data_diff['summer_power_capacity_GW'] = online_data_diff['cap_new'] - online_data_diff['cap_old']
+
+    # Raw and diff online data at national level
+    online_data_new_nat = online_data_new.groupby(['tech','StartYear'], as_index=False).sum()
+    online_data_old_nat = online_data_old.groupby(['tech','StartYear'], as_index=False).sum()
+    online_data_diff_nat = online_data_diff.groupby(['tech','StartYear'], as_index=False).sum()
+
+    # Plot new, old NEMS at national level and their difference
+    comparison_plotting_nat(online_data_new_nat, finalyear_online, 
+                            figname='planned_oneline_new_conus', x='StartYear', 
+                            title='Planned online capacity - CONUS - new NEMS [GW]')
+    comparison_plotting_nat(online_data_old_nat, finalyear_online, 
+                                figname='planned_oneline_current_conus', x='StartYear', 
+                                title='Planned online capacity - CONUS - current NEMS [GW]')
+    comparison_plotting_nat(online_data_diff_nat, finalyear_online, 
+                                figname='planned_oneline_diff_conus', x='StartYear', 
+                                title='Planned online capacity difference - CONUS [GW]')
+
+    # Plot new, old NEMS at zonal level and their difference
+    comparison_plotting_r(online_data_new, zones, finalyear_online, techs, color_techs, 
+                          figname='planned_online_new_r', x='StartYear',
+                          title='Planned online capacity by zone - new NEMS [GW]')
+    comparison_plotting_r(online_data_old, zones, finalyear_online, techs, color_techs,
+                          figname='planned_online_current_r', x='StartYear', 
+                          title='Planned online capacity by zone - current NEMS [GW]')
+    # Difference (new NEMS - current NEMS)
+    comparison_plotting_r(online_data_diff, zones, finalyear_online, techs, color_techs, 
+                          figname='planned_online_diff_r', x='StartYear', 
+                          title='Planned online capacity difference by zone (new NEMS - current NEMS) [GW]')
+
+    #################################
+    ### Planned retire comparison ###
+    #################################
+
+    # Raw retire data
+    retire_data_new = dfnew.loc[dfnew['RetireYear']<=finalyear_retire]
+    retire_data_new['summer_power_capacity_GW'] = retire_data_new['summer_power_capacity_MW']/1000
+    
+    retire_data_old = dfold.loc[dfold['RetireYear']<=finalyear_retire]
+    retire_data_old['summer_power_capacity_GW'] = retire_data_old['summer_power_capacity_MW']/1000
+
+    # Find FIPS that have different retire years for each tech
+    mismatching_FIPS(retire_data_old, retire_data_new, x='RetireYear', type='retire')
+
+    # Aggredate across r
+    retire_data_old = retire_data_old[['tech','r','RetireYear','summer_power_capacity_GW']]
+    retire_data_old = retire_data_old.groupby(['tech','r','RetireYear'], as_index=False).sum()
+
+    retire_data_new = retire_data_new[['tech','r','RetireYear','summer_power_capacity_GW']]
+    retire_data_new = retire_data_new.groupby(['tech','r','RetireYear'], as_index=False).sum()
+
+    # Diff retire data
+    retire_data_diff = retire_data_new.copy()
+    retire_data_diff = retire_data_diff.rename(columns={'summer_power_capacity_GW':'cap_new'})
+    retire_data_diff = retire_data_diff.merge(retire_data_old, 
+                                              on=['tech','r','RetireYear'], 
+                                              how='outer').rename(columns={'r_x':'r'})
+    retire_data_diff = retire_data_diff.rename(columns={'summer_power_capacity_GW':'cap_old'})
+    retire_data_diff['cap_old'] = retire_data_diff['cap_old'].fillna(0)
+    retire_data_diff['cap_new'] = retire_data_diff['cap_new'].fillna(0)
+    retire_data_diff['summer_power_capacity_GW'] = retire_data_diff['cap_new'] - retire_data_diff['cap_old']
+
+    # Raw and diff online data at national level
+    retire_data_new_nat = retire_data_new.groupby(['tech','RetireYear'], as_index=False).sum()
+    retire_data_old_nat = retire_data_old.groupby(['tech','RetireYear'], as_index=False).sum()
+    retire_data_diff_nat = retire_data_diff.groupby(['tech','RetireYear'], as_index=False).sum()
+
+    # Plot new, old NEMS at national level and their difference
+    comparison_plotting_nat(retire_data_new_nat, finalyear_retire, 
+                            figname='planned_retire_new_conus', x='RetireYear', 
+                            title='Planned retire capacity - CONUS - new NEMS [GW]')
+    comparison_plotting_nat(retire_data_old_nat, finalyear_retire, 
+                            figname='planned_retire_current_conus', x='RetireYear', 
+                            title='Planned retire capacity - CONUS - current NEMS [GW]')
+    comparison_plotting_nat(retire_data_diff_nat, finalyear_retire, 
+                            figname='planned_retire_diff_conus', x='RetireYear', 
+                            title='Planned retire capacity difference - CONUS [GW]')
+    
+    # Plot new, old NEMS at zonal level and their difference
+    comparison_plotting_r(retire_data_new, zones, finalyear_retire,  techs, color_techs, 
+                          figname='planned_retire_new_r',x='RetireYear', 
+                          title='Planned retire capacity [GW] - new NEMS')
+    comparison_plotting_r(retire_data_old, zones, finalyear_retire,  techs, color_techs, 
+                          figname='planned_retire_current_r', x='RetireYear', 
+                          title='Planned retire capacity [GW] - current NEMS')
+    # Difference (new NEMS - current NEMS)
+    comparison_plotting_r(retire_data_diff, zones, finalyear_retire,  techs, color_techs, 
+                          figname='planned_retire_diff_r', x='RetireYear', 
+                          title='Planned retire capacity difference (new NEMS - current NEMS) [GW]')

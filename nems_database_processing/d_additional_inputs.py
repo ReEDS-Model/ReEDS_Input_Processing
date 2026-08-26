@@ -33,8 +33,6 @@ reeds_path = os.path.expanduser(reeds_path)
 sys.path.append(reeds_path)
 import reeds
 
-output_changes = 1
-
 gdboldname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
 
 print("Starting d_additional_inputs.py")
@@ -117,54 +115,53 @@ df5['coolingwatertech'] = df5['tech'] + '_' + df5['ctt'] + '_' + df5['wst']
 
 ## This step prevents runs with high or unit-level hintage bins from throwing errors in 
 ## check_inputs.py due to missing FOM/VOM data
-if output_changes:
-    df6 = df5.copy()
-    print('Locating units with missing FOM/VOM data:\n')
-    noFVOM = df6.loc[
-        ((~df6['HeatRate'].isnull()) & (df6['HeatRate']>0))
-        & ((df6['T_FOM']==0) | (df6['T_VOM']==0) | (df6['T_FOM'].isna()) | (df6['T_VOM'].isna()))
-        ]
-    fixedFVOM = noFVOM.copy()
-    closest_index_df = pd.DataFrame(
-        index=noFVOM.index.copy(),
-        columns=['from_index_VOM','from_index_FOM']
-        )
-    for i,row in noFVOM.iterrows():
-        # First, find units of similar tech, region:
-        print(f'[{i: >5}]   [{row["tech"]}] {row["T_PNM"]}')
-        df_i = df6.loc[df6['tech'] == row['tech']]        
-        df_ir = df6.loc[(df6['tech'] == row['tech']) & (df6['FIPS'] == row['FIPS'])]
-        ## Fix FOM first, then VOM
-        for OM in ['FOM','VOM']:
-            T_OM = f'T_{OM}'
-            if (row[T_OM] == 0) | (pd.isnull(row[T_OM])):
-                ### If there are no units in the target unit's region with FOM/VOM data, search across all regions
-                df_use = df_i.copy() if ((sum(df_ir[T_OM] == 0)) | (df_ir[T_OM].isnull().all())) else df_ir.copy()
-                ### Only include units that have FOM/VOM data
-                df_use = df_use.loc[df_use[T_OM]>0]
-                ### Second, find unit closest in Capacity and HeatRate to the target unit using
-                ### a distance formula
-                ref = noFVOM.loc[i,['summer_power_capacity_MW','HeatRate']].copy()
-                dist = (df_use
-                        ### Calculate for every row except the target unit (target unit would
-                        ### otherwise be calculated with a "distance" == 0 since exact match)
-                        .loc[~df_use.index.isin([i]),['summer_power_capacity_MW','HeatRate']]
-                        .apply(lambda unit: np.linalg.norm(unit - ref), axis=1)
-                        )
-                ### Find index of "closest" unit i.e. lowest distance. If there is a tie for 
-                ### lowest distance, the first index is selected.
-                closest_index = dist.idxmin()
-                closest_uniqueID = df_use.loc[closest_index,'Unique ID']
-                closest_PNM = df_use.loc[closest_index,'T_PNM']
-                closest_OM = df_use.loc[closest_index, T_OM]
-                print(f'            └→{OM}: Using [{closest_index}]: {closest_PNM} data == {closest_OM}')
-                ### Third, apply FOM/VOM of closest unit to the target unit
-                fixedFVOM.loc[i,T_OM] = df_use.loc[closest_index,T_OM]
-                ### Lastly, collect Unique ID of "closest unit" 
-                closest_index_df.loc[i,f'{OM}_from_Unique_ID'] = closest_uniqueID
-            else:
-                # No fix necesary for FOM/VOM - just 
-                closest_index_df.loc[i,f'{OM}_from_Unique_ID'] = np.nan
+df6 = df5.copy()
+print('Locating units with missing FOM/VOM data:\n')
+noFVOM = df6.loc[
+    ((~df6['HeatRate'].isnull()) & (df6['HeatRate']>0))
+    & ((df6['T_FOM']==0) | (df6['T_VOM']==0) | (df6['T_FOM'].isna()) | (df6['T_VOM'].isna()))
+    ]
+fixedFVOM = noFVOM.copy()
+closest_index_df = pd.DataFrame(
+    index=noFVOM.index.copy(),
+    columns=['from_index_VOM','from_index_FOM']
+    )
+for i,row in noFVOM.iterrows():
+    # First, find units of similar tech, region:
+    print(f'[{i: >5}]   [{row["tech"]}] {row["T_PNM"]}')
+    df_i = df6.loc[df6['tech'] == row['tech']]        
+    df_ir = df6.loc[(df6['tech'] == row['tech']) & (df6['FIPS'] == row['FIPS'])]
+    ## Fix FOM first, then VOM
+    for OM in ['FOM','VOM']:
+        T_OM = f'T_{OM}'
+        if (row[T_OM] == 0) | (pd.isnull(row[T_OM])):
+            ### If there are no units in the target unit's region with FOM/VOM data, search across all regions
+            df_use = df_i.copy() if ((sum(df_ir[T_OM] == 0)) | (df_ir[T_OM].isnull().all())) else df_ir.copy()
+            ### Only include units that have FOM/VOM data
+            df_use = df_use.loc[df_use[T_OM]>0]
+            ### Second, find unit closest in Capacity and HeatRate to the target unit using
+            ### a distance formula
+            ref = noFVOM.loc[i,['summer_power_capacity_MW','HeatRate']].copy()
+            dist = (df_use
+                    ### Calculate for every row except the target unit (target unit would
+                    ### otherwise be calculated with a "distance" == 0 since exact match)
+                    .loc[~df_use.index.isin([i]),['summer_power_capacity_MW','HeatRate']]
+                    .apply(lambda unit: np.linalg.norm(unit - ref), axis=1)
+                    )
+            ### Find index of "closest" unit i.e. lowest distance. If there is a tie for 
+            ### lowest distance, the first index is selected.
+            closest_index = dist.idxmin()
+            closest_uniqueID = df_use.loc[closest_index,'Unique ID']
+            closest_PNM = df_use.loc[closest_index,'T_PNM']
+            closest_OM = df_use.loc[closest_index, T_OM]
+            print(f'            └→{OM}: Using [{closest_index}]: {closest_PNM} data == {closest_OM}')
+            ### Third, apply FOM/VOM of closest unit to the target unit
+            fixedFVOM.loc[i,T_OM] = df_use.loc[closest_index,T_OM]
+            ### Lastly, collect Unique ID of "closest unit" 
+            closest_index_df.loc[i,f'{OM}_from_Unique_ID'] = closest_uniqueID
+        else:
+            # No fix necesary for FOM/VOM - just 
+            closest_index_df.loc[i,f'{OM}_from_Unique_ID'] = np.nan
                 
     # Replace data in df6 with fixed FOM/VOM data
     df6.loc[fixedFVOM.index] = fixedFVOM.copy()
@@ -185,22 +182,19 @@ if output_changes:
             os.remove(os.path.join('outputs','debug','debug_fix_FOM_VOM.csv'))
 
 # Output changes to FOM/VOM if desired:
-if output_changes:
-    changes = fixedFVOM[['T_VOM','T_FOM']]
-    changes.columns = ['new_VOM','new_FOM']
-    dfout_OMchange = df5.loc[noFVOM.index,['summer_power_capacity_MW','T_PID','T_UID','T_PNM','T_VOM','T_FOM']]
-    dfout_OMchange = dfout_OMchange.rename(columns={'T_VOM':'old_VOM','T_FOM':'old_FOM'})
-    ## Add new OM columns and mapping to closest unit via Unique ID
-    dfout_OMchange = pd.concat([dfout_OMchange,changes,closest_index_df],axis=1)
-    dfout_OMchange = dfout_OMchange[['summer_power_capacity_MW','T_PID','T_UID','T_PNM',
-                                     'old_VOM','new_VOM','VOM_from_Unique_ID',
-                                     'old_FOM','new_FOM','FOM_from_Unique_ID']]
-    dfout_OMchange.to_csv(os.path.join('outputs','debug','debug_OM_changes.csv'),
-                          index=True)
-    
-    dfout = df6.copy()
-else:
-    dfout = df5.copy()
+changes = fixedFVOM[['T_VOM','T_FOM']]
+changes.columns = ['new_VOM','new_FOM']
+dfout_OMchange = df5.loc[noFVOM.index,['summer_power_capacity_MW','T_PID','T_UID','T_PNM','T_VOM','T_FOM']]
+dfout_OMchange = dfout_OMchange.rename(columns={'T_VOM':'old_VOM','T_FOM':'old_FOM'})
+## Add new OM columns and mapping to closest unit via Unique ID
+dfout_OMchange = pd.concat([dfout_OMchange,changes,closest_index_df],axis=1)
+dfout_OMchange = dfout_OMchange[['summer_power_capacity_MW','T_PID','T_UID','T_PNM',
+                                    'old_VOM','new_VOM','VOM_from_Unique_ID',
+                                    'old_FOM','new_FOM','FOM_from_Unique_ID']]
+dfout_OMchange.to_csv(os.path.join('outputs','debug','debug_OM_changes.csv'),
+                        index=True)
+
+dfout = df6.copy()
 
 #%%
 ## Further clean up

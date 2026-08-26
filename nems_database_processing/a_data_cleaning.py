@@ -9,46 +9,8 @@ import os
 import pandas as pd
 import numpy as np
 
-def params():
-    dir = os.getcwd()                                                                   # Main directory                                            
-
-    # Key parameters:
-    #aeo_file = sys.argv[1]
-    #eia860M_ver_mon = sys.argv[2]                                                       # Most recent EIA 860M version month
-    #eia860M_ver_year = int(sys.argv[3])                                                 # Most recent EIA 860M version year
-    #battery_duration = float(sys.argv[4])
-    #current_year = int(sys.argv[5])                                                   
-
-    # For testing:
-    aeo_file = 'PLTF860_RDB.xlsx'
-    eia860M_ver_mon = 'june'                                                      
-    eia860M_ver_year = 2026                                               
-    battery_duration = 2.9
-    current_year = 2026
-
-    gdbinputname = aeo_file
-    gdboutname   = 'a_to_b.csv'
-
-    return (dir, current_year, battery_duration, eia860M_ver_mon, eia860M_ver_year, gdbinputname, gdboutname)
-
-def main():
-    print("Starting a_data_cleaning.py")
-
-    (dir, current_year, battery_duration, eia860M_ver_mon, eia860M_ver_year, gdbinputname, gdboutname) = params()
-
-    # Add EIA860M planned units, missing operating units, and updated retirement years to NEMS dataset:
-    nems_cleaned = processAEOandEIA860(dir, current_year, battery_duration, eia860M_ver_mon, eia860M_ver_year, gdbinputname) 
-
-    # =========================================================================
-    # Save output file:
-    intermediate_output_path = os.path.join(dir,'outputs','intermediate_outputs')
-    os.makedirs(intermediate_output_path, exist_ok=True)
-
-    nems_cleaned.to_csv(os.path.join(intermediate_output_path, gdboutname), index=False)
-    # =========================================================================
-
 ################################### MAIN FUNCTION ###################################
-# This function does the following:
+# This script does the following:
 ## 1. Process AEO-NEMS data
 ## 2. Process EIA860M files and append operating, planned, and retired EIA860M units
 ## 3. Merge AEO NEMS and EIA860M together. Only planned units in EIA860M with these 
@@ -57,6 +19,32 @@ def main():
 #### ii.  (U) Under construction, less than or equal to 50 percent complete
 #### iii. (TS) Construction complete, but not yet in commercial operation
 #####################################################################################
+
+# Define parameters
+def params():
+    # Main directory
+    dir = os.getcwd()                                                                   
+
+    # Key parameters:
+    #aeo_file = sys.argv[1]
+    #eia860M_ver_mon = sys.argv[2]                                                 
+    #eia860M_ver_year = int(sys.argv[3]) 
+    #battery_duration = float(sys.argv[4])
+    #current_year = int(sys.argv[5])                                                
+
+    # For testing:
+    aeo_file = 'PLTF860_RDB.xlsx'
+    # Most recent EIA 860M version month
+    eia860M_ver_mon = 'june'
+    # Most recent EIA 860M version year                                                 
+    eia860M_ver_year = 2026                                           
+    battery_duration = 2.9
+    current_year = 2026
+
+    gdbinputname = aeo_file
+    gdboutname   = 'a_to_b.csv'
+
+    return (dir, current_year, battery_duration, eia860M_ver_mon, eia860M_ver_year, gdbinputname, gdboutname)
 
 def processAEOandEIA860(dir, current_year, battery_duration, eia860M_ver_mon, eia860M_ver_year, gdbinputname):
 
@@ -497,6 +485,20 @@ def cleanMergedAEOEIA860(aeo_orig, nems_eia860, battery_duration):
 
     return nems_eia860_final
 
-main()
+if __name__ == "__main__":
+    print("Starting a_data_cleaning.py")
 
-print("Finished a_data_cleaning.py")
+    (dir, current_year, battery_duration, eia860M_ver_mon, eia860M_ver_year, gdbinputname, gdboutname) = params()
+
+    # Add EIA860M planned units, missing operating units, and updated retirement years to NEMS dataset:
+    nems_cleaned = processAEOandEIA860(dir, current_year, battery_duration, eia860M_ver_mon, eia860M_ver_year, gdbinputname) 
+
+    # =========================================================================
+    # Save output file:
+    intermediate_output_path = os.path.join(dir,'outputs','intermediate_outputs')
+    os.makedirs(intermediate_output_path, exist_ok=True)
+
+    nems_cleaned.to_csv(os.path.join(intermediate_output_path, gdboutname), index=False)
+    # =========================================================================
+
+    print("Finished a_data_cleaning.py")
