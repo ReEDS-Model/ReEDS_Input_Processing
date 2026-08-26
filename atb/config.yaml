@@ -51,6 +51,60 @@ historical_cost_sources:
         capacity_basis: AC
         statistic: capacity_weighted_mean
         geography: United States
+    # EIA reported no biomass installations in 2018, so that year alone keeps its
+    # manual value. Annual biomass additions are small and idiosyncratic, so the
+    # capacity-weighted mean swings widely (1,889-4,910 $/kW over 2013-2021).
+    biopower:
+      output_column: capcost
+      require_complete_history: false
+      backfill_to_first_observed_year: true
+      filters:
+        source_id: eia_generator_costs
+        metric: capital_cost
+        unit: USD/kW
+        technology_detail: Biomass
+        source_table: major_energy_source
+    # EIA's whole-plant combined cycle and combustion turbine match the ReEDS
+    # F-frame definitions. H-frame and aeroderivative variants are different
+    # machines EIA never breaks out, so they keep manual history. EIA starts in
+    # 2013, so 2010-2012 hold the 2013 value.
+    gas:
+      output_column: capcost
+      require_complete_history: true
+      backfill_to_first_observed_year: true
+      series:
+        - technologies:
+            - Gas-CC
+          filters:
+            source_id: eia_generator_costs
+            metric: capital_cost
+            unit: USD/kW
+            technology_detail: Natural gas combined cycle
+            source_table: natural_gas_technology
+        - technologies:
+            - Gas-CT
+          filters:
+            source_id: eia_generator_costs
+            metric: capital_cost
+            unit: USD/kW
+            technology_detail: Natural gas combustion turbine
+            source_table: natural_gas_technology
+    # Figure 31's projects are overwhelmingly fixed-bottom, so `fixed` only;
+    # `floating` keeps manual history. "Europe and United States" is the closest
+    # US proxy and is complete over the required years; scraped_input/README.md
+    # covers the "Global" and "Asia" alternatives.
+    wind-ofs:
+      output_column: capcost
+      require_complete_history: true
+      turbine_classes:
+        - fixed
+      filters:
+        source_id: offshore_wind
+        metric: capital_cost
+        unit: USD/kW
+        capacity_basis: nameplate
+        statistic: capacity_weighted_mean
+        geography: Europe and United States
     wind-ons:
       output_column: capcost
       require_complete_history: true
@@ -147,7 +201,7 @@ processing:
       wind-ofs:
         enabled: true  # options: true / false
         include_capacity_factor_multiplier: true  # options: true / false
-        historical_data: broadcast  # options: manual / broadcast
+        historical_data: real  # options: real / manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
@@ -182,7 +236,7 @@ processing:
       gas:
         enabled: true  # options: true / false
         include_capacity_factor_multiplier: false  # only option: false
-        historical_data: broadcast  # options: manual / broadcast
+        historical_data: real  # options: real / manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
@@ -217,7 +271,7 @@ processing:
       biopower:
         enabled: true  # options: true / false
         include_capacity_factor_multiplier: false  # only option: false
-        historical_data: broadcast  # options: manual / broadcast
+        historical_data: real  # options: real / manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false

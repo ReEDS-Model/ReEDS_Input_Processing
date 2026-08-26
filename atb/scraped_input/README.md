@@ -28,17 +28,47 @@ Use `--only wind`, `--only solar`, `--only offshore`, or `--only eia` to limit
 the sources. Use `--no-download` to rebuild the two CSVs from existing local
 workbooks. The formatter uses only explicitly reviewed mappings under
 `historical_cost_sources.reeds_mappings` in `config.yaml`. Currently, the LBNL
-AC-based UPV and national land-based-wind capital-cost series replace their
-respective `capcost` columns before the configured projection boundary; other
-series remain review inputs.
+AC-based UPV and land-based-wind series and the NLR offshore fixed-bottom series
+replace their respective `capcost` columns before the configured projection
+boundary; other series remain review inputs.
 
 Important distinctions retained in the CSV are:
 
 - LBNL utility-PV costs are included on both AC and DC capacity bases.
-- NLR offshore costs remain separate by geography, and pipeline years after
-  2023 are excluded from the observed series.
-- EIA costs are broad, nominal-year generator categories; they are not exact
-  matches for detailed ATB technologies.
+- NLR offshore costs remain separate by geography (`Global`, `Europe and United
+  States`, `Asia`). None is U.S.-only. Pipeline years after 2023 are excluded.
+  The workbook states no units, but the report's Figure 31 axis reads
+  `USD2023/kW` and its section 1.2.2 normalizes every cost to real 2023 USD by
+  currency conversion followed by U.S. CPI inflation, so the rows are recorded
+  as `dollar_year: 2023`, `price_basis: real`.
+- EIA costs are nominal in the year of installation, and its categories follow
+  EIA definitions rather than ATB technology definitions.
+
+### Which EIA tables are used
+
+Each EIA workbook holds roughly a dozen tables. `source_table` records which one
+a row came from, because the same label means different things in different
+tables:
+
+| `source_table` | EIA table | Adds |
+| --- | --- | --- |
+| `major_energy_source` | Generators installed by major energy source | The broad fuel categories: gas, wind, solar, battery, biomass, hydro, geothermal, petroleum |
+| `prime_mover` | Generators installed by prime mover | Equipment-level detail; the only table reporting fuel cells, and it isolates onshore wind and photovoltaics from their broader categories |
+| `natural_gas_technology` | Natural gas generators installed by technology (and the 2013-only "by plant type") | Whole-plant combined cycle, rather than the cost split across its turbine halves |
+
+The remaining tables break the same capacity down by Census region, state, plant
+size, wind class, or PV panel type. None can become a national ReEDS series, so
+they are skipped deliberately rather than by omission.
+
+Some labels are intentionally left unmapped: `Steam turbine` in the prime-mover
+table has an ambiguous fuel, `... (as part of combined cycle)` rows are one half
+of a plant reported whole elsewhere, and `Internal combustion engine` in that
+table spans both gas and oil units.
+
+Coverage gaps are real absences, not extraction failures: EIA reports only
+categories with installations in a given year, which is why biomass skips 2018
+and geothermal appears only in 2013. The series also cannot start before 2013 —
+`generatorcosts/archive/` has no editions before that year.
 
 The URLs and local filenames are declared under `raw_data:` in
 [`../config.yaml`](../config.yaml). Download and inspect both files with:

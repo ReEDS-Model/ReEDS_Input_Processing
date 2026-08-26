@@ -27,11 +27,15 @@ COLUMNS = [
     "source_id",
     "source_file",
     "source_sheet",
+    "source_table",
     "source_page_url",
     "source_data_url",
     "notes",
 ]
 
+# Only the three mapped tables give national cost by technology; the rest split
+# the same capacity by region, state, size, or panel type. Labels drift between
+# editions ("Solar photovoltaic" -> "Solar PV" -> "Solar"), so every spelling stays.
 EIA_TECHNOLOGY_MAP = {
     "Solar": ("upv", "Utility-scale solar (all reported solar)"),
     "Solar PV": ("upv", "Utility-scale solar PV"),
@@ -45,6 +49,38 @@ EIA_TECHNOLOGY_MAP = {
     "Hydro": ("hydropower", "Hydroelectric"),
     "Hydroelectric": ("hydropower", "Hydroelectric"),
 }
+
+# Equipment rather than fuel; the only table with fuel cells. Unmapped on
+# purpose: "Steam turbine" (ambiguous fuel), "... (as part of combined cycle)"
+# (half a plant, whole in the table below), "Internal combustion engine" (gas
+# and oil, no ReEDS counterpart).
+EIA_PRIME_MOVER_MAP = {
+    "Combustion turbine": ("gas", "Natural gas combustion turbine"),
+    "Onshore wind turbine": ("wind-ons", "Onshore wind turbine"),
+    "Photovoltaic": ("upv", "Photovoltaic"),
+    "Energy storage, battery": ("battery", "Battery storage"),
+    "Battery storage": ("battery", "Battery storage"),
+    "Fuel cell": ("fuelcell", "Fuel cell"),
+    "Geothermal turbines": ("geothermal", "Geothermal turbine"),
+    "Hydroelectric turbine": ("hydropower", "Hydroelectric turbine"),
+}
+
+# Whole plants, so combined cycle arrives as one cost rather than split across
+# its turbine halves. Closest observed match to ReEDS Gas-CC and Gas-CT.
+EIA_GAS_TECHNOLOGY_MAP = {
+    "Combined cycle": ("gas", "Natural gas combined cycle"),
+    "Combustion turbine": ("gas", "Natural gas combustion turbine"),
+    "Steam turbine": ("gas", "Natural gas steam turbine"),
+    "Internal combustion engine": ("gas", "Natural gas internal combustion engine"),
+}
+
+# (title fragment, label map, source_table tag), matched against a lowercased
+# table title in column A. Natural gas must precede prime mover so its title wins.
+EIA_TABLES = (
+    ("by major energy source", EIA_TECHNOLOGY_MAP, "major_energy_source"),
+    ("natural gas generators installed", EIA_GAS_TECHNOLOGY_MAP, "natural_gas_technology"),
+    ("by prime mover", EIA_PRIME_MOVER_MAP, "prime_mover"),
+)
 
 
 def _base_row(source_id, source, filename, sheet):
@@ -166,59 +202,81 @@ def extract_offshore_wind(path, source):
                 capacity_basis="nameplate",
                 statistic=statistic,
                 geography=geography,
-                dollar_year="",
-                price_basis="as_reported",
+                dollar_year=2023,
+                price_basis="real",
                 sample_count="",
                 notes=(
-                    "Figure 31 annual project CapEx. The workbook does not state a "
-                    "constant dollar year; post-2023 pipeline years are excluded."
+                    "Figure 31 annual project CapEx. The data file omits units; the "
+                    "report's Figure 31 axis reads USD2023/kW and its section 1.2.2 "
+                    "normalizes all costs to real 2023 USD (FX conversion, then U.S. "
+                    "CPI). Post-2023 pipeline years are excluded."
                 ),
             )
             rows.append(row)
     workbook.close()
     return rows
+
+
+def _eia_table_for_title(title):
+    """Return (label_map, table_tag) for a table title, or (None, None).
+
+    The combined-cycle breakdown splits one plant across its turbine halves, so
+    it is excluded even though its title matches the natural-gas fragment.
+    """
+    lowered = title.lower()
+    if "at combined-cycle plants" in lowered:
+        return None, None
+    for fragment, label_map, tag in EIA_TABLES:
+        if fragment in lowered:
+            return label_map, tag
+    return None, None
 
 
 def extract_eia(path, source, year, data_url):
-    """Extract EIA's broad energy-source construction-cost table."""
+    """Extract every national cost-by-technology table in one EIA workbook."""
     workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
     sheet = workbook[workbook.sheetnames[0]]
-    title_row = _find_header_row(sheet, "by major energy source")
     rows = []
-    for values in sheet.iter_rows(min_row=title_row + 1, values_only=True):
+    label_map = None
+    table_tag = None
+    for values in sheet.iter_rows(values_only=True):
         label = values[0]
         value = values[1] if len(values) > 1 else None
-        if label in EIA_TECHNOLOGY_MAP and isinstance(value, (int, float)):
-            technology, detail = EIA_TECHNOLOGY_MAP[label]
-            row = _base_row(
-                "eia_generator_costs", source, Path(path).name, sheet.title
-            )
-            row["source_data_url"] = data_url
-            row.update(
-                technology=technology,
-                technology_detail=detail,
-                year=int(year),
-                value=float(value),
-                unit="USD/kW",
-                capacity_basis="nameplate",
-                statistic="capacity_weighted_mean",
-                geography="United States",
-                dollar_year=int(year),
-                price_basis="nominal",
-                sample_count="",
-                notes=(
-                    "EIA-860 generators installed in this year; broad category, "
-                    "not a one-to-one mapping to an ATB technology definition."
-                ),
-            )
-            rows.append(row)
-        elif rows and isinstance(label, str) and "generators installed" in label.lower():
-            break
+        if isinstance(label, str) and "generators installed" in label.lower():
+            label_map, table_tag = _eia_table_for_title(label)
+            continue
+        if label_map is None or not isinstance(label, str):
+            continue
+        entry = label_map.get(label.strip())
+        if entry is None or not isinstance(value, (int, float)):
+            continue
+        technology, detail = entry
+        row = _base_row("eia_generator_costs", source, Path(path).name, sheet.title)
+        row["source_data_url"] = data_url
+        row.update(
+            technology=technology,
+            technology_detail=detail,
+            year=int(year),
+            value=float(value),
+            unit="USD/kW",
+            capacity_basis="nameplate",
+            statistic="capacity_weighted_mean",
+            geography="United States",
+            dollar_year=int(year),
+            price_basis="nominal",
+            sample_count="",
+            source_table=table_tag,
+            notes=(
+                "EIA-860 generators installed in this year. Average construction "
+                "cost is total cost divided by total capacity. Categories follow "
+                "EIA definitions and are not one-to-one with ATB technologies."
+            ),
+        )
+        rows.append(row)
     workbook.close()
     if not rows:
-        raise ValueError(f"No EIA major-energy-source rows extracted from {path}")
+        raise ValueError(f"No EIA cost rows extracted from {path}")
     return rows
-
 
 def _sha256(path):
     digest = hashlib.sha256()

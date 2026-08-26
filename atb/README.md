@@ -114,11 +114,80 @@ The independent switches under `future_smoothing_treatments` apply from
 
 Each technology can also independently set `enabled`, `columns`, and
 `include_capacity_factor_multiplier`. Inline comments in `config.yaml` list
-only the valid options for each technology. `real` is offered only for UPV and
-land-based wind because those technologies have reviewed source mappings.
-Capacity-factor multiplier selection is available only for utility PV and the
-two wind technologies; it is fixed to `false` elsewhere. Heat rate and
-efficiency are not changed.
+only the valid options for each technology. `real` applies to every technology
+with an observed series that measures the same quantity as its ReEDS column:
+UPV, land-based wind, offshore wind, gas, and biopower. Capacity-factor
+multiplier selection is available only for
+utility PV and the two wind technologies; it is fixed to `false` elsewhere.
+Heat rate and efficiency are not changed.
+
+### Per-technology observed-history appliers
+
+A `real` mapping supplies one national value per year, but technologies do not
+all carry one row per year, so the two halves of the work are separated in
+`scripts/generate_atb_files.py`:
+
+- `_observed_values_by_year` is shared. It filters the normalized observed
+  series, requires a stated `dollar_year`, and deflates to the ReEDS dollar
+  year.
+- an entry in `REAL_HISTORY_APPLIERS`, keyed by technology, decides which rows
+  that annual value is allowed to address. A technology selecting
+  `historical_data: real` without an entry raises `NameError`.
+
+Frames at this stage stack all ATB scenarios together, and history is identical
+across them, so repetition across `Scenario` is expected. Repetition on any
+other dimension is not, and `_assert_one_row_per_year` raises rather than
+letting one value silently overwrite several distinct series.
+
+| Applier | Used by | Behavior |
+| --- | --- | --- |
+| `apply_real_history_single_series` | `upv`, `wind-ons`, `biopower` | One row per scenario-year; assigns directly. |
+| `apply_real_history_wind_ofs` | `wind-ofs` | One row per turbine class. Assigns to the classes named by `turbine_classes`; the rest keep manual history. |
+| `apply_real_history_gas` | `gas` | One row per plant configuration. Each `series` entry assigns to the configurations it names; unclaimed ones keep manual history. |
+
+Why a given technology targets the rows it does is recorded beside its mapping
+in `config.yaml`, where that choice is made.
+
+Add a technology by writing an applier that owns its row-shape assumption and
+registering it, rather than generalizing an existing one.
+
+### Mapping options
+
+Each entry under `historical_cost_sources.reeds_mappings` accepts:
+
+| Key | Default | Effect |
+| --- | --- | --- |
+| `output_column` | required | Which ReEDS column the observed series replaces. |
+| `filters` | required | Column/value pairs selecting exactly one row per year from the normalized CSV. |
+| `require_complete_history` | `true` | Raise unless every year from `reeds_start_year` to the projection boundary is covered. |
+| `backfill_to_first_observed_year` | `false` | Hold the earliest observed value flat across required years that precede it. |
+| `turbine_classes` | `[fixed]` | Offshore only: which turbine classes the series applies to. |
+| `series` | — | A list of sub-series, each with its own `filters` and `technologies`, for technologies whose rows need different observed series. Entries inherit the mapping's other keys. |
+
+Rows that all take the same series use `filters` directly; rows needing
+different series use `series`, as `gas` does:
+
+```yaml
+gas:
+  output_column: capcost
+  backfill_to_first_observed_year: true
+  series:
+    - technologies: [Gas-CC]
+      filters: {technology_detail: Natural gas combined cycle, ...}
+    - technologies: [Gas-CT]
+      filters: {technology_detail: Natural gas combustion turbine, ...}
+```
+
+`backfill_to_first_observed_year` exists because some sources start after
+`reeds_start_year` — every EIA generator-cost series begins in 2013, the first
+edition EIA published. Holding the first observed value flat across the earlier
+years keeps the series usable without inventing a trend for years the source
+never measured.
+
+It fills **leading** years only. A hole inside the observed range means the
+source reported no installations that year, which is a different situation, and
+`require_complete_history` still catches it. EIA biomass, missing 2018 in the
+middle of an otherwise continuous run, raises even with backfill enabled.
 
 The current defaults in `config.yaml` are:
 

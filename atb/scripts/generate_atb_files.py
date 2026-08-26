@@ -330,24 +330,9 @@ def _seed_history_from_reeds(
     return history
 
 
-def _apply_real_historical_costs(frame, tech, settings, deflator):
-    """Replace mapped pre-projection columns with normalized observed values."""
-    smoothing = settings['config']['processing'].get('smooth_cost_curves', {})
-    configured_technologies = smoothing.get('technologies', {})
-    if not isinstance(configured_technologies, dict):
-        return frame
-    technology_config = configured_technologies.get(tech, {})
-    if technology_config.get('historical_data') != 'real':
-        return frame
-
+def _observed_values_by_year(tech, mapping, settings, deflator):
+    """Read, filter, and deflate one observed series into {year: value}."""
     source_settings = settings['config'].get('historical_cost_sources', {})
-    mapping = source_settings.get('reeds_mappings', {}).get(tech)
-    if mapping is None:
-        raise ValueError(
-            f"{tech} selects historical_data: real but has no reviewed mapping "
-            "under historical_cost_sources.reeds_mappings."
-        )
-
     source_path = os.path.join(
         ATBDIR,
         source_settings['directory'],
@@ -368,12 +353,6 @@ def _apply_real_historical_costs(frame, tech, settings, deflator):
     if observed.empty:
         raise ValueError(
             f"No observed historical rows match the configured mapping for {tech}."
-        )
-
-    output_column = mapping['output_column']
-    if output_column not in frame.columns:
-        raise KeyError(
-            f"Observed-history output column {output_column} is absent for {tech}."
         )
     if observed['year'].duplicated().any():
         duplicate_years = sorted(
@@ -402,33 +381,262 @@ def _apply_real_historical_costs(frame, tech, settings, deflator):
             * float(deflator[source_dollar_year])
             / float(deflator[current_dollar_year])
         )
+    return converted_values
+
+
+def _backfill_leading_years(values, required_years, tech, label=None):
+    """Extend the earliest observed value back over the years preceding it.
+
+    Leading years only. A hole inside the observed range means the source
+    reported no installations that year, which require_complete_history catches.
+    """
+    if not values or not required_years:
+        return values
+    first_observed = min(values)
+    leading = sorted(year for year in required_years if year < first_observed)
+    if not leading:
+        return values
+    extended = dict(values)
+    for year in leading:
+        extended[year] = values[first_observed]
+    print(
+        f"  {label or tech}: backfilled {leading[0]}-{leading[-1]} from the "
+        f"{first_observed} observed value"
+    )
+    return extended
+
+
+def _assign_observed_values(frame, mask, output_column, values):
+    """Write the observed series into the masked rows and report the span."""
+    result = frame.copy()
+    result.loc[mask, output_column] = result.loc[mask, 't'].map(values)
+    return result, sorted(result.loc[mask, 't'].astype(int).unique())
+
+
+def _year_key(frame):
+    """Columns identifying one value slot per year.
+
+    Frames stack every ATB scenario, and historical years are identical across
+    them, so repetition across `Scenario` is expected and anything else is not.
+    """
+    return [column for column in ('Scenario', 't') if column in frame.columns]
+
+
+def _assert_one_row_per_year(frame, mask, tech, applier_name):
+    """Fail loudly when one observed value would address several rows."""
+    candidates = frame.loc[mask]
+    duplicated = candidates.duplicated(subset=_year_key(frame), keep=False)
+    if duplicated.any():
+        crowded_years = sorted(
+            candidates.loc[duplicated, 't'].astype(int).unique()
+        )
+        raise ValueError(
+            f"{tech} uses the {applier_name} observed-history applier, but "
+            f"more than one row shares a scenario and year in {crowded_years}. "
+            f"One observed value cannot address them all. Define a "
+            f"technology-specific applier for {tech} and register it in "
+            f"REAL_HISTORY_APPLIERS."
+        )
+
+
+def _only_series(resolved, tech, applier_name):
+    """Unpack a mapping that must resolve to exactly one observed series."""
+    if len(resolved) != 1:
+        raise ValueError(
+            f"{tech} uses the {applier_name} observed-history applier, which "
+            f"takes one series, but its mapping resolved {len(resolved)}. "
+            f"Use an applier that assigns each series to its own rows."
+        )
+    return resolved[0]
+
+
+def _assign_series_to_targets(
+    frame, tech, mapping, values, historical_mask, key_column, targets, applier_name
+):
+    """Assign one observed series to each row key its mapping names.
+
+    One target at a time, so listing several deliberately shares a series while
+    a single target matching several rows still raises.
+    """
+    if key_column not in frame.columns:
+        raise KeyError(
+            f"{tech} observed-history applier expects a {key_column!r} column "
+            "identifying the sub-technology."
+        )
+    present = set(frame[key_column].unique())
+    unknown = sorted(set(targets) - present)
+    if unknown:
+        raise ValueError(
+            f"{tech} observed-history mapping targets {unknown}, which are "
+            f"absent from the frame. Present: {sorted(present)}."
+        )
+    result = frame
+    replaced = set()
+    for target in targets:
+        mask = (
+            historical_mask
+            & result['t'].isin(values)
+            & (result[key_column] == target)
+        )
+        _assert_one_row_per_year(result, mask, tech, applier_name)
+        result, years = _assign_observed_values(
+            result, mask, mapping['output_column'], values
+        )
+        replaced.update(years)
+    return result, replaced
+
+
+def apply_real_history_single_series(frame, tech, mapping, resolved, historical_mask):
+    """Applier for technologies carrying one row per scenario-year.
+
+    upv and wind-ons each select a single ATB DisplayName. The guard catches a
+    technology that splits a year into several series being routed here.
+    """
+    _series, values = _only_series(resolved, tech, 'single-series')
+    mask = historical_mask & frame['t'].isin(values)
+    _assert_one_row_per_year(frame, mask, tech, 'single-series')
+    return _assign_observed_values(frame, mask, mapping['output_column'], values)
+
+
+def apply_real_history_wind_ofs(frame, tech, mapping, resolved, historical_mask):
+    """Applier for offshore wind, which carries one row per turbine class.
+
+    Assigns the series to the classes named by `turbine_classes`; the rest keep
+    manual history. config.yaml carries the reasoning for that choice.
+    """
+    series, values = _only_series(resolved, tech, 'wind-ofs')
+    targets = series.get('turbine_classes', ['fixed'])
+    present = set(frame['turbine'].unique()) if 'turbine' in frame.columns else set()
+    result, replaced = _assign_series_to_targets(
+        frame, tech, mapping, values, historical_mask, 'turbine', targets, 'wind-ofs'
+    )
+    untouched = sorted(present - set(targets))
+    if untouched:
+        print(
+            f"  {tech}: observed history applied to {sorted(targets)} only; "
+            f"{untouched} retain manual history."
+        )
+    return result, sorted(replaced)
+
+
+def apply_real_history_gas(frame, tech, mapping, resolved, historical_mask):
+    """Applier for natural gas, which carries one row per plant configuration.
+
+    Each `series` entry names the configurations it describes through
+    `technologies`; unclaimed ones keep manual history. config.yaml carries the
+    reasoning for that split.
+    """
+    present = set(frame['i'].unique()) if 'i' in frame.columns else set()
+    result = frame
+    replaced = set()
+    targeted = set()
+    for series, values in resolved:
+        targets = series.get('technologies')
+        if not targets:
+            raise ValueError(
+                f"{tech} observed-history mapping has a series entry without "
+                "`technologies`. Name the ReEDS technologies it describes."
+            )
+        result, years = _assign_series_to_targets(
+            result, tech, mapping, values, historical_mask, 'i', targets, 'gas'
+        )
+        replaced.update(years)
+        targeted.update(targets)
+    untouched = sorted(present - targeted)
+    if untouched:
+        print(
+            f"  {tech}: observed history applied to {sorted(targeted)}; "
+            f"{untouched} retain manual history."
+        )
+    return result, sorted(replaced)
+
+
+# Each applier owns which rows its series may address, since that depends on
+# the technology's row shape. historical_data: real requires an entry here.
+REAL_HISTORY_APPLIERS = {
+    'biopower': apply_real_history_single_series,
+    'upv': apply_real_history_single_series,
+    'wind-ons': apply_real_history_single_series,
+    'wind-ofs': apply_real_history_wind_ofs,
+    'gas': apply_real_history_gas,
+}
+
+
+def _resolve_observed_series(
+    tech, mapping, settings, deflator, required_years, projection_start_year
+):
+    """Resolve a mapping into [(series_config, {year: value}), ...].
+
+    A mapping describes one series directly or several under `series`. Entries
+    inherit the mapping's other keys, so shared settings are written once.
+    """
+    entries = mapping.get('series') or [mapping]
+    inherited = {key: value for key, value in mapping.items() if key != 'series'}
+    resolved = []
+    for entry in entries:
+        merged = {**inherited, **entry}
+        values = _observed_values_by_year(tech, merged, settings, deflator)
+        if merged.get('backfill_to_first_observed_year', False):
+            targets = merged.get('technologies') or merged.get('turbine_classes')
+            label = f"{tech} {', '.join(targets)}" if targets else tech
+            values = _backfill_leading_years(values, required_years, tech, label)
+        missing_years = sorted(required_years - set(values))
+        if missing_years and merged.get('require_complete_history', True):
+            raise ValueError(
+                f"Observed historical mapping for {tech} does not cover "
+                f"required years before {projection_start_year}: {missing_years}"
+            )
+        resolved.append((merged, values))
+    return resolved
+
+
+def _apply_real_historical_costs(frame, tech, settings, deflator):
+    """Replace mapped pre-projection columns with normalized observed values."""
+    smoothing = settings['config']['processing'].get('smooth_cost_curves', {})
+    configured_technologies = smoothing.get('technologies', {})
+    if not isinstance(configured_technologies, dict):
+        return frame
+    technology_config = configured_technologies.get(tech, {})
+    if technology_config.get('historical_data') != 'real':
+        return frame
+
+    source_settings = settings['config'].get('historical_cost_sources', {})
+    mapping = source_settings.get('reeds_mappings', {}).get(tech)
+    if mapping is None:
+        raise ValueError(
+            f"{tech} selects historical_data: real but has no reviewed mapping "
+            "under historical_cost_sources.reeds_mappings."
+        )
+
+    applier = REAL_HISTORY_APPLIERS.get(tech)
+    if applier is None:
+        raise NameError(
+            f"{tech} selects historical_data: real but has no observed-history "
+            "applier. Define one and add it to REAL_HISTORY_APPLIERS."
+        )
+
+    output_column = mapping['output_column']
+    if output_column not in frame.columns:
+        raise KeyError(
+            f"Observed-history output column {output_column} is absent for {tech}."
+        )
 
     projection_start_year = int(smoothing.get('projection_start_year', 2022))
     historical_mask = frame['t'] < projection_start_year
     required_years = set(frame.loc[historical_mask, 't'].astype(int).unique())
-    missing_years = sorted(required_years - set(converted_values))
-    if missing_years and mapping.get('require_complete_history', True):
-        raise ValueError(
-            f"Observed historical mapping for {tech} does not cover required "
-            f"years before {projection_start_year}: {missing_years}"
-        )
-
-    replacement_mask = historical_mask & frame['t'].isin(converted_values)
-    result = frame.copy()
-    result.loc[replacement_mask, output_column] = result.loc[
-        replacement_mask, 't'
-    ].map(converted_values)
-    replaced_years = sorted(
-        result.loc[replacement_mask, 't'].astype(int).unique()
+    resolved = _resolve_observed_series(
+        tech, mapping, settings, deflator, required_years, projection_start_year
     )
+
+    result, replaced_years = applier(frame, tech, mapping, resolved, historical_mask)
     if replaced_years:
+        current_dollar_year = int(settings['dollaryear'])
         print(
             f"Applied real historical {output_column} for {tech}: "
             f"{replaced_years[0]}-{replaced_years[-1]} "
             f"({current_dollar_year}$)"
         )
     return result
-
 
 def merge_historical_atb_data(
     tech_data, tech, settings, dollaryear, deflator
