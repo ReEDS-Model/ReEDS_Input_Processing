@@ -40,7 +40,7 @@ def fix_upgrades(nems):
             # Upgraded plant
             startyear_ref = unit_idx.loc[unit_idx.index==upgrade_id, 'StartYear'].values[0]
             retireyear_ref = unit_idx.loc[unit_idx.index==upgrade_id, 'RetireYear'].values[0]
-            cap_ref = unit_idx.loc[unit_idx.index==retire_id, 'summer_power_capacity_MW'].values[0]
+            cap_ref = unit_idx.loc[unit_idx.index==upgrade_id, 'summer_power_capacity_MW'].values[0]
 
             # If the upgraded plant's start year does not immediately follow the 
             # retired plant's retire year, keep both plants in the database
@@ -54,7 +54,7 @@ def fix_upgrades(nems):
             elif startyear_ref - retireyear_ret == 1:
                 if cap_ref - cap_ret <= 0:
                     print('No change in capacity after upgrading, or upgraded capacity is lower,' \
-                          'update start year for the upgraded plant')
+                          ' update start year for the upgraded plant')
                     # Update start year for the upgraded plant and drop retired plant
                     upgrades.loc[upgrades.index==upgrade_id,'StartYear'] = startyear_ret
                     upgrades = upgrades.drop(index=retire_id)
