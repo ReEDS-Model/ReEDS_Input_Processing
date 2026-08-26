@@ -163,23 +163,23 @@ for i,row in noFVOM.iterrows():
             # No fix necesary for FOM/VOM - just 
             closest_index_df.loc[i,f'{OM}_from_Unique_ID'] = np.nan
                 
-    # Replace data in df6 with fixed FOM/VOM data
-    df6.loc[fixedFVOM.index] = fixedFVOM.copy()
+# Replace data in df6 with fixed FOM/VOM data
+df6.loc[fixedFVOM.index] = fixedFVOM.copy()
 
-    # Check that no more units require FOM/VOM assignments.
-    # If units with missing FOM/VOM exist, quit script and output list of units 
-    checkFVOM = df6.loc[
-        ((~df6['HeatRate'].isnull()) & (df6['HeatRate']>0))
-        & ((df6['T_FOM']==0) | (df6['T_VOM']==0) | (df6['T_FOM'].isna()) | (df6['T_VOM'].isna()))
-        ]
-    if len(checkFVOM):
-        print('Some units requiring FOM/VOM assignments still exist. Printing list '
-            'of units out to outputs/debug/debug_fix_FOM_VOM.csv')
-        checkFVOM.to_csv(os.path.join('outputs','debug', 'debug_fix_FOM_VOM.csv'))
-        sys.exit()
-    else:
-        if os.path.exists(os.path.join('outputs','debug','debug_fix_FOM_VOM.csv')):
-            os.remove(os.path.join('outputs','debug','debug_fix_FOM_VOM.csv'))
+# Check that no more units require FOM/VOM assignments.
+# If units with missing FOM/VOM exist, quit script and output list of units 
+checkFVOM = df6.loc[
+    ((~df6['HeatRate'].isnull()) & (df6['HeatRate']>0))
+    & ((df6['T_FOM']==0) | (df6['T_VOM']==0) | (df6['T_FOM'].isna()) | (df6['T_VOM'].isna()))
+    ]
+if len(checkFVOM):
+    print('Some units requiring FOM/VOM assignments still exist. Printing list '
+        'of units out to outputs/debug/debug_fix_FOM_VOM.csv')
+    checkFVOM.to_csv(os.path.join('outputs','debug', 'debug_fix_FOM_VOM.csv'))
+    sys.exit()
+else:
+    if os.path.exists(os.path.join('outputs','debug','debug_fix_FOM_VOM.csv')):
+        os.remove(os.path.join('outputs','debug','debug_fix_FOM_VOM.csv'))
 
 # Output changes to FOM/VOM if desired:
 changes = fixedFVOM[['T_VOM','T_FOM']]

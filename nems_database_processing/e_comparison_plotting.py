@@ -16,21 +16,22 @@ os.system('rm -rf '+os.path.expanduser(debug_path)+'/*')
 
 #%%
 
-#reeds_path = sys.argv[1]
+reeds_path = sys.argv[1]
 
 # For debugging
-reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'                 # local
-#reeds_path = '//kfs2/projects/stdscen/apham/ReEDS/'                        # kestrel
+# # local
+#reeds_path = '~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/'
+# # kestrel
+#reeds_path = '//kfs2/projects/stdscen/apham/ReEDS/'                       
 
-reeds_path = os.path.expanduser(reeds_path)                                 
+reeds_path = os.path.expanduser(reeds_path)                           
 sys.path.append(reeds_path)
 import reeds
 
 # Read in NEMS capacity input files to compare
-gdboldname = 'ReEDS_generator_database_final_EIA-NEMS_2025.csv'
 gdbfinalname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
 
-dfold = pd.read_csv(os.path.join(reeds_path,'inputs','capacity_exogenous',gdboldname), low_memory=False)
+dfold = pd.read_csv(os.path.join(reeds_path,'inputs','capacity_exogenous',gdbfinalname), low_memory=False)
 dfnew = pd.read_csv(os.path.join('outputs',gdbfinalname), low_memory=False)
 
 # Read county2zone
@@ -297,6 +298,8 @@ def mismatching_FIPS(df_old, df_new, x, type):
 
 
 if __name__ == "__main__":
+    print("Starting e_comparison_plotting.py")
+
     # Merge data with county2zone
     dfnew = dfnew.merge(county2zone, on='FIPS', how='left')
     dfold = dfold.merge(county2zone, on='FIPS', how='left')
@@ -422,3 +425,5 @@ if __name__ == "__main__":
     comparison_plotting_r(retire_data_diff, zones, finalyear_retire,  techs, color_techs, 
                           figname='planned_retire_diff_r', x='RetireYear', 
                           title='Planned retire capacity difference (new NEMS - current NEMS) [GW]')
+
+    print("Finished e_comparison_plotting.py")
