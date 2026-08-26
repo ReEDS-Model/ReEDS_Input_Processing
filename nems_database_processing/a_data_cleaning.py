@@ -26,20 +26,20 @@ def params():
     dir = os.getcwd()                                                                   
 
     # Key parameters:
-    #aeo_file = sys.argv[1]
-    #eia860M_ver_mon = sys.argv[2]                                                 
-    #eia860M_ver_year = int(sys.argv[3]) 
-    #battery_duration = float(sys.argv[4])
-    #current_year = int(sys.argv[5])                                                
+    aeo_file = sys.argv[1]
+    eia860M_ver_mon = sys.argv[2]                                                 
+    eia860M_ver_year = int(sys.argv[3]) 
+    battery_duration = float(sys.argv[4])
+    current_year = int(sys.argv[5])                                                
 
     # For testing:
-    aeo_file = 'PLTF860_RDB.xlsx'
+    #aeo_file = 'PLTF860_RDB.xlsx'
     # Most recent EIA 860M version month
-    eia860M_ver_mon = 'june'
+    #eia860M_ver_mon = 'june'
     # Most recent EIA 860M version year                                                 
-    eia860M_ver_year = 2026                                           
-    battery_duration = 2.9
-    current_year = 2026
+    #eia860M_ver_year = 2026                                           
+    #battery_duration = 2.9
+    #current_year = 2026
 
     gdbinputname = aeo_file
     gdboutname   = 'a_to_b.csv'
