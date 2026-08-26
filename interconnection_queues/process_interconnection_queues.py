@@ -47,7 +47,6 @@ else:
     queue_data.columns = queue_data.iloc[0]
     queue_data = queue_data[1:]
 
-# Newer ReEDS versions moved the county_name/state lookup out of inputs/county2zone.csv
 county2zone_path = os.path.join(reeds_path,'inputs','county2zone.csv')
 if not os.path.exists(county2zone_path):
     county2zone_path = os.path.join(reeds_path,'inputs','zones','county_state.csv')
@@ -96,22 +95,16 @@ for pt in list(range(type_no)):
     queue_data_active_temp = queue_data_active_temp.rename(columns={'cap'+str(item):'cap'})
     active_queue = pd.concat([active_queue, queue_data_active_temp], axis=0).reset_index(drop=True)
     
-# Sum up the queue capacities by county, tech, and online year, then keep only ReEDS counties.
-# Match on the FIPS code reported by LBNL rather than the county name: LBNL county names do not
-# always use the ReEDS spelling (e.g. Louisiana is written "Acadia Parish" vs ReEDS "acadia"),
-# which silently dropped those queues.
+# Sum up the queue capacities by county, tech, and online year
 if 'FIPS' in active_queue.columns:
     fips_reported = 'p' + pd.to_numeric(active_queue['FIPS'], errors='coerce').map(
         lambda x: str(int(x)).zfill(5) if pd.notna(x) else '')
-    # LBNL sometimes reports a stale code (e.g. Oglala Lakota SD) or concatenates several codes for
-    # projects spanning multiple counties, so fall back to the county name when the code is unusable
     name2fips = county2zone.set_index(county2zone['county_name']+'|'+county2zone['state'])['FIPS']
     fips_byname = (active_queue['county_name'].str.lower()+'|'+active_queue['state']).map(name2fips)
     active_queue['FIPS'] = fips_reported.where(fips_reported.isin(county2zone['FIPS']), fips_byname)
     active_queue_agg = active_queue.groupby(['FIPS','tech','online_year'])['cap'].sum().reset_index()
     active_queue_county = county2zone.merge(active_queue_agg, on='FIPS', how='inner')
 else:
-    # Vintages before 2024 report no FIPS code, so fall back to matching on county name and state
     active_queue['county_name'] = active_queue['county_name'].str.lower()
     active_queue_agg = active_queue.groupby(['county_name', 'state','tech', 'online_year'])['cap'].sum().reset_index()
     active_queue_county = county2zone.merge(active_queue_agg, on=['county_name','state'], how='outer')
@@ -128,7 +121,7 @@ active_queue_county = active_queue_county.merge(unique_year_FIPS_tech, on=['FIPS
 active_queue_county = active_queue_county[['FIPS','tech','online_year','cap']]
 active_queue_county['cap'] = active_queue_county['cap'].fillna(0)
 
-# Sum queue capacity by year to get cumulative queue cap by year.
+# Sum queue capacity by year to get cumulative queue cap by year
 active_queue_county[str(t_2)] = active_queue_county['cap'].where(active_queue_county['online_year']==t_2, 0)
 active_queue_county[str(t_2)] = active_queue_county.groupby(['FIPS','tech'])[str(t_2)].transform("sum")
 
