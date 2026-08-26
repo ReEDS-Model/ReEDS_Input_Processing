@@ -3,7 +3,7 @@ import sys
 import pandas as pd
 from itertools import product
 import altair as alt
-reeds_path = os.path.expanduser('~/Documents/Github/ReEDS/ReEDS')
+reeds_path = os.environ.get('REEDS_PATH', os.path.expanduser('~/Documents/Github/ReEDS/ReEDS'))
 sys.path.append(reeds_path)
 
 '''
@@ -47,7 +47,11 @@ else:
     queue_data.columns = queue_data.iloc[0]
     queue_data = queue_data[1:]
 
-county2zone = pd.read_csv(os.path.join(reeds_path,'inputs','county2zone.csv'))
+# Newer ReEDS versions moved the county_name/state lookup out of inputs/county2zone.csv
+county2zone_path = os.path.join(reeds_path,'inputs','county2zone.csv')
+if not os.path.exists(county2zone_path):
+    county2zone_path = os.path.join(reeds_path,'inputs','zones','county_state.csv')
+county2zone = pd.read_csv(county2zone_path)
 county2zone['FIPS'] = 'p' + county2zone['FIPS'].astype(str).str.zfill(5)
 
 # Assuming zero queue for csp
