@@ -27,6 +27,71 @@ raw_data:
     filename: atb_2024_workbook.xlsx
     url: https://data.openei.org/files/6006/2024_v3_Workbook.xlsx
 
+# Observed project costs are downloaded and normalized by the separate
+# scripts/scrape_historical_costs.py utility. Only explicitly reviewed entries
+# under reeds_mappings are merged into ReEDS curves; all others remain review
+# inputs.
+historical_cost_sources:
+  directory: scraped_input/historical_costs
+  normalized_filename: historical_capital_costs.csv
+  manifest_filename: source_manifest.csv
+  allow_insecure_ssl_fallback: true
+  # Reviewed mappings from normalized observed series into ReEDS columns.
+  # Values before processing.smooth_cost_curves.projection_start_year replace
+  # the corresponding manual value when a technology selects historical_data:
+  # real. Other historical columns continue to come from manual history.
+  reeds_mappings:
+    upv:
+      output_column: capcost
+      require_complete_history: true
+      filters:
+        source_id: utility_pv
+        metric: capital_cost
+        unit: USD/kW
+        capacity_basis: AC
+        statistic: capacity_weighted_mean
+        geography: United States
+    wind-ons:
+      output_column: capcost
+      require_complete_history: true
+      filters:
+        source_id: land_based_wind
+        metric: capital_cost
+        unit: USD/kW
+        capacity_basis: nameplate
+        statistic: capacity_weighted_mean
+        geography: United States
+  sources:
+    land_based_wind:
+      enabled: true
+      report_year: 2025
+      page_url: https://emp.lbl.gov/publications/land-based-wind-energy-technology
+      data_url: https://eta-publications.lbl.gov/sites/default/files/2025-08/data_file_land-based_wind_energy_technology_update_2025_edition.xlsx
+      filename: lbnl_land_based_wind_2025.xlsx
+    utility_pv:
+      enabled: true
+      report_year: 2025
+      page_url: https://emp.lbl.gov/publications/us-utility-scale-solar-2025-data
+      data_url: https://eta-publications.lbl.gov/sites/default/files/2025-10/2025_utility-scale_solar_data_update.xlsx
+      filename: lbnl_utility_scale_solar_2025.xlsx
+    offshore_wind:
+      enabled: true
+      report_year: 2024
+      # Projects after 2023 in this workbook are pipeline/projection data, not
+      # completed historical observations, so the normalized CSV stops at 2023.
+      last_historical_year: 2023
+      page_url: https://www.nlr.gov/wind/offshore-market-assessment
+      data_url: https://www.nlr.gov/docs/fy24osti/90525data.xlsx
+      filename: nlr_offshore_wind_market_2024.xlsx
+    eia_generator_costs:
+      enabled: true
+      first_year: 2013
+      last_year: 2024
+      page_url: https://www.eia.gov/electricity/generatorcosts/
+      current_data_url: https://www.eia.gov/electricity/generatorcosts/xls/generator_costs.xlsx
+      archive_data_url: https://www.eia.gov/electricity/generatorcosts/archive/{year}/xls/generator_costs_{year}.xlsx
+      filename: eia_generator_costs_{year}.xlsx
+
 processing:
   reeds_repo: C:/ReEDS/ReEDS
   output_directory: output
@@ -37,22 +102,16 @@ processing:
   sensitivity_name: null
   reeds_start_year: 2010
   decimals: 6
-  # Optionally remove the transition discontinuity between the historical
-  # series and the current ATB projection. Selective smoothing uses 2022 as an
-  # anchor: a contiguous historical tail below that value is raised to 2022,
-  # future increases are removed, near-equal plateaus are bridged from their
-  # last points, and short clusters of slope changes are smoothed. Higher
-  # historical costs and isolated ATB milestones (such as CSP in 2030) are
-  # preserved. Other performance inputs are intentionally not changed.
-  # Keep disabled for the published ReEDS-compatible outputs.
+  # Optional treatment of the historical/projection boundary and future ATB
+  # trajectory. Each technology independently selects one historical mode and
+  # its future-year smoothing switches.
   smooth_cost_curves:
     enabled: true
     method: selective
-    technologies: all
     # "all" selects capcost*, fom*, and vom, including battery energy costs.
     columns: all
-    # Apply the same anchor-aware rule to CF_mult/cf_improvement when present.
-    include_capacity_factor_multiplier: true
+    # Years before this boundary are historical; this year and later are the
+    # current ATB projection. Change this once here rather than in the code.
     projection_start_year: 2022
     # A relative change in adjacent annual slopes at or above this value is a
     # possible kink. Only clusters of 2+ changes are smoothed.
@@ -64,6 +123,104 @@ processing:
     similar_value_relative_tolerance: 0.001
     similar_value_absolute_tolerance: 1.0e-9
     major_step_relative_threshold: 0.1
+    # historical_data modes:
+    #   real          preserve supplied observed history exactly
+    #   manual        preserve manual_input/historical exactly
+    #   broadcast     lift the contiguous low historical tail to the boundary
+    # `real` is available only to technologies with a reviewed mapping under
+    # historical_cost_sources.reeds_mappings.
+    technologies:
+      upv:
+        enabled: true  # options: true / false
+        include_capacity_factor_multiplier: true  # options: true / false
+        historical_data: real  # options: real / manual / broadcast
+        future_smoothing_treatments:
+          enforce_monotonic_projection: true  # options: true / false
+          smooth_projection_curve: true  # options: true / false
+      wind-ons:
+        enabled: true  # options: true / false
+        include_capacity_factor_multiplier: true  # options: true / false
+        historical_data: real  # options: real / manual / broadcast
+        future_smoothing_treatments:
+          enforce_monotonic_projection: true  # options: true / false
+          smooth_projection_curve: true  # options: true / false
+      wind-ofs:
+        enabled: true  # options: true / false
+        include_capacity_factor_multiplier: true  # options: true / false
+        historical_data: broadcast  # options: manual / broadcast
+        future_smoothing_treatments:
+          enforce_monotonic_projection: true  # options: true / false
+          smooth_projection_curve: true  # options: true / false
+      battery:
+        enabled: true  # options: true / false
+        include_capacity_factor_multiplier: false  # only option: false
+        historical_data: broadcast  # options: manual / broadcast
+        future_smoothing_treatments:
+          enforce_monotonic_projection: true  # options: true / false
+          smooth_projection_curve: true  # options: true / false
+      csp:
+        enabled: true  # options: true / false
+        include_capacity_factor_multiplier: false  # only option: false
+        historical_data: broadcast  # options: manual / broadcast
+        future_smoothing_treatments:
+          enforce_monotonic_projection: true  # options: true / false
+          smooth_projection_curve: true  # options: true / false
+      coal:
+        enabled: true  # options: true / false
+        include_capacity_factor_multiplier: false  # only option: false
+        historical_data: broadcast  # options: manual / broadcast
+        future_smoothing_treatments:
+          enforce_monotonic_projection: true  # options: true / false
+          smooth_projection_curve: true  # options: true / false
+      coal-ccs:
+        enabled: true  # options: true / false
+        include_capacity_factor_multiplier: false  # only option: false
+        historical_data: broadcast  # options: manual / broadcast
+        future_smoothing_treatments:
+          enforce_monotonic_projection: true  # options: true / false
+          smooth_projection_curve: true  # options: true / false
+      gas:
+        enabled: true  # options: true / false
+        include_capacity_factor_multiplier: false  # only option: false
+        historical_data: broadcast  # options: manual / broadcast
+        future_smoothing_treatments:
+          enforce_monotonic_projection: true  # options: true / false
+          smooth_projection_curve: true  # options: true / false
+      gas-ccs:
+        enabled: true  # options: true / false
+        include_capacity_factor_multiplier: false  # only option: false
+        historical_data: broadcast  # options: manual / broadcast
+        future_smoothing_treatments:
+          enforce_monotonic_projection: true  # options: true / false
+          smooth_projection_curve: true  # options: true / false
+      fuelcell:
+        enabled: true  # options: true / false
+        include_capacity_factor_multiplier: false  # only option: false
+        historical_data: broadcast  # options: manual / broadcast
+        future_smoothing_treatments:
+          enforce_monotonic_projection: true  # options: true / false
+          smooth_projection_curve: true  # options: true / false
+      nuclear:
+        enabled: true  # options: true / false
+        include_capacity_factor_multiplier: false  # only option: false
+        historical_data: broadcast  # options: manual / broadcast
+        future_smoothing_treatments:
+          enforce_monotonic_projection: true  # options: true / false
+          smooth_projection_curve: true  # options: true / false
+      nuclear-smr:
+        enabled: true  # options: true / false
+        include_capacity_factor_multiplier: false  # only option: false
+        historical_data: broadcast  # options: manual / broadcast
+        future_smoothing_treatments:
+          enforce_monotonic_projection: true  # options: true / false
+          smooth_projection_curve: true  # options: true / false
+      biopower:
+        enabled: true  # options: true / false
+        include_capacity_factor_multiplier: false  # only option: false
+        historical_data: broadcast  # options: manual / broadcast
+        future_smoothing_treatments:
+          enforce_monotonic_projection: true  # options: true / false
+          smooth_projection_curve: true  # options: true / false
 
 # Versioned ReEDS history used before each ATB projection series begins.
 # Set seed_missing_from_reeds to true only when initializing a missing file from

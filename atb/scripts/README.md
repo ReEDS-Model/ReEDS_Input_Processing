@@ -7,6 +7,7 @@ User-facing run instructions are in the main [`../README.md`](../README.md).
 | --- | --- |
 | `run_pipeline.py` | Runs the config-enabled scrape, format, and plot stages in order |
 | `scrape_atb_inputs.py` | Downloads and summarizes both raw ATB inputs |
+| `scrape_historical_costs.py` | Separately downloads and normalizes observed capital-cost workbooks |
 | `generate_atb_files.py` | Converts local raw and manual inputs into ReEDS-formatted CSVs |
 | `atb_plotting.py` | Plots configured metrics from the local raw flat file |
 | `atb_config.py` | Shared config and path-loading functions |

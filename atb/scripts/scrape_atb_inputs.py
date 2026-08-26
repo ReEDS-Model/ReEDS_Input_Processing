@@ -12,7 +12,11 @@ from atb_config import load_config, raw_file_path
 
 def _open_download(url, allow_insecure_ssl_fallback):
     """Open a verified download, optionally retrying after a TLS inspection error."""
-    request_options = {"stream": True, "timeout": 300}
+    request_options = {
+        "stream": True,
+        "timeout": 300,
+        "headers": {"User-Agent": "ReEDS-Input-Processing/1.0"},
+    }
     try:
         return requests.get(url, **request_options)
     except requests.exceptions.SSLError as error:

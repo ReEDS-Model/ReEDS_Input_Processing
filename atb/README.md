@@ -17,6 +17,7 @@ Review that file first, especially:
 
 - `atb.year`, `atb.release_version`, and `atb.dollar_year`;
 - the two `raw_data` URLs and filenames;
+- the optional observed-cost sources under `historical_cost_sources`;
 - `processing.reeds_repo` and selected technologies;
 - `historical_data.directory` and its fixed dollar year;
 - the metrics and technologies under `plotting`.
@@ -52,6 +53,22 @@ fails because the active conda environment does not trust an NLR network
 inspection certificate, `raw_data.allow_insecure_ssl_fallback: true` permits a
 clearly labeled `verify=False` retry. Set it to `false` to prohibit that retry.
 
+### Optional: scrape observed historical capital costs
+
+```bash
+python scripts/scrape_historical_costs.py
+```
+
+This separate utility downloads the configured LBNL land-wind and utility-PV,
+NLR offshore-wind, and annual EIA generator-cost workbooks. It preserves the
+original files under `scraped_input/historical_costs/` and creates
+`historical_capital_costs.csv` plus a URL/checksum manifest there. These data
+enter ReEDS inputs only through an explicit mapping in `config.yaml`. The
+current mappings replace pre-projection UPV and land-based-wind `capcost` with
+LBNL national series; their FOM, VOM, and capacity-factor history remain manual. See
+[`scraped_input/README.md`](scraped_input/README.md) for the retained unit,
+capacity-basis, geography, and dollar-year distinctions.
+
 ### Step 2: format ReEDS inputs
 
 ```bash
@@ -78,42 +95,55 @@ it processes, and whether it copies results into ReEDS are all controlled under
 
 The optional `processing.smooth_cost_curves` block removes short-lived dips,
 bumps, and rounded stair steps without replacing each ATB trajectory with one
-fully smoothed curve. The `selective` method follows these rules:
+fully smoothed curve. Each technology has independent switches under
+`smooth_cost_curves.technologies`:
 
-1. **Use 2022 as the projection anchor.** Moving backward from 2022, a
-   contiguous historical tail below the anchor value is raised to the anchor.
-   The scan stops at the first earlier value that already meets or exceeds it.
-2. **Remove movement in the wrong direction.** For a series that declines from
-   the anchor to its endpoint, temporary future increases are removed. For an
-   improving series, such as a capacity-factor multiplier, temporary decreases
-   are removed instead.
-3. **Bridge near-equal plateaus.** Consecutive future values within the relative
-   or absolute tolerance are treated as one group. The last year of each group
-   is retained as a change point, and the years between change points are
-   linearly interpolated. This removes small rounded stair steps.
-4. **Bridge compact dips and bumps.** A cluster of nearby abrupt slope changes
-   is interpolated between the years immediately outside the disturbance. This
-   removes patterns such as the coal-CCS dip around 2033--2035.
-5. **Preserve major transitions.** A year-to-year change at or above the major
-   step threshold is not bridged. For example, the large fuel-cell capital-cost
-   transition in 2035 remains explicit. A single isolated slope change is also
-   retained as a normal ATB milestone.
-6. **Limit the affected metrics.** With the current configuration, smoothing
-   covers every `capcost*`, `fom*`, and `vom` column, including battery energy
-   costs, plus `cf_improvement`/`CF_mult`. Heat rate and efficiency are not
-   changed.
+| Historical mode | Effect before `projection_start_year` |
+| --- | --- |
+| `real` | Use the reviewed observed-series mapping under `historical_cost_sources.reeds_mappings` and preserve those values exactly. An unmapped technology raises an error. |
+| `manual` | Preserve the versioned rows in `manual_input/historical/` exactly. |
+| `broadcast` | Moving backward from the projection boundary, raise the contiguous historical tail below the boundary value. Stop at the first earlier value that already meets or exceeds it. |
+
+The independent switches under `future_smoothing_treatments` apply from
+`projection_start_year` onward:
+
+| Future smoothing treatment | Effect |
+| --- | --- |
+| `enforce_monotonic_projection` | Remove future movement opposite the anchor-to-endpoint direction: costs cannot temporarily increase, while improving multipliers cannot temporarily decrease. |
+| `smooth_projection_curve` | Bridge near-equal plateaus and compact clusters of slope changes. Major transitions and single ATB milestones remain explicit. |
+
+Each technology can also independently set `enabled`, `columns`, and
+`include_capacity_factor_multiplier`. Inline comments in `config.yaml` list
+only the valid options for each technology. `real` is offered only for UPV and
+land-based wind because those technologies have reviewed source mappings.
+Capacity-factor multiplier selection is available only for utility PV and the
+two wind technologies; it is fixed to `false` elsewhere. Heat rate and
+efficiency are not changed.
 
 The current defaults in `config.yaml` are:
 
 | Setting | Default | Meaning |
 | --- | ---: | --- |
-| `projection_start_year` | `2022` | Historical/projection anchor |
+| `projection_start_year` | `2022` | Years before this are historical; this year and later are the current projection |
 | `similar_value_relative_tolerance` | `0.001` | Values within 0.1% can form one plateau |
 | `similar_value_absolute_tolerance` | `1e-9` | Numerical tolerance near zero |
 | `slope_change_threshold` | `0.4` | Detect a normalized slope change of 40% or more |
 | `max_kink_years` | `4` | Maximum span of a compact slope-change cluster |
 | `major_step_relative_threshold` | `0.1` | Preserve year-to-year changes of 10% or more |
-| `include_capacity_factor_multiplier` | `true` | Apply the same rules to capacity-factor multipliers |
+
+For example, this preserves manually supplied UPV history while retaining only
+the future monotonic treatment:
+
+```yaml
+technologies:
+  upv:
+    enabled: true
+    include_capacity_factor_multiplier: true
+    historical_data: manual
+    future_smoothing_treatments:
+      enforce_monotonic_projection: true
+      smooth_projection_curve: false
+```
 
 The older flat-history/anchor-to-target behavior remains available as
 `method: linear_bridge`.
@@ -186,6 +216,10 @@ config.yaml
     |        +--> scraped_input/atb_<year>_workbook.xlsx
     |        +--> terminal summaries/previews of both raw files
     |
+    +--> scrape_historical_costs.py (optional, separate)
+    |        +--> scraped_input/historical_costs/*.xlsx
+    |        +--> historical_capital_costs.csv + source_manifest.csv
+    |
     +--> generate_atb_files.py
     |        +--> raw flat file (primary ATB data)
     |        +--> raw workbook (battery power/energy cost split)
@@ -220,10 +254,11 @@ URLs together when adopting a newer release.
 | Path | Purpose |
 | --- | --- |
 | `config.yaml` | User-facing workflow configuration |
-| `scraped_input/` | Visible, unmodified raw ATB downloads (local only; not committed) |
+| `scraped_input/` | Visible raw ATB and optional observed-cost downloads (local only; not committed) |
 | `manual_input/` | Versioned history and inputs unavailable in ATB downloads |
 | `scripts/settings.yaml` | Internal per-technology ReEDS formatting rules |
 | `scripts/scrape_atb_inputs.py` | Raw-data download and inspection |
+| `scripts/scrape_historical_costs.py` | Observed capital-cost download, normalization, and manifest |
 | `scripts/generate_atb_files.py` | ReEDS input formatter |
 | `scripts/atb_plotting.py` | Raw ATB plotting |
 | `output/` | Generated ReEDS-formatted CSVs |

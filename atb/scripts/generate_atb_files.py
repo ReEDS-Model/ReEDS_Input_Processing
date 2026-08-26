@@ -330,6 +330,106 @@ def _seed_history_from_reeds(
     return history
 
 
+def _apply_real_historical_costs(frame, tech, settings, deflator):
+    """Replace mapped pre-projection columns with normalized observed values."""
+    smoothing = settings['config']['processing'].get('smooth_cost_curves', {})
+    configured_technologies = smoothing.get('technologies', {})
+    if not isinstance(configured_technologies, dict):
+        return frame
+    technology_config = configured_technologies.get(tech, {})
+    if technology_config.get('historical_data') != 'real':
+        return frame
+
+    source_settings = settings['config'].get('historical_cost_sources', {})
+    mapping = source_settings.get('reeds_mappings', {}).get(tech)
+    if mapping is None:
+        raise ValueError(
+            f"{tech} selects historical_data: real but has no reviewed mapping "
+            "under historical_cost_sources.reeds_mappings."
+        )
+
+    source_path = os.path.join(
+        ATBDIR,
+        source_settings['directory'],
+        source_settings['normalized_filename'],
+    )
+    if not os.path.isfile(source_path):
+        raise FileNotFoundError(
+            f"Observed historical-cost file is missing: {source_path}. "
+            "Run scripts/scrape_historical_costs.py first."
+        )
+    observed = pd.read_csv(source_path)
+    for column, value in mapping.get('filters', {}).items():
+        if column not in observed.columns:
+            raise KeyError(
+                f"Observed historical-cost file is missing filter column {column}."
+            )
+        observed = observed.loc[observed[column] == value]
+    if observed.empty:
+        raise ValueError(
+            f"No observed historical rows match the configured mapping for {tech}."
+        )
+
+    output_column = mapping['output_column']
+    if output_column not in frame.columns:
+        raise KeyError(
+            f"Observed-history output column {output_column} is absent for {tech}."
+        )
+    if observed['year'].duplicated().any():
+        duplicate_years = sorted(
+            observed.loc[observed['year'].duplicated(False), 'year'].unique()
+        )
+        raise ValueError(
+            f"Observed historical mapping for {tech} has duplicate years: "
+            f"{duplicate_years}"
+        )
+    if observed['dollar_year'].isna().any():
+        raise ValueError(
+            f"Observed historical mapping for {tech} requires a dollar_year."
+        )
+
+    current_dollar_year = int(settings['dollaryear'])
+    converted_values = {}
+    for row in observed.itertuples(index=False):
+        source_dollar_year = int(row.dollar_year)
+        if source_dollar_year not in deflator.index:
+            raise KeyError(
+                f"Deflator table has no value for observed dollar year "
+                f"{source_dollar_year}."
+            )
+        converted_values[int(row.year)] = (
+            float(row.value)
+            * float(deflator[source_dollar_year])
+            / float(deflator[current_dollar_year])
+        )
+
+    projection_start_year = int(smoothing.get('projection_start_year', 2022))
+    historical_mask = frame['t'] < projection_start_year
+    required_years = set(frame.loc[historical_mask, 't'].astype(int).unique())
+    missing_years = sorted(required_years - set(converted_values))
+    if missing_years and mapping.get('require_complete_history', True):
+        raise ValueError(
+            f"Observed historical mapping for {tech} does not cover required "
+            f"years before {projection_start_year}: {missing_years}"
+        )
+
+    replacement_mask = historical_mask & frame['t'].isin(converted_values)
+    result = frame.copy()
+    result.loc[replacement_mask, output_column] = result.loc[
+        replacement_mask, 't'
+    ].map(converted_values)
+    replaced_years = sorted(
+        result.loc[replacement_mask, 't'].astype(int).unique()
+    )
+    if replaced_years:
+        print(
+            f"Applied real historical {output_column} for {tech}: "
+            f"{replaced_years[0]}-{replaced_years[-1]} "
+            f"({current_dollar_year}$)"
+        )
+    return result
+
+
 def merge_historical_atb_data(
     tech_data, tech, settings, dollaryear, deflator
 ):
@@ -398,6 +498,7 @@ def merge_historical_atb_data(
         subset=tech_settings['indexcols'], keep='last'
     )
     output = output.reset_index(drop=True)
+    output = _apply_real_historical_costs(output, tech, settings, deflator)
     _validate_year_continuity(output, tech, settings)
     return output
 
@@ -560,108 +661,46 @@ def _bridge_similar_value_runs(
     return bridged
 
 
-def _selective_smooth_cost_values(
+def _smooth_curve_segment(
     years,
     values,
-    projection_start_year,
     slope_change_threshold,
     max_kink_years,
     similar_value_relative_tolerance,
     similar_value_absolute_tolerance,
     major_step_threshold,
 ):
-    """Remove boundary dips and short kinks while retaining long-term steps."""
+    """Smooth rounded plateaus and compact kink clusters in one time segment."""
     years = np.asarray(years, dtype=float)
     smoothed = np.asarray(values, dtype=float).copy()
     if len(smoothed) < 3:
         return smoothed
 
-    year_span = years[-1] - years[0]
-    if year_span <= 0:
-        return smoothed
+    year_deltas = np.diff(years)
+    if np.any(year_deltas <= 0):
+        raise ValueError("Cost smoothing requires unique, increasing years.")
 
-    anchor_candidates = np.flatnonzero(years == projection_start_year)
-    if len(anchor_candidates) != 1:
-        raise ValueError(
-            "Selective cost smoothing requires exactly one row for "
-            f"projection_start_year={projection_start_year}."
-        )
-    anchor = int(anchor_candidates[0])
-
-    # Determine direction from the anchor and the projection endpoint, so a
-    # low historical dip cannot become the ceiling for the future trajectory.
-    decreasing = smoothed[-1] <= smoothed[anchor]
-    if decreasing:
-        # Remove isolated upward historical spikes locally. This avoids using
-        # one abnormal year (for example, nuclear 2021) as a new plateau.
-        for position in range(1, anchor):
-            if (
-                smoothed[position] > smoothed[position - 1]
-                and smoothed[position] > smoothed[position + 1]
-            ):
-                smoothed[position] = np.interp(
-                    years[position],
-                    [years[position - 1], years[position + 1]],
-                    [smoothed[position - 1], smoothed[position + 1]],
-                )
-        smoothed[anchor:] = np.minimum.accumulate(smoothed[anchor:])
-    else:
-        # For an improving multiplier, remove isolated historical dips rather
-        # than upward spikes.
-        for position in range(1, anchor):
-            if (
-                smoothed[position] < smoothed[position - 1]
-                and smoothed[position] < smoothed[position + 1]
-            ):
-                smoothed[position] = np.interp(
-                    years[position],
-                    [years[position - 1], years[position + 1]],
-                    [smoothed[position - 1], smoothed[position + 1]],
-                )
-        smoothed[anchor:] = np.maximum.accumulate(smoothed[anchor:])
-
-    # Raise only the historical tail below the anchor value. Stop as soon as
-    # an earlier value already meets or exceeds the anchor. This removes gas
-    # and coal-CCS cost dips and levels low capacity-factor history without
-    # lowering technologies whose historical values are already higher.
-    position = anchor - 1
-    while position >= 0 and smoothed[position] < smoothed[anchor]:
-        smoothed[position] = smoothed[anchor]
-        position -= 1
-
-    # Replace rounded stair steps and short flat spots with transitions between
-    # the last points of their near-equal runs before evaluating residual
-    # slope kinks. Large published steps remain explicit milestones.
     smoothed = _bridge_similar_value_runs(
         years,
         smoothed,
-        anchor,
+        0,
         similar_value_relative_tolerance,
         similar_value_absolute_tolerance,
         major_step_threshold,
     )
 
-    year_deltas = np.diff(years)
-    if np.any(year_deltas <= 0):
-        raise ValueError("Cost smoothing requires unique, increasing years.")
+    year_span = years[-1] - years[0]
     slopes = np.diff(smoothed) / year_deltas
     baseline_slope = abs((smoothed[-1] - smoothed[0]) / year_span)
     epsilon = max(np.max(np.abs(smoothed)) * 1e-12, 1e-12)
-
     candidate_knots = []
     for knot in range(1, len(smoothed) - 1):
-        if knot < anchor:
-            continue
         left_slope = slopes[knot - 1]
         right_slope = slopes[knot]
         scale = max(abs(left_slope), abs(right_slope), baseline_slope, epsilon)
         if abs(right_slope - left_slope) / scale >= slope_change_threshold:
             candidate_knots.append(knot)
 
-    # A single slope change is a normal ATB milestone (for example, CSP in
-    # 2030). Several adjacent changes indicate a short-lived kink. Interpolate
-    # between the outside shoulders of those compact clusters; using the kink
-    # points themselves as endpoints can leave the steep side of a dip intact.
     clusters = []
     for knot in candidate_knots:
         if clusters and knot == clusters[-1][-1] + 1:
@@ -672,10 +711,7 @@ def _selective_smooth_cost_values(
         first, last = cluster[0], cluster[-1]
         if len(cluster) < 2 or years[last] - years[first] > max_kink_years:
             continue
-        left = max(anchor, first - 1)
-        # Include the following segment as well as the immediate shoulder. A
-        # short plateau can otherwise hide the exit side of a dip after the
-        # near-equal-run pass has already bridged its flat bottom.
+        left = max(0, first - 1)
         right = min(len(smoothed) - 1, last + 2)
         step_changes = [
             _relative_change(smoothed[position], smoothed[position + 1], epsilon)
@@ -689,8 +725,169 @@ def _selective_smooth_cost_values(
             [years[left], years[right]],
             [smoothed[left], smoothed[right]],
         )
-
     return smoothed
+
+
+def _selective_smooth_cost_values(
+    years,
+    values,
+    projection_start_year,
+    slope_change_threshold,
+    max_kink_years,
+    similar_value_relative_tolerance,
+    similar_value_absolute_tolerance,
+    major_step_threshold,
+    historical_data_mode,
+    enforce_monotonic_projection,
+    smooth_projection_curve,
+):
+    """Apply one historical mode and independent future smoothing treatments."""
+    years = np.asarray(years, dtype=float)
+    smoothed = np.asarray(values, dtype=float).copy()
+    if len(smoothed) < 3:
+        return smoothed
+
+    anchor_candidates = np.flatnonzero(years == projection_start_year)
+    if len(anchor_candidates) != 1:
+        raise ValueError(
+            "Selective cost smoothing requires exactly one row for "
+            f"projection_start_year={projection_start_year}."
+        )
+    anchor = int(anchor_candidates[0])
+
+    # Determine direction from the anchor and the projection endpoint, so a
+    # low historical dip cannot become the ceiling for the future trajectory.
+    decreasing = smoothed[-1] <= smoothed[anchor]
+    if enforce_monotonic_projection:
+        if decreasing:
+            smoothed[anchor:] = np.minimum.accumulate(smoothed[anchor:])
+        else:
+            smoothed[anchor:] = np.maximum.accumulate(smoothed[anchor:])
+
+    # Raise only the historical tail below the anchor value. Stop as soon as
+    # an earlier value already meets or exceeds the anchor. This removes gas
+    # and coal-CCS cost dips and levels low capacity-factor history without
+    # lowering technologies whose historical values are already higher.
+    if historical_data_mode == 'broadcast':
+        position = anchor - 1
+        while position >= 0 and smoothed[position] < smoothed[anchor]:
+            smoothed[position] = smoothed[anchor]
+            position -= 1
+    if not smooth_projection_curve:
+        return smoothed
+
+    smoothed[anchor:] = _smooth_curve_segment(
+        years[anchor:],
+        smoothed[anchor:],
+        slope_change_threshold,
+        max_kink_years,
+        similar_value_relative_tolerance,
+        similar_value_absolute_tolerance,
+        major_step_threshold,
+    )
+    return smoothed
+
+
+FUTURE_SMOOTHING_TREATMENTS = (
+    'enforce_monotonic_projection',
+    'smooth_projection_curve',
+)
+HISTORICAL_DATA_MODES = ('real', 'manual', 'broadcast')
+
+
+def _technology_smoothing_config(tech, settings):
+    """Merge common smoothing parameters with one technology's switches.
+
+    A mapping under ``technologies`` is the preferred form. The former ``all``
+    or list form remains supported and receives the legacy behavior in which
+    every treatment is enabled.
+    """
+    smoothing = settings['config']['processing'].get('smooth_cost_curves', {})
+    if not smoothing.get('enabled', False):
+        return None
+
+    configured_techs = smoothing.get('technologies', {})
+    if isinstance(configured_techs, dict):
+        if tech not in configured_techs:
+            return None
+        technology_overrides = configured_techs[tech]
+        if technology_overrides is None:
+            technology_overrides = {}
+        if not isinstance(technology_overrides, dict):
+            raise TypeError(
+                "Each processing.smooth_cost_curves.technologies entry must "
+                "be a mapping."
+            )
+        technology_enabled = technology_overrides.get('enabled', True)
+        if not isinstance(technology_enabled, bool):
+            raise TypeError(
+                f"processing.smooth_cost_curves.technologies.{tech}.enabled "
+                "must be boolean."
+            )
+        if not technology_enabled:
+            return None
+    else:
+        smooth_all_techs = (
+            configured_techs == 'all' or configured_techs == ['all']
+        )
+        if not smooth_all_techs and tech not in configured_techs:
+            return None
+        technology_overrides = {}
+
+    config = {
+        key: value for key, value in smoothing.items()
+        if key not in {'technologies', 'future_smoothing_treatments'}
+    }
+    config.update({
+        key: value for key, value in technology_overrides.items()
+        if key != 'future_smoothing_treatments'
+    })
+
+    future_treatments = {name: True for name in FUTURE_SMOOTHING_TREATMENTS}
+    common_treatments = smoothing.get('future_smoothing_treatments', {})
+    technology_treatments = technology_overrides.get(
+        'future_smoothing_treatments', {}
+    )
+    for label, overrides in (
+        ('processing.smooth_cost_curves.future_smoothing_treatments',
+         common_treatments),
+        (f'processing.smooth_cost_curves.technologies.{tech}.'
+         'future_smoothing_treatments',
+         technology_treatments),
+    ):
+        if not isinstance(overrides, dict):
+            raise TypeError(f"{label} must be a mapping.")
+        unknown = sorted(set(overrides) - set(FUTURE_SMOOTHING_TREATMENTS))
+        if unknown:
+            raise ValueError(
+                f"Unknown future smoothing treatments in {label}: {unknown}"
+            )
+        nonboolean = sorted(
+            name for name, enabled in overrides.items()
+            if not isinstance(enabled, bool)
+        )
+        if nonboolean:
+            raise TypeError(
+                f"Smoothing treatment switches in {label} must be boolean: "
+                f"{nonboolean}"
+            )
+        future_treatments.update(overrides)
+    config['future_smoothing_treatments'] = future_treatments
+
+    historical_data = config.get('historical_data', 'manual')
+    if historical_data not in HISTORICAL_DATA_MODES:
+        raise ValueError(
+            f"processing.smooth_cost_curves.technologies.{tech}.historical_data "
+            f"must be one of {list(HISTORICAL_DATA_MODES)}."
+        )
+    config['historical_data'] = historical_data
+    include_cf = config.get('include_capacity_factor_multiplier', False)
+    if not isinstance(include_cf, bool):
+        raise TypeError(
+            f"processing.smooth_cost_curves.technologies.{tech}."
+            "include_capacity_factor_multiplier must be boolean."
+        )
+    return config
 
 
 def smooth_cost_curve(tech, settings, df):
@@ -702,12 +899,8 @@ def smooth_cost_curve(tech, settings, df):
     as published milestones. ``linear_bridge`` preserves the earlier behavior
     for users who explicitly want a flat history and one anchor-to-target line.
     """
-    smoothing = settings['config']['processing'].get('smooth_cost_curves', {})
-    if not smoothing.get('enabled', False):
-        return df
-    configured_techs = smoothing.get('technologies', [])
-    smooth_all_techs = configured_techs == 'all' or configured_techs == ['all']
-    if not smooth_all_techs and tech not in configured_techs:
+    smoothing = _technology_smoothing_config(tech, settings)
+    if smoothing is None:
         return df
 
     configured_columns = smoothing.get('columns', 'all')
@@ -719,11 +912,13 @@ def smooth_cost_curve(tech, settings, df):
         raise TypeError(
             "processing.smooth_cost_curves.columns must be 'all' or a list."
         )
-    if (
-        smoothing.get('include_capacity_factor_multiplier', False)
-        and 'cf_improvement' in df.columns
-        and 'cf_improvement' not in columns
-    ):
+    include_cf = smoothing.get('include_capacity_factor_multiplier', False)
+    if include_cf and 'cf_improvement' not in df.columns:
+        raise ValueError(
+            f"{tech} cannot include a capacity-factor multiplier because its "
+            "ReEDS output has no cf_improvement column."
+        )
+    if include_cf and 'cf_improvement' not in columns:
         columns.append('cf_improvement')
     if not columns:
         raise ValueError(
@@ -764,6 +959,8 @@ def smooth_cost_curve(tech, settings, df):
     major_step_threshold = float(
         smoothing.get('major_step_relative_threshold', 0.1)
     )
+    future_treatments = smoothing['future_smoothing_treatments']
+    historical_data_mode = smoothing['historical_data']
     if slope_change_threshold <= 0:
         raise ValueError("slope_change_threshold must be greater than zero.")
     if max_kink_years < 1:
@@ -794,7 +991,14 @@ def smooth_cost_curve(tech, settings, df):
     output[columns] = output[columns].astype(float)
     groups = output.groupby(groupcols, dropna=False, sort=False).groups
 
-    print(f"Smoothing {tech} cost curves: method={method}, columns={columns}")
+    enabled_future_treatments = [
+        name for name, enabled in future_treatments.items() if enabled
+    ]
+    print(
+        f"Smoothing {tech} cost curves: method={method}, columns={columns}, "
+        f"historical={historical_data_mode}, "
+        f"future_smoothing_treatments={enabled_future_treatments}"
+    )
     for group_values, index in groups.items():
         group = output.loc[index].sort_values('t')
         if method == 'selective':
@@ -808,6 +1012,9 @@ def smooth_cost_curve(tech, settings, df):
                     similar_value_relative_tolerance,
                     similar_value_absolute_tolerance,
                     major_step_threshold,
+                    historical_data_mode,
+                    future_treatments['enforce_monotonic_projection'],
+                    future_treatments['smooth_projection_curve'],
                 )
             continue
 
@@ -825,12 +1032,11 @@ def smooth_cost_curve(tech, settings, df):
 
         anchor_index = anchor_rows.index[0]
         target_index = target_rows.index[0]
-        if smoothing.get('flatten_historical', True):
+        if historical_data_mode == 'broadcast':
             historical_index = group.index[group['t'] <= anchor_year]
             output.loc[historical_index, columns] = output.loc[
                 anchor_index, columns
             ].to_numpy()
-
         bridge_index = group.index[
             (group['t'] > anchor_year) & (group['t'] < target_year)
         ]
@@ -1440,17 +1646,34 @@ def main(args):
 
     smoothing = processing.get('smooth_cost_curves', {})
     if smoothing.get('enabled', False):
-        smoothing_techs = smoothing.get('technologies', [])
-        smooth_all_techs = smoothing_techs == 'all' or smoothing_techs == ['all']
-        if not smooth_all_techs and not isinstance(smoothing_techs, list):
-            raise TypeError(
-                "processing.smooth_cost_curves.technologies must be 'all' "
-                "or a list."
+        smoothing_techs = smoothing.get('technologies', {})
+        if isinstance(smoothing_techs, dict):
+            unknown_smoothing_techs = [
+                tech for tech in smoothing_techs
+                if tech not in settings['techs']
+            ]
+            invalid_entries = [
+                tech for tech, config in smoothing_techs.items()
+                if config is not None and not isinstance(config, dict)
+            ]
+            if invalid_entries:
+                raise TypeError(
+                    "Each processing.smooth_cost_curves.technologies entry "
+                    f"must be a mapping: {invalid_entries}"
+                )
+        else:
+            smooth_all_techs = (
+                smoothing_techs == 'all' or smoothing_techs == ['all']
             )
-        unknown_smoothing_techs = [] if smooth_all_techs else [
-            tech for tech in smoothing_techs
-            if tech not in settings['techs']
-        ]
+            if not smooth_all_techs and not isinstance(smoothing_techs, list):
+                raise TypeError(
+                    "processing.smooth_cost_curves.technologies must be a "
+                    "mapping, 'all', or a list."
+                )
+            unknown_smoothing_techs = [] if smooth_all_techs else [
+                tech for tech in smoothing_techs
+                if tech not in settings['techs']
+            ]
         if unknown_smoothing_techs:
             raise ValueError(
                 "Unknown technologies in processing.smooth_cost_curves: "
