@@ -54,13 +54,13 @@ def processAEOandEIA860(dir, current_year, eia860M_ver_mon, eia860M_ver_year, gd
     # =============================================================================================
     ## 2. Process EIA860M files and append operating, planned, and retired EIA860M units
     # Operating
-    (eia860M_data_operating,storage_duration_op,eia_cols) = cleanEIA860MData(dir,eia860M_ver_mon,eia860M_ver_year,
+    (eia860M_data_operating,storage_duration_op,eia_cols) = cleanEIA860MData(dir,eia860M_ver_mon,eia860M_ver_year,current_year,
                                                                              storage_duration=None,status='Operating')
     # Planned
-    (eia860M_data_planned,_,eia_cols) = cleanEIA860MData(dir,eia860M_ver_mon,eia860M_ver_year,
+    (eia860M_data_planned,_,eia_cols) = cleanEIA860MData(dir,eia860M_ver_mon,eia860M_ver_year,current_year,
                                                          storage_duration=storage_duration_op,status='Planned')
     # Retired
-    (eia860M_data_retired,_,eia_cols) = cleanEIA860MData(dir,eia860M_ver_mon,eia860M_ver_year,
+    (eia860M_data_retired,_,eia_cols) = cleanEIA860MData(dir,eia860M_ver_mon,eia860M_ver_year,current_year,
                                                          storage_duration=storage_duration_op,status='Retired')
     # Append them together
     eia860M_data = pd.concat([eia860M_data_operating,eia860M_data_planned,eia860M_data_retired],
@@ -75,7 +75,7 @@ def processAEOandEIA860(dir, current_year, eia860M_ver_mon, eia860M_ver_year, gd
     
     # =============================================================================================
     ## 3. Merge AEO NEMS and EIA860M together
-    nems_eia860 = mergeAEOandEIA860M(aeo_data,eia860M_data,current_year,aeo_cols,eia_cols)
+    nems_eia860 = mergeAEOandEIA860M(aeo_data,eia860M_data,aeo_cols,eia_cols)
 
     # =========================================================================
     ## 4. Clean up final merged nems_eia file
@@ -85,8 +85,7 @@ def processAEOandEIA860(dir, current_year, eia860M_ver_mon, eia860M_ver_year, gd
     return nems_eia860_operating_retired_planned_cleaned
 
 ################################### CLEANING FUNCTIONS ##############################
-# These next two functions clean up the raw EIA 860M data and the NEMS data inherited 
-# to get from previous step them ready to be merged with each other
+# These next two functions clean up the raw EIA 860M data and the AEO-NEMS data
 #####################################################################################  
 
 def cleanAEOData(dir, current_year, gdbinputname):
@@ -150,7 +149,7 @@ def cleanAEOData(dir, current_year, gdbinputname):
     aeo_data_final = pd.concat([aeo_data_single,aeo_data_mult_g])
     return aeo_data_final, aeo_cols
   
-def cleanEIA860MData(dir,ver_mon,ver_year,storage_duration,status):
+def cleanEIA860MData(dir,ver_mon,ver_year,current_year,storage_duration,status):
     
     eia860M_data = pd.read_excel(os.path.join(dir,'inputs','eia860M',
                                               ver_mon+'_generator'+str(ver_year)+'.xlsx'), 
@@ -187,8 +186,9 @@ def cleanEIA860MData(dir,ver_mon,ver_year,storage_duration,status):
                     'Natural Gas with Compressed Air Storage',
                     'Hydroelectric Pumped Storage']
     if status == 'Operating':
-        storage_data = eia860M_data[eia860M_data['Technology']==
-                                    'Batteries'].dropna(subset=['Nameplate Energy Capacity (MWh)'])
+        storage_data = eia860M_data[(eia860M_data['Technology']=='Batteries') & 
+                                    (eia860M_data['Operating Year']>=current_year-5)].dropna(
+                                        subset=['Nameplate Energy Capacity (MWh)'])
         storage_data['storage_duration'] = storage_data['Nameplate Energy Capacity (MWh)']/storage_data['Nameplate Capacity (MW)']
         # Weighted storage duration
         storage_duration = sum(storage_data['storage_duration']*storage_data['Nameplate Capacity (MW)']/storage_data['Nameplate Capacity (MW)'].sum())
@@ -277,7 +277,12 @@ def cleanEIA860MData(dir,ver_mon,ver_year,storage_duration,status):
     eia860M_data_final = eia860M_data[eia_cols]
     return  eia860M_data_final,storage_duration,eia_cols
 
-def mergeAEOandEIA860M(aeo_data, eia860M_data, current_year, aeo_cols, eia_cols):
+################################### MERGING FUNCTIONS ###############################
+# These next two functions merge the cleaned EIA 860M data and AEO-NEMS data together
+# and clean up the merged dataset
+##################################################################################### 
+
+def mergeAEOandEIA860M(aeo_data,eia860M_data,aeo_cols,eia_cols):
 
     aeo_eia_cols = ['tech','TC_SUM','TC_NP','TC_WIN','T_RYR','T_SYR','THRATE',
                     'T_PID','T_UID','T_PNM','TVIN','EFDcd','ECPcd','T_PCA',
@@ -414,21 +419,29 @@ def mergeAEOandEIA860M(aeo_data, eia860M_data, current_year, aeo_cols, eia_cols)
     return nems_eia860_final
 
 def addHeatrates(nems_eia860):
-    # Add in heat rates for planned units (AEO inputs):
-    
-    nems_eia860.loc[(nems_eia860['THRATE'].isna()) & (nems_eia860['tech']=='biopower'),'THRATE'] = 13500
-    nems_eia860.loc[(nems_eia860['THRATE'].isna()) & (nems_eia860['tech']=='coal-igcc'),'THRATE'] = 8700
-    nems_eia860.loc[(nems_eia860['THRATE'].isna()) & (nems_eia860['tech']=='coal-new'),'THRATE'] = 8638
-    nems_eia860.loc[(nems_eia860['THRATE'].isna()) & (nems_eia860['tech']=='gas-cc'),'THRATE'] = 6400.5
-    nems_eia860.loc[(nems_eia860['THRATE'].isna()) & (nems_eia860['tech']=='gas-ct'),'THRATE'] = 9514.5
-    nems_eia860.loc[(nems_eia860['THRATE'].isna()) & (nems_eia860['tech']=='geothermal'),'THRATE'] = 8946
-    nems_eia860.loc[(nems_eia860['THRATE'].isna()) & (nems_eia860['tech']=='lfill-gas'),'THRATE'] = 8513
-    nems_eia860.loc[(nems_eia860['THRATE'].isna()) & (nems_eia860['tech']=='nuclear'),'THRATE'] = 10455
-    nems_eia860.loc[(nems_eia860['THRATE'].isna()) & (nems_eia860['tech']=='others'),'THRATE'] = 9271
-    nems_eia860.loc[(nems_eia860['THRATE'].isna()) & (nems_eia860['tech']=='o-g-s'),'THRATE'] = 9905
-    nems_eia860.loc[(nems_eia860['THRATE'].isna()) & (nems_eia860['tech']=='coalolduns'),'THRATE'] = 25000
-    nems_eia860.loc[(nems_eia860['THRATE'].isna()) & (nems_eia860['tech']=='coaloldscr'),'THRATE'] = 10344
-    nems_eia860.loc[nems_eia860['THRATE'].isna(),'THRATE'] = 0
+    # Techs that have 0 heat rate
+    noheatrates = ['battery_li','csp-ns','pv','pvb','pumped-hydro','hydro','wind-ofs','wind-ons']
+    nems_eia860.loc[nems_eia860['tech'].isin(noheatrates),'THRATE'] = 0
+    # Add in heat rates for planned units and units with missing heatrate values, using capacity 
+    # weighted average heatrate by technology from units that came online within the last 5 years
+    hr_data = nems_eia860.dropna(subset='THRATE')
+    hr_data = hr_data[(hr_data['THRATE']>0) & (hr_data['T_SYR']>=current_year-5)]
+    hr_data = hr_data[['tech','TC_NP','THRATE']]
+    hr_data_tech = hr_data.groupby('tech',as_index=False).sum().drop(columns='THRATE').rename(columns={'TC_NP':'TC_NP_tot'})
+    hr_data = hr_data.merge(hr_data_tech,on='tech',how='left')
+    hr_data['THRATE_adj'] = hr_data['THRATE']*hr_data['TC_NP']/hr_data['TC_NP_tot']
+    hr_data = hr_data.groupby('tech',as_index=False).sum().drop(
+        columns=['THRATE','TC_NP','TC_NP_tot']).rename(columns={'THRATE_adj':'THRATE'})
+    hr_assignments = hr_data.set_index('tech')['THRATE'].to_dict()
+
+    # Assign all planned coal units heatrate of coaloldscr, which is the only type of 
+    # coal units that came online within the last 5 years
+    hr_assignments['coalolduns'] = hr_assignments['coaloldscr']
+    hr_assignments['coal-new'] = hr_assignments['coaloldscr']
+    hr_assignments['coal-igcc'] = hr_assignments['coaloldscr']
+
+    # Assign heatrates to units without heatrate values
+    nems_eia860['THRATE'] = nems_eia860['THRATE'].fillna(nems_eia860['tech'].map(hr_assignments))
 
     return nems_eia860
 
