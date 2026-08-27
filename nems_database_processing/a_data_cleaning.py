@@ -29,8 +29,7 @@ def params():
     aeo_file = sys.argv[1]
     eia860M_ver_mon = sys.argv[2]                                                 
     eia860M_ver_year = int(sys.argv[3]) 
-    battery_duration = float(sys.argv[4])
-    current_year = int(sys.argv[5])                                                
+    current_year = int(sys.argv[4])                                                
 
     # For testing:
     #aeo_file = 'PLTF860_RDB.xlsx'
@@ -38,15 +37,14 @@ def params():
     #eia860M_ver_mon = 'june'
     # Most recent EIA 860M version year                                                 
     #eia860M_ver_year = 2026                                           
-    #battery_duration = 2.9
     #current_year = 2026
 
     gdbinputname = aeo_file
     gdboutname   = 'a_to_b.csv'
 
-    return (dir, current_year, battery_duration, eia860M_ver_mon, eia860M_ver_year, gdbinputname, gdboutname)
+    return (dir, current_year, eia860M_ver_mon, eia860M_ver_year, gdbinputname, gdboutname)
 
-def processAEOandEIA860(dir, current_year, battery_duration, eia860M_ver_mon, eia860M_ver_year, gdbinputname):
+def processAEOandEIA860(dir, current_year, eia860M_ver_mon, eia860M_ver_year, gdbinputname):
 
     # =============================================================================================
     ## 1. Process AEO file
@@ -56,14 +54,14 @@ def processAEOandEIA860(dir, current_year, battery_duration, eia860M_ver_mon, ei
     # =============================================================================================
     ## 2. Process EIA860M files and append operating, planned, and retired EIA860M units
     # Operating
-    (eia860M_data_operating, eia_cols) = cleanEIA860MData(dir, current_year, eia860M_ver_mon, eia860M_ver_year, 
-                                                          battery_duration, status='Operating')
+    (eia860M_data_operating,storage_duration_op,eia_cols) = cleanEIA860MData(dir,eia860M_ver_mon,eia860M_ver_year,
+                                                                             storage_duration=None,status='Operating')
     # Planned
-    (eia860M_data_planned, eia_cols) = cleanEIA860MData(dir, current_year, eia860M_ver_mon, eia860M_ver_year, 
-                                                        battery_duration, status='Planned')
+    (eia860M_data_planned,_,eia_cols) = cleanEIA860MData(dir,eia860M_ver_mon,eia860M_ver_year,
+                                                         storage_duration=storage_duration_op,status='Planned')
     # Retired
-    (eia860M_data_retired, eia_cols) = cleanEIA860MData(dir, current_year, eia860M_ver_mon, eia860M_ver_year, 
-                                                        battery_duration, status='Retired')
+    (eia860M_data_retired,_,eia_cols) = cleanEIA860MData(dir,eia860M_ver_mon,eia860M_ver_year,
+                                                         storage_duration=storage_duration_op,status='Retired')
     # Append them together
     eia860M_data = pd.concat([eia860M_data_operating,eia860M_data_planned,eia860M_data_retired],
                              ignore_index=True)
@@ -77,11 +75,11 @@ def processAEOandEIA860(dir, current_year, battery_duration, eia860M_ver_mon, ei
     
     # =============================================================================================
     ## 3. Merge AEO NEMS and EIA860M together
-    nems_eia860 = mergeAEOandEIA860M(aeo_data, eia860M_data, current_year, aeo_cols, eia_cols)
+    nems_eia860 = mergeAEOandEIA860M(aeo_data,eia860M_data,current_year,aeo_cols,eia_cols)
 
     # =========================================================================
     ## 4. Clean up final merged nems_eia file
-    nems_eia860_operating_retired_planned_cleaned = cleanMergedAEOEIA860(aeo_data, nems_eia860, battery_duration)
+    nems_eia860_operating_retired_planned_cleaned = cleanMergedAEOEIA860(aeo_data,nems_eia860,storage_duration=storage_duration_op)
     # =========================================================================
     
     return nems_eia860_operating_retired_planned_cleaned
@@ -96,8 +94,8 @@ def cleanAEOData(dir, current_year, gdbinputname):
     aeo_data = aeo_data.astype({'T_PID':'string','T_UID':'string', 'T_SYR': 'int', 'T_RYR': 'int'})
     aeo_data['T_PID'] = aeo_data['T_PID'].str.replace(" ", "")
     aeo_data['T_UID'] = aeo_data['T_UID'].str.replace(" ", "")
-    # Add a 'battery_duration' column
-    aeo_data['battery_duration'] = pd.Series(np.nan, dtype=float, index=aeo_data.index)
+    # Add a 'storage_duration' column
+    aeo_data['storage_duration'] = pd.Series(np.nan, dtype=float, index=aeo_data.index)
 
     # Add techs to match with NEMS:
     aeo_data['tech'] = 'others'
@@ -122,7 +120,7 @@ def cleanAEOData(dir, current_year, gdbinputname):
     aeo_data['nems'] = 1
 
     aeo_cols = ['T_PID','T_UID','tech','ctt','wst','T_SYR','T_RYR','THRATE','TCOUNT',
-                'TC_SUM','TC_NP','TC_WIN','battery_duration','EFDcd','ECPcd',
+                'TC_SUM','TC_NP','TC_WIN','storage_duration','EFDcd','ECPcd',
                 'T_CID','T_PNM','TVIN','T_PCA','TRFURB','T_VOM','T_FOM','T_SMO',
                 'T_RMO','T_CCSROV','T_CCSF','T_CCSV','T_CCSHR','T_CAPAD','sector',
                 'T_CCSCAPA','T_CCSLOC','T_LONG','T_LAT','status','nems']
@@ -141,7 +139,7 @@ def cleanAEOData(dir, current_year, gdbinputname):
     aeo_data_mult_g = aeo_data_mult_g.groupby(['T_PID','T_UID','TVIN'],
                                             as_index=False).agg(
                                                 {'ctt':'first','wst':'first','THRATE':'mean','TC_SUM':'sum',
-                                                 'TC_NP':'sum','TC_WIN':'sum','battery_duration':'mean','T_SYR':'min',
+                                                 'TC_NP':'sum','TC_WIN':'sum','storage_duration':'mean','T_SYR':'min',
                                                  'T_RYR':'first','tech':'first','EFDcd':'first','ECPcd':'first',
                                                  'T_PNM':'first','T_PCA':'first','TRFURB':'first','T_VOM':'mean',
                                                  'T_FOM':'mean','T_SMO':'first','T_RMO':'first','T_CCSROV':'first',
@@ -152,7 +150,7 @@ def cleanAEOData(dir, current_year, gdbinputname):
     aeo_data_final = pd.concat([aeo_data_single,aeo_data_mult_g])
     return aeo_data_final, aeo_cols
   
-def cleanEIA860MData(dir, current_year, ver_mon, ver_year, battery_duration, status):
+def cleanEIA860MData(dir,ver_mon,ver_year,storage_duration,status):
     
     eia860M_data = pd.read_excel(os.path.join(dir,'inputs','eia860M',
                                               ver_mon+'_generator'+str(ver_year)+'.xlsx'), 
@@ -164,7 +162,7 @@ def cleanEIA860MData(dir, current_year, ver_mon, ver_year, battery_duration, sta
         eia860M_data = eia860M_data[1:]
     
     # Check last two rows if they are just note 
-    # (do not have any numeric value), then drop it if that's the case
+    # (do not have any numeric value), then drop them if that's the case
     if not eia860M_data.tail(2).map(lambda x: isinstance(x, (int, float)) and not pd.isna(x)).any().any():
         eia860M_data.drop(eia860M_data.tail(2).index,inplace = True)
 
@@ -182,21 +180,30 @@ def cleanEIA860MData(dir, current_year, ver_mon, ver_year, battery_duration, sta
             eia860M_data['Planned Repower Year'] = eia860M_data['Planned Repower Year'].replace(r'^\s*$', np.nan, regex=True)
             eia860M_data['Planned Repower Year'] = eia860M_data['Planned Repower Year'].astype('Int64')
     
-    # Assuming all planned storage units have duration defined in battery_duration:
+    # Calcuate capacity weighted average storage duration for all planned storage units 
+    # based on battery units that came online in the last 5 years. We only use battery 
+    # units here since other storage techs do not have energy capacity for most units
     storage_cats = ['Batteries','Flywheels',
                     'Natural Gas with Compressed Air Storage',
                     'Hydroelectric Pumped Storage']
+    if status == 'Operating':
+        storage_data = eia860M_data[eia860M_data['Technology']==
+                                    'Batteries'].dropna(subset=['Nameplate Energy Capacity (MWh)'])
+        storage_data['storage_duration'] = storage_data['Nameplate Energy Capacity (MWh)']/storage_data['Nameplate Capacity (MW)']
+        # Weighted storage duration
+        storage_duration = sum(storage_data['storage_duration']*storage_data['Nameplate Capacity (MW)']/storage_data['Nameplate Capacity (MW)'].sum())
+
     if status == 'Planned':
         eia860M_data.loc[eia860M_data['Technology'].isin(storage_cats),
-                         'Nameplate Energy Capacity (MWh)'] = eia860M_data['Net Summer Capacity (MW)'] * battery_duration
+                         'Nameplate Energy Capacity (MWh)'] = eia860M_data['Net Summer Capacity (MW)'] * storage_duration
 
     # Assign energy capacity to all (planned & operating) storage units that have missing values:
     eia860M_data.loc[(eia860M_data['Technology'].isin(storage_cats)) &
                      (eia860M_data['Nameplate Energy Capacity (MWh)'].isna()),
-                     'Nameplate Energy Capacity (MWh)'] = eia860M_data['Net Summer Capacity (MW)'] * battery_duration
+                     'Nameplate Energy Capacity (MWh)'] = eia860M_data['Net Summer Capacity (MW)'] * storage_duration
     
-    eia860M_data['Battery Duration'] = eia860M_data['Nameplate Energy Capacity (MWh)']/eia860M_data['Net Summer Capacity (MW)']
-    eia860M_data['Battery Duration'] = eia860M_data['Battery Duration'].round(2)
+    eia860M_data['Storage Duration'] = eia860M_data['Nameplate Energy Capacity (MWh)']/eia860M_data['Net Summer Capacity (MW)']
+    eia860M_data['Storage Duration'] = eia860M_data['Storage Duration'].round(2)
     eia860M_data = eia860M_data[eia860M_data['Plant ID'].notna()]
 
     # Only consider units in CONUS and in appropriate sectors
@@ -265,10 +272,10 @@ def cleanEIA860MData(dir, current_year, ver_mon, ver_year, battery_duration, sta
                 'Net Winter Capacity (MW)','Nameplate Energy Capacity (MWh)',
                 'Technology','tech','reeds_tech', 'ctt', 'wst',
                 'Energy Source Code','T_SYR_EIA860','T_RYR_EIA860',
-                'Latitude', 'Longitude','Battery Duration','Status','eia860']
+                'Latitude', 'Longitude','Storage Duration','Status','eia860']
 
     eia860M_data_final = eia860M_data[eia_cols]
-    return  eia860M_data_final, eia_cols
+    return  eia860M_data_final,storage_duration,eia_cols
 
 def mergeAEOandEIA860M(aeo_data, eia860M_data, current_year, aeo_cols, eia_cols):
 
@@ -277,7 +284,7 @@ def mergeAEOandEIA860M(aeo_data, eia860M_data, current_year, aeo_cols, eia_cols)
                     'TRFURB','T_VOM','T_FOM','T_SMO','T_RMO', 'T_CCSROV','T_CCSF',
                     'T_CCSV','T_CCSHR','T_CAPAD','T_CCSCAPA','T_CCSLOC',
                     'T_LONG','T_LAT','ctt','wst','nems','eia860',
-                    'sector','status','Technology','battery_duration']
+                    'sector','status','Technology','storage_duration']
     nems_eia860 = pd.merge(aeo_data, eia860M_data, on=['T_PID','T_UID'], 
                            how='outer', indicator=True)
 
@@ -296,9 +303,9 @@ def mergeAEOandEIA860M(aeo_data, eia860M_data, current_year, aeo_cols, eia_cols)
     nems_eia860_merged['TC_WIN'] = np.where(nems_eia860_merged['Net Winter Capacity (MW)'].notna(), 
                                             nems_eia860_merged['Net Winter Capacity (MW)'], 
                                             nems_eia860_merged['TC_WIN'])
-    nems_eia860_merged['battery_duration'] = np.where(nems_eia860_merged['Battery Duration'].notna(), 
-                                                      nems_eia860_merged['Battery Duration'], 
-                                                      nems_eia860_merged['battery_duration'])
+    nems_eia860_merged['storage_duration'] = np.where(nems_eia860_merged['Storage Duration'].notna(), 
+                                                      nems_eia860_merged['Storage Duration'], 
+                                                      nems_eia860_merged['storage_duration'])
     nems_eia860_merged['T_PNM'] = np.where(nems_eia860_merged['Plant Name'].notna(), 
                                            nems_eia860_merged['Plant Name'],
                                            nems_eia860_merged['T_PNM'])
@@ -364,7 +371,7 @@ def mergeAEOandEIA860M(aeo_data, eia860M_data, current_year, aeo_cols, eia_cols)
     # Aggregate unmatched units by T_PID, T_SYR, T_RYR, and TVIN
     nems_only = nems_only.groupby(['tech','T_PID','T_SYR','T_RYR','TVIN'], 
                                   as_index=False).agg({'ctt':'first','wst':'first','THRATE':'mean','TC_SUM':'sum',
-                                                        'TC_NP':'sum','TC_WIN':'sum','battery_duration':'mean','T_UID':'first',
+                                                        'TC_NP':'sum','TC_WIN':'sum','storage_duration':'mean','T_UID':'first',
                                                         'EFDcd':'first','ECPcd':'first','T_CID':'first','T_PNM':'first',
                                                         'T_PCA':'first','TRFURB':'first','T_VOM':'mean','T_FOM':'mean',
                                                         'T_SMO':'first','T_RMO':'first','T_CCSROV':'first','T_CCSF':'first',
@@ -376,7 +383,7 @@ def mergeAEOandEIA860M(aeo_data, eia860M_data, current_year, aeo_cols, eia_cols)
                                                            'Net Summer Capacity (MW)':'sum','Net Winter Capacity (MW)':'sum',
                                                            'Nameplate Energy Capacity (MWh)':'sum','Technology':'first',
                                                            'T_PCA':'first','Sector':'first','Unit Code':'first',
-                                                           'tech':'first','reeds_tech':'first','Battery Duration':'mean',
+                                                           'tech':'first','reeds_tech':'first','Storage Duration':'mean',
                                                            'T_UID':'first','Energy Source Code':'first','Longitude':'first',
                                                            'Latitude':'first','Status':'first','eia860':'first', 'Plant Name':'first'})
 
@@ -392,7 +399,7 @@ def mergeAEOandEIA860M(aeo_data, eia860M_data, current_year, aeo_cols, eia_cols)
     nems_eia_remerge['TC_NP'] = nems_eia_remerge['TC_NP'].fillna(nems_eia_remerge['Nameplate Capacity (MW)'])
     nems_eia_remerge['TC_SUM'] = nems_eia_remerge['TC_SUM'].fillna(nems_eia_remerge['Net Summer Capacity (MW)'])
     nems_eia_remerge['TC_WIN'] = nems_eia_remerge['TC_WIN'].fillna(nems_eia_remerge['Net Winter Capacity (MW)'])
-    nems_eia_remerge['battery_duration'] = nems_eia_remerge['battery_duration'].fillna(nems_eia_remerge['Battery Duration'])
+    nems_eia_remerge['storage_duration'] = nems_eia_remerge['storage_duration'].fillna(nems_eia_remerge['Storage Duration'])
     nems_eia_remerge['T_PNM'] = nems_eia_remerge['T_PNM'].fillna(nems_eia_remerge['Plant Name'])
     nems_eia_remerge['T_LAT'] = nems_eia_remerge['T_LAT'].fillna(nems_eia_remerge['Latitude'])
     nems_eia_remerge['T_LONG'] = nems_eia_remerge['T_LONG'].fillna(nems_eia_remerge['Longitude'])
@@ -425,7 +432,7 @@ def addHeatrates(nems_eia860):
 
     return nems_eia860
 
-def cleanMergedAEOEIA860(aeo_orig, nems_eia860, battery_duration):
+def cleanMergedAEOEIA860(aeo_orig, nems_eia860, storage_duration):
     # Handling upgrades
     nems_eia860['TVIN'] = nems_eia860['TVIN'].fillna(1)
     # Set aside units that are not upgrades
@@ -463,7 +470,7 @@ def cleanMergedAEOEIA860(aeo_orig, nems_eia860, battery_duration):
     nems_eia860_final.loc[((nems_eia860_final['tech'].str.contains('battery')) | 
                            (nems_eia860_final['tech'].str.contains('pumped-hydro'))) & 
                           (nems_eia860_final['nems']==1) &
-                          (nems_eia860_final['eia860']==0),'battery_duration'] = battery_duration
+                          (nems_eia860_final['eia860']==0),'storage_duration'] = storage_duration
     nems_eia860_final = nems_eia860_final.reset_index(drop=True)
 
     # For units that are marked PV in EIA860 but DST (battery) in NEMS, consider them PV 
@@ -471,13 +478,13 @@ def cleanMergedAEOEIA860(aeo_orig, nems_eia860, battery_duration):
                            (nems_eia860_final['Description'].str.contains('Solar'))),'tech'] = 'pv'
     
     # Add energy capacity column:
-    nems_eia860_final['energy_capacity_MWh'] = nems_eia860_final['battery_duration'] * nems_eia860_final['TC_SUM']
+    nems_eia860_final['energy_capacity_MWh'] = nems_eia860_final['storage_duration'] * nems_eia860_final['TC_SUM']
 
     ## For pvb units:
     # If pvb units have energy cap (assigned as batteries in EIA860), rename their tech as pvb_battery
     # If pvb units do not have energy cap (assigned as solar PV in EIA860), rename their tech as pvb_pv
-    nems_eia860_final.loc[(nems_eia860_final['tech']=='pvb') & (~nems_eia860_final['battery_duration'].isna()), 'tech'] = 'pvb_battery'
-    nems_eia860_final.loc[(nems_eia860_final['tech']=='pvb') & (nems_eia860_final['battery_duration'].isna()), 'tech'] = 'pvb_pv'
+    nems_eia860_final.loc[(nems_eia860_final['tech']=='pvb') & (~nems_eia860_final['storage_duration'].isna()), 'tech'] = 'pvb_battery'
+    nems_eia860_final.loc[(nems_eia860_final['tech']=='pvb') & (nems_eia860_final['storage_duration'].isna()), 'tech'] = 'pvb_pv'
 
     # Drop tech = 'others' since they are all Flywheels
     nems_eia860_final = nems_eia860_final[nems_eia860_final['tech']!='others']
@@ -491,10 +498,10 @@ def cleanMergedAEOEIA860(aeo_orig, nems_eia860, battery_duration):
 if __name__ == "__main__":
     print("Starting a_data_cleaning.py")
 
-    (dir, current_year, battery_duration, eia860M_ver_mon, eia860M_ver_year, gdbinputname, gdboutname) = params()
+    (dir, current_year, eia860M_ver_mon, eia860M_ver_year, gdbinputname, gdboutname) = params()
 
     # Add EIA860M planned units, missing operating units, and updated retirement years to NEMS dataset:
-    nems_cleaned = processAEOandEIA860(dir, current_year, battery_duration, eia860M_ver_mon, eia860M_ver_year, gdbinputname) 
+    nems_cleaned = processAEOandEIA860(dir, current_year, eia860M_ver_mon, eia860M_ver_year, gdbinputname) 
 
     # =========================================================================
     # Save output file:
