@@ -69,7 +69,7 @@ if (len(data_raw_no_lon_lat) > 0):
 ## Map long/lat to county and FIPS
 # read county shapefile directly from census
 print("Mapping long/lat to FIPS")
-crs = 'ESRI:102008'
+crs = 'EPSG:5070'
 county_data = reeds.spatial.get_map('county', source='tiger').to_crs(crs)
 ## Format for ReEDS
 county_data['FIPS'] = county_data.index.values
@@ -94,8 +94,8 @@ nems_county_merged_unmatched_geo = reeds.plots.df2gdf(
         nems_county_merged_unmatched,
         lat='T_LAT',
         lon='T_LONG',
-        crs='EPSG:5070')
-county_data_5070 = county_data.to_crs('EPSG:5070')
+        crs=crs)
+county_data_5070 = county_data.to_crs(crs)
 nems_county_unmatched = gpd.sjoin_nearest(nems_county_merged_unmatched_geo, county_data_5070, how='left')
 nems_county_unmatched['FIPS'] = nems_county_unmatched['rb']
 nems_county_unmatched = nems_county_unmatched[merge_columns]
