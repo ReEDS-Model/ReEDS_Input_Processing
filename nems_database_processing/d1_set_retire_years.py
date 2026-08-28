@@ -3,7 +3,7 @@ Updated August 19 2026
 
 This sub-script:
     1. Assigns retire years to units without retire years from AEO-NEMS and EIA860M using maxage.csv
-    2. Updated retire years for coal plants that are MAT exempted
+    2. Updated retire years for coal plants that are MATS exempted
     3. Revise retire years and technology conversion of a few special units
 """
 
@@ -32,14 +32,14 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
     ### Update retirement dates of coal plants 
     coal_retirement_upd = pd.read_csv(os.path.join('inputs','coal_retirements',coal_plant_retirement))
     coal_retirement_upd = coal_retirement_upd.rename(columns={'Plant Name':'T_PNM', 'Generator ID':'T_UID', 'Plant Code':'T_PID'})
-    coal_retirement_upd = coal_retirement_upd[['T_PNM', 'T_UID', 'T_PID', 'Retirement Year', 'MAT Exemptions']]
+    coal_retirement_upd = coal_retirement_upd[['T_PNM', 'T_UID', 'T_PID', 'Retirement Year', 'MATS Exemptions']]
     coal_retirement_upd['Retirement Year']  = coal_retirement_upd['Retirement Year'].fillna(9999)
     
-    # Update retirement dates to reflect new MAT exception
+    # Update retirement dates to reflect new MATS exception
     # (source: https://www.epa.gov/system/files/documents/2025-04/regulatory-relief-for-certain-stationary-annex-1.pdf)
     # If the plant is set to retired by 2027 >> extend retirement years by two more years
     # If the plant is set to be retired after 2027 >> keep its retirement year
-    coal_retirement_upd.loc[(coal_retirement_upd['MAT Exemptions']==1) & 
+    coal_retirement_upd.loc[(coal_retirement_upd['MATS Exemptions']==1) & 
                             (coal_retirement_upd['Retirement Year']<=2027) & 
                             (coal_retirement_upd['Retirement Year']>=current_year),
                             'Retirement Year'] = coal_retirement_upd['Retirement Year'] + 2
