@@ -14,7 +14,7 @@ import numpy as np
 ## 1. Process AEO-NEMS data
 ## 2. Process EIA860M files and append operating, planned, and retired EIA860M units
 ## 3. Merge AEO NEMS and EIA860M together. Only planned units in EIA860M with these 
-# planning statuses below are merged:
+## planning statuses below are merged:
 #### i.   (V) Under construction, more than 50 percent complete
 #### ii.  (U) Under construction, less than or equal to 50 percent complete
 #### iii. (TS) Construction complete, but not yet in commercial operation
@@ -26,18 +26,18 @@ def params():
     dir = os.getcwd()                                                                   
 
     # Key parameters:
-    aeo_file = sys.argv[1]
-    eia860M_ver_mon = sys.argv[2]                                                 
-    eia860M_ver_year = int(sys.argv[3]) 
-    current_year = int(sys.argv[4])                                                
+    #aeo_file = sys.argv[1]
+    #eia860M_ver_mon = sys.argv[2]                                                 
+    #eia860M_ver_year = int(sys.argv[3]) 
+    #current_year = int(sys.argv[4])                                                
 
     # For testing:
-    #aeo_file = 'PLTF860_RDB.xlsx'
+    aeo_file = 'PLTF860_RDB.xlsx'
     # Most recent EIA 860M version month
-    #eia860M_ver_mon = 'june'
+    eia860M_ver_mon = 'june'
     # Most recent EIA 860M version year                                                 
-    #eia860M_ver_year = 2026                                           
-    #current_year = 2026
+    eia860M_ver_year = 2026                                           
+    current_year = 2026
 
     gdbinputname = aeo_file
     gdboutname   = 'a_to_b.csv'
@@ -134,17 +134,16 @@ def cleanAEOData(dir, current_year, gdbinputname):
     # Collapse units that are shared across different owners into ones with single owners
     # First, retain the original online year for upgraded units
     aeo_data_mult_g = aeo_data_mult.groupby(['T_PID','T_UID','TVIN','T_CID'], as_index=False).first()
-    # Then, collapse on T_PID and T_UID
-    aeo_data_mult_g = aeo_data_mult_g.groupby(['T_PID','T_UID','TVIN'],
-                                            as_index=False).agg(
-                                                {'ctt':'first','wst':'first','THRATE':'mean','TC_SUM':'sum',
-                                                 'TC_NP':'sum','TC_WIN':'sum','storage_duration':'mean','T_SYR':'min',
-                                                 'T_RYR':'first','tech':'first','EFDcd':'first','ECPcd':'first',
-                                                 'T_PNM':'first','T_PCA':'first','TRFURB':'first','T_VOM':'mean',
-                                                 'T_FOM':'mean','T_SMO':'first','T_RMO':'first','T_CCSROV':'first',
-                                                 'T_CCSF':'first','T_CCSV':'first','T_CCSHR':'first','T_CAPAD':'first',
-                                                 'T_CCSCAPA':'first','T_CCSLOC':'first','sector':'first','TCOUNT':'sum',
-                                                 'T_LONG':'first','T_LAT':'first','status':'first','nems':'first'})
+    # Then, collapse on T_PID, T_UID, and TVIN
+    sum_cols = ['TC_SUM','TC_NP','TC_WIN','TCOUNT']
+    mean_cols = ['THRATE','T_VOM','T_FOM','storage_duration']
+    agg_cols = {col: 'first' for col in aeo_data_mult_g.columns if col not in ['T_PID','T_UID','TVIN'] + sum_cols + mean_cols}
+    for col in sum_cols:
+        agg_cols[col] = 'sum'
+    for col in mean_cols:
+        agg_cols[col] = 'mean'
+    aeo_data_mult_g = aeo_data_mult_g.groupby(['T_PID','T_UID','TVIN'],as_index=False).agg(agg_cols)
+
     aeo_data_mult_g['TCOUNT'] = 1
     aeo_data_final = pd.concat([aeo_data_single,aeo_data_mult_g])
     return aeo_data_final, aeo_cols
@@ -373,24 +372,26 @@ def mergeAEOandEIA860M(aeo_data,eia860M_data,aeo_cols,eia_cols):
     eia860_only['tech'] = 'others'
     eia860_only.loc[eia860_only['reeds_tech'].notna(), 'tech'] = eia860_only['reeds_tech']
 
-    # Aggregate unmatched units by T_PID, T_SYR, T_RYR, and TVIN
-    nems_only = nems_only.groupby(['tech','T_PID','T_SYR','T_RYR','TVIN'], 
-                                  as_index=False).agg({'ctt':'first','wst':'first','THRATE':'mean','TC_SUM':'sum',
-                                                        'TC_NP':'sum','TC_WIN':'sum','storage_duration':'mean','T_UID':'first',
-                                                        'EFDcd':'first','ECPcd':'first','T_CID':'first','T_PNM':'first',
-                                                        'T_PCA':'first','TRFURB':'first','T_VOM':'mean','T_FOM':'mean',
-                                                        'T_SMO':'first','T_RMO':'first','T_CCSROV':'first','T_CCSF':'first',
-                                                        'T_CCSV':'first','T_CCSHR':'first','T_CAPAD':'first','T_CCSCAPA':'first',
-                                                        'T_CCSLOC':'first','sector':'first','TCOUNT':'first',
-                                                        'T_LONG':'first','T_LAT':'first','status':'first','nems':'first'})
-    eia860_only = eia860_only.groupby(['Technology','T_PID','T_SYR_EIA860','T_RYR_EIA860'], 
-                                      as_index=False).agg({'ctt':'first','wst':'first','Nameplate Capacity (MW)':'sum',
-                                                           'Net Summer Capacity (MW)':'sum','Net Winter Capacity (MW)':'sum',
-                                                           'Nameplate Energy Capacity (MWh)':'sum','Technology':'first',
-                                                           'T_PCA':'first','Sector':'first','Unit Code':'first',
-                                                           'tech':'first','reeds_tech':'first','Storage Duration':'mean',
-                                                           'T_UID':'first','Energy Source Code':'first','Longitude':'first',
-                                                           'Latitude':'first','Status':'first','eia860':'first', 'Plant Name':'first'})
+    # Aggregate unmatched nems units by T_PID, T_SYR, T_RYR, and TVIN
+    sum_cols = ['TC_SUM','TC_NP','TC_WIN']
+    mean_cols = ['THRATE','T_VOM','T_FOM','storage_duration']
+    agg_cols = {col: 'first' for col in nems_only.columns if col not in ['tech','T_PID','T_SYR','T_RYR','TVIN'] + sum_cols + mean_cols}
+    for col in sum_cols:
+        agg_cols[col] = 'sum'
+    for col in mean_cols:
+        agg_cols[col] = 'mean'
+    nems_only = nems_only.groupby(['tech','T_PID','T_SYR','T_RYR','TVIN'], as_index=False).agg(agg_cols)
+
+    # Aggregate unmatched eia860M units by Technology, T_PID, T_SYR, and T_RYR
+    sum_cols = ['Nameplate Capacity (MW)','Net Summer Capacity (MW)',
+                'Net Winter Capacity (MW)','Nameplate Energy Capacity (MWh)']
+    mean_cols = ['Storage Duration']
+    agg_cols = {col: 'first' for col in eia860_only.columns if col not in ['Technology','T_PID','T_SYR_EIA860','T_RYR_EIA860'] + sum_cols + mean_cols}
+    for col in sum_cols:
+        agg_cols[col] = 'sum'
+    for col in mean_cols:
+        agg_cols[col] = 'mean'
+    eia860_only = eia860_only.groupby(['Technology','T_PID','T_SYR_EIA860','T_RYR_EIA860'], as_index=False).agg(agg_cols)
 
     nems_eia_remerge = nems_only.merge(eia860_only,on=['tech','T_PID'],how='outer',indicator=True)
 
