@@ -1,28 +1,31 @@
 # Overview
-This repo includes scripts and inputs to preprocess the final NEMS fleet that is used to run ReEDS 2.0.
+This repo includes scripts and inputs to clean and process AEO-NEMS generator capacity data and EIA860M generator inventory data, merge them together to generate final EIA-NEMS generator database input file that is used to run ReEDS.
 
 # Running scripts
 All the scripts are run sequentially from `run.sh`
 
 # run.sh
-`run.sh` runs 5 python scripts that process NEMS fleet data sequentially:
-* `a_data_cleaning.py`: This script cleans raw AEO-NEMS and EIA860M files and appends planned and missing existing EIA860M units into AEO-NEMS, and also updates unit retirement years according to specified version of EIA860M
+`run.sh` runs 5 python scripts sequentially to generate final EIA-NEMS input data file:
+* `a_data_cleaning.py`: This script cleans raw AEO-NEMS and EIA860M files, appends planned, retired, and missing operating EIA860M units into AEO-NEMS, and updates unit online and retire years according to specified version of EIA860M
 * `b_geospatial_mapping.py`: This script maps the lon/lats of units database established in step a to their FIPS. For any units that are missing lon/lats, please look up their lon/lats and manually add these units with their lon/lats to in `/inputs/user_adjusted_units_missing_lon_lats.csv`. This step will incur errors until all units are mapped to their FIPS. Any units that need manually adjusted locations should be done in this step.
-* `c_hydro_classification.py`: This script determines which ReEDS hydro units are dispatchable or non-dispatchable
-* `d_additional_inputs.py`, which includes `d1_set_retire_years.py`, `d2_fix_upgrades.py`, and `d3_merge_psh_dbs.py`: This script handles updated retirement years that are outdated or missing in AEO-NEMS and EIA860M, fix upgrades, and handles other additional adjustments. Any manually adjusted retirement years should be included in `d1_set_retire_years.py`.
+* `c_hydro_classification.py`: This script determines which ReEDS hydro units are dispatchable or non-dispatchable using input hydro unit data from ORNL.
+* `d_additional_inputs.py`, which includes `d1_set_retire_years.py`, `d2_fix_upgrades.py`, and `d3_merge_psh_dbs.py`, and handles other additional adjustments and clean up before generating final EIA-NEMS dataset. 
+* * `d1_set_retire_years.py`: This script handles updated retire years that are outdated or missing in AEO-NEMS and EIA860M, using published list of coal plants that are exempted from 2024 Mercury and Air Toxics Standards (MATS), and online articles announcing specific plants' early retirements, restarts, and retrofits. Any manually adjusted retirement years should be included in this step.
+* * `d2_fix_upgrades.py`: This script updates online and retire dates for units that are upgraded.
+* * `d3_merge_psh_dbs.py`: This script merges the two hydro databases from ORNL and uses the merged database to reclassify various hydro units.
 * `e_comparison_plotting.py`: This script generates comparison figures between previous version of NEMS and the newly updated version for validation.
 
 # Input files and params to run run.sh
-All the input files to run all 5 python scripts are now specified upfront in run.sh. All inputs files are loacted in `Inputs` folder.
+All the input files to run all 5 python scripts are now specified upfront in run.sh. All inputs files are loacted in `inputs` folder.
 | Input | Description |
 | --- | --- |
-| `current_reeds_fleet_ver` | Most recent version of final NEMS fleet used in ReEDS. Right now is `2025` |
+| `current_year` | Specify current year. Right now it is `2026` |
 | `aeo_file` | Most recent version of AEO file. Right now it is `PLTF860_RDB.xlsx` |
 | `eia860M_ver_mon` | Most recent EIA 860M version month (all lower case). Right now it's `june`  |
 | `eia860M_ver_year` | Most recent EIA 860M version year (number). Right now is `2026`|
 | `ornl_hydro_plant_ver` | Most recent version of EHA hydro plants from ORNL used in `c_hydro_classification.py`. Right now it is `ORNL_EHAHydroPlant_PublicFY2024.xlsx`|
 | `hydro_dispatchability` | Most recent version of EHA units dispatchability used in `c_hydro_classification.py`. Right now it is `EHA_dispatchability.csv`|
-| `coal_plant_retirement` | List of coal plant retirement data that are exempt from general coal retirement rules, used in `df_set_retire_year.py`. Right now it is `EIA860_2025ER_CoalRetirements.csv`|
+| `coal_plant_retirement` | List of coal plant retirement data that are exempt from general coal retirement rules, used in `d1_set_retire_year.py`. Right now it is `EIA860_2025ER_CoalRetirements.csv`|
 | `ornl_hydro_unit_ver` | Most recent version of EHA hydro plants from ORN used in `d3_merge_psh_dbs.py`. Right now it is `ORNL_EHAHydroUnit_PublicFY2024.xlsx`|
 | `hydro_prjtype` | Most recent version EHA hydro unit classification updates, used in `d3_merge_psh_dbs.py`. Right now it is `EHA_FY22_post2009_prjtype.xlsx`|
 
