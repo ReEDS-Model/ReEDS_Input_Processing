@@ -10,9 +10,9 @@ All the scripts are run sequentially from `run.sh`
 * `b_geospatial_mapping.py`: This script maps the lon/lats of units database established in step a to their FIPS. For any units that are missing lon/lats, please look up their lon/lats and manually add these units with their lon/lats to in `/inputs/user_adjusted_units_missing_lon_lats.csv`. This step will incur errors until all units are mapped to their FIPS. Any units that need manually adjusted locations should be done in this step.
 * `c_hydro_classification.py`: This script determines which ReEDS hydro units are dispatchable or non-dispatchable using input hydro unit data from ORNL.
 * `d_additional_inputs.py`, which includes `d1_set_retire_years.py`, `d2_fix_upgrades.py`, and `d3_merge_psh_dbs.py`, and handles other additional adjustments and clean up before generating final EIA-NEMS dataset. 
-* * `d1_set_retire_years.py`: This script handles updated retire years that are outdated or missing in AEO-NEMS and EIA860M, using published list of coal plants that are exempted from 2024 Mercury and Air Toxics Standards (MATS) (https://www.epa.gov/system/files/documents/2025-04/regulatory-relief-for-certain-stationary-annex-1.pdf), and online articles announcing specific plants' early retirements, restarts, and retrofits. Any manually adjusted retirement years should be included in this step.
-* * `d2_fix_upgrades.py`: This script updates online and retire dates for units that are upgraded.
-* * `d3_merge_psh_dbs.py`: This script merges the two hydro databases from ORNL and uses the merged database to reclassify various hydro units.
+  * `d1_set_retire_years.py`: This script handles updated retire years that are outdated or missing in AEO-NEMS and EIA860M, using published list of coal plants that are exempted from 2024 Mercury and Air Toxics Standards (MATS) (https://www.epa.gov/system/files/documents/2025-04/regulatory-relief-for-certain-stationary-annex-1.pdf), and online articles announcing specific plants' early retirements, restarts, and retrofits. Any manually adjusted retirement years should be included in this step.
+  * `d2_fix_upgrades.py`: This script updates online and retire dates for units that are upgraded.
+  * `d3_merge_psh_dbs.py`: This script merges the two hydro databases from ORNL and uses the merged database to reclassify various hydro units.
 * `e_comparison_plotting.py`: This script generates comparison figures between previous version of NEMS and the newly updated version for validation.
 
 # Input files and params to run run.sh
