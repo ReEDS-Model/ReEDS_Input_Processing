@@ -1,5 +1,5 @@
 # Overview
-This repo includes scripts and inputs to clean and process AEO-NEMS generator capacity data and EIA860M generator inventory data, merge them together to generate final EIA-NEMS generator database input file that is used to run ReEDS.
+This repo includes scripts and inputs to clean and process AEO-NEMS generator capacity data and EIA860M generator inventory data, merge them together and perform additional adjustment and clean-up to generate final EIA-NEMS generator database input file that is used to run ReEDS.
 
 # Running scripts
 All the scripts are run sequentially from `run.sh`
