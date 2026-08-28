@@ -100,13 +100,15 @@ def cleanAEOData(dir, current_year, gdbinputname):
     aeo_data['tech'] = 'others'
     aeo_reeds_tech_map = pd.read_csv(os.path.join(dir,'inputs','tech_mappings','aeo_reeds_tech_map.csv'))
     aeo_data = aeo_data.merge(aeo_reeds_tech_map, on='EFDcd', how='left')
-
-    # Specify scrubber or unscrubber coal units
     aeo_data.loc[aeo_data['reeds_tech'].notna(), 'tech'] = aeo_data['reeds_tech']
-    aeo_data.loc[(aeo_data['tech'].str.contains("coal", na=False)) &
-                 (aeo_data['T_SYR']<=1969),'tech'] = 'coalolduns'
-    aeo_data.loc[(aeo_data['tech'].str.contains("coal", na=False)) &
-                 (aeo_data['T_SYR']>1969),'tech'] = 'coaloldscr'
+
+    # Specify coal units with or without scrubbers
+    # Coal units that came online prior to 1069 are without scrubbers
+    coaluns = (aeo_data['tech'].str.contains("coal", na=False)) & (aeo_data['T_SYR']<=1969)
+    # Coal units that came online after 1969 have installed scrubbers
+    coalscrs = (aeo_data['tech'].str.contains("coal", na=False)) & (aeo_data['T_SYR']>1969)
+    aeo_data.loc[coaluns,'tech'] = 'coalolduns'
+    aeo_data.loc[coalscrs,'tech'] = 'coaloldscr'
 
     # Add wst to match with NEMS:
     cooling_tech = pd.read_csv(os.path.join(dir,'inputs','tech_mappings', 
@@ -240,12 +242,16 @@ def cleanEIA860MData(dir,ver_mon,ver_year,current_year,storage_duration,status):
     eia_reeds_tech_map = pd.read_csv(os.path.join(dir,'inputs','tech_mappings',
                                                   'eia_reeds_tech_map.csv')).rename(columns={'eia_tech':'Technology'})
     eia860M_data = eia860M_data.merge(eia_reeds_tech_map, on='Technology', how='left')
-    # Specify scrubber or unscrubber coal units
     eia860M_data.loc[eia860M_data['reeds_tech'].notna(), 'tech'] = eia860M_data['reeds_tech']
-    eia860M_data.loc[(eia860M_data['Technology'].str.contains("Conventional Steam Coal", na=False)) &
-                     (eia860M_data['T_SYR_EIA860']<=1969),'tech'] = 'coalolduns'
-    eia860M_data.loc[(eia860M_data['Technology'].str.contains("Conventional Steam Coal", na=False)) &
-                     (eia860M_data['T_SYR_EIA860']>1969),'tech'] = 'coaloldscr'
+
+    # Specify coal units with or without scrubbers
+    # Coal units that came online prior to 1069 are without scrubbers
+    coaluns = (eia860M_data['Technology'].str.contains("Conventional Steam Coal", na=False)) & (eia860M_data['T_SYR_EIA860']<=1969)
+    # Coal units that came online after 1969 have installed scrubbers
+    coalscrs = (eia860M_data['Technology'].str.contains("Conventional Steam Coal", na=False)) & (eia860M_data['T_SYR_EIA860']>1969)
+    
+    eia860M_data.loc[coaluns,'tech'] = 'coalolduns'
+    eia860M_data.loc[coalscrs,'tech'] = 'coaloldscr'
 
     # Add wst to match with NEMS:
     cooling_tech = pd.read_csv(os.path.join(dir,'inputs','tech_mappings', 
