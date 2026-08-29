@@ -176,9 +176,6 @@ def cleanEIA860MData(dir,ver_mon,ver_year,current_year,storage_duration,status):
     if status != 'Planned':
         eia860M_data['Nameplate Energy Capacity (MWh)'] = eia860M_data['Nameplate Energy Capacity (MWh)'].replace(r'^\s*$', np.nan, regex=True)
         eia860M_data['Nameplate Energy Capacity (MWh)'] = eia860M_data['Nameplate Energy Capacity (MWh)'].astype(float)
-        if status == 'Operating':
-            eia860M_data['Planned Repower Year'] = eia860M_data['Planned Repower Year'].replace(r'^\s*$', np.nan, regex=True)
-            eia860M_data['Planned Repower Year'] = eia860M_data['Planned Repower Year'].astype('Int64')
     
     # Calcuate capacity weighted average storage duration for all planned storage units 
     # based on battery units that came online in the last 5 years. We only use battery 
@@ -220,10 +217,7 @@ def cleanEIA860MData(dir,ver_mon,ver_year,current_year,storage_duration,status):
         eia860M_data['T_RYR_EIA860'] = eia860M_data['T_RYR_EIA860'].replace(r'^\s*$', np.nan, regex=True)
         # If no retire year is given, give is 9999
         eia860M_data.loc[eia860M_data['T_RYR_EIA860'].isna(),'T_RYR_EIA860'] = 9999
-        # Update start year if the unit is repowered at a later year
-        eia860M_data['T_SYR_EIA860'] = np.where(eia860M_data['Planned Repower Year'].notna(),
-                                                eia860M_data['Planned Repower Year'], 
-                                                eia860M_data['T_SYR_EIA860'])
+
     elif status == 'Planned':
         eia860M_data = eia860M_data.rename({'Planned Operation Year': 'T_SYR_EIA860'}, axis=1)
         eia860M_data['T_SYR_EIA860'] = eia860M_data['T_SYR_EIA860'].replace(r'^\s*$', np.nan, regex=True)
