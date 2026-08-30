@@ -55,7 +55,8 @@ dfold = pd.read_csv(os.path.join(reeds_path,'inputs','capacity_exogenous',gdbold
 
 # Retain columns to keep in final dataset
 columns_to_keep = dfold.columns.tolist()
-columns_to_keep.remove('T_CID')
+if 'T_CID' in columns_to_keep:
+    columns_to_keep.remove('T_CID')
 
 dfold['merge_id'] = dfold['T_PID'].astype(str).str.strip() + "_" + dfold['T_UID'].astype(str).str.strip()
 

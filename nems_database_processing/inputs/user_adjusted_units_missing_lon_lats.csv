@@ -1,3 +1,5 @@
-tech,TC_SUM,TC_NP,TC_WIN,T_RYR,T_SYR,THRATE,T_CID,T_PID,T_UID,T_PNM,TVIN,EFDcd,ECPcd,T_PCA,TRFURB,T_VOM,T_FOM,T_SMO,T_RMO,TCOUNT,T_CCSROV,T_CCSF,T_CCSV,T_CCSHR,T_CAPAD,T_CCSCAPA,T_CCSLOC,T_LONG,T_LAT,ctt,wst,nems,eia860,sector,status,Description,battery_duration,energy_capacity_MWh
-gas-ct,468,590.4,525,2002,2002,9514.5,,55519,CTG1,AES Greystone,,,,,,,,,,1,,,,,,,,-89.39222,35.5832,,,0,1,,(R) Retired,Natural Gas Fired Combustion Turbine,,
-lfill-gas,1.6,1.6,1.6,2010,2007,8513,,56672,1,Planergy Ramsey Methane LLC,,,,,,,,,,1,,,,,,,,-93.24,45.27,,,0,1,,(R) Retired,Landfill Gas,,
+tech,TC_SUM,TC_NP,TC_WIN,T_RYR,T_SYR,THRATE,T_PID,T_UID,T_PNM,TVIN,EFDcd,ECPcd,T_PCA,TRFURB,T_VOM,T_FOM,T_SMO,T_RMO,T_CCSROV,T_CCSF,T_CCSV,T_CCSHR,T_CAPAD,T_CCSCAPA,T_CCSLOC,T_LONG,T_LAT,ctt,wst,nems,eia860,sector,status,Description,storage_duration,energy_capacity_MWh
+gas-ct,468,590.4,525,2002,2002,10507.04077,55519,CTG1,AES Greystone,1,,,,,,,,,,,,,,,,-89.39222,35.5832,,,0,1,,(R) Retired,Natural Gas Fired Combustion Turbine,,
+lfill-gas,0.2,1.8,0.2,9999,2000,13500,55647,UNT1,MM Nashville        ,1,MSW,MS,TVA  ,2000,2.14,85.97,4,12,0,0,0,0,0,0,0,-86.7816,36.1627,r,fsa,1,0,Electric Utility,(OP) Operating,,,
+lfill-gas,1.6,1.6,1.6,2010,2007,9458.248366,56672,1,Planergy Ramsey Methane LLC,1,,,,,,,,,,,,,,,,-93.24,45.27,,,0,1,,(R) Retired,Landfill Gas,,
+upv,1,1,1,9999,2021,0,64394,FLODQ,Flodquist Community ,1,SPV,PV,MISO ,2021,0,9.73,8,12,0,0,0,0,0,0,0,-92.857,45.4894,,,1,0,Electric Utility,(OP) Operating,,,

@@ -43,7 +43,8 @@ data_raw['T_LAT'] = data_raw['T_LAT'].astype(float)
 data_raw.loc[(data_raw['T_LONG']>0),'T_LONG'] = -data_raw['T_LONG']
 
 # Check if all units have long/lats
-data_raw_no_lon_lat = data_raw[(data_raw['T_LONG'].isna()) | (data_raw['T_LAT'].isna())]
+data_raw_no_lon_lat = data_raw[(data_raw['T_LONG'].isna()) | (data_raw['T_LAT'].isna()) |
+                               (data_raw['T_LONG']==0) | (data_raw['T_LAT']==0)]
 
 # If some units do not have long/lats, manually add the long/lat for these units 
 # in user_adjusted_units_missing_lon_lats.csv
@@ -51,19 +52,22 @@ if (len(data_raw_no_lon_lat) > 0):
     print("Some units do not have lon/lat, so matching them to user-adjusted lon/lat data:")
     if (os.path.isfile(os.path.join('inputs','user_adjusted_units_missing_lon_lats.csv'))):
         adjusted_missing_unit = pd.read_csv(os.path.join('inputs','user_adjusted_units_missing_lon_lats.csv'))
-        data_raw_w_long_lat = data_raw[(data_raw['T_LONG'].notna()) & (data_raw['T_LAT'].notna())]
+        data_raw_w_long_lat = data_raw[(data_raw['T_LONG'].notna()) & (data_raw['T_LAT'].notna()) & 
+                                       (data_raw['T_LONG']!=0) & (data_raw['T_LAT']!=0)]
         data_raw = pd.concat([data_raw_w_long_lat, adjusted_missing_unit])
         print('Finish matching user-defined lon/lats to units without them')
         # Check again if all units have long/lats
-        data_raw_no_lon_lat = data_raw[(data_raw['T_LONG'].isna()) | (data_raw['T_LAT'].isna())]
+        data_raw_no_lon_lat = data_raw[(data_raw['T_LONG'].isna()) | (data_raw['T_LAT'].isna()) |
+                                       (data_raw['T_LONG']==0) | (data_raw['T_LAT']==0)]
         if (len(data_raw_no_lon_lat) > 0):
-            data_raw_no_lon_lat.to_csv(os.path.join(dir,'inputs', 'user_adjusted_units_missing_lon_lats.csv'), index=False)
-            raise ValueError("Some units still have missing long/lat data, \n please manually add their long/lat to user_adjusted_units_missing_lon_lats.csv")
+            raise ValueError("Some units still have missing long/lat data, " \
+            "please manually add their long/lat to user_adjusted_units_missing_lon_lats.csv")
             sys.exit()
     # If user_adjusted_units_missing_lon_lats does not exist
     else:
-        raise ValueError("Some units are missing long/lat data, \n please manually add their long/lat to user_adjusted_units_missing_lon_lats.csv")
         data_raw_no_lon_lat.to_csv(os.path.join(dir,'inputs', 'user_adjusted_units_missing_lon_lats.csv'), index=False)
+        raise ValueError("Some units are missing long/lat data, " \
+        "please manually add their long/lat to user_adjusted_units_missing_lon_lats.csv")
         sys.exit()
 
 ## Map long/lat to county and FIPS
