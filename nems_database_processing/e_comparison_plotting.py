@@ -97,10 +97,23 @@ def comparison_plotting_r(df, zones, finalyear,  techs, color_techs, figname, x,
                            (df_cap[x]==year),
                            'summer_power_capacity_GW'] = df_cap_temp['summer_power_capacity_GW'][row]
 
-            sns.histplot(data=df_cap, x=x, hue="tech", multiple="stack",
-                         weights='summer_power_capacity_GW',
-                         hue_order=techs,palette=color_techs, binwidth=0.7, shrink=1,
-                         edgecolor=None, legend=False, discrete=True, ax = ax)
+            if (df_cap['summer_power_capacity_GW'] < 0).any():
+                df_cap_pos = df_cap[df_cap['summer_power_capacity_GW']>=0]
+                df_cap_neg = df_cap[df_cap['summer_power_capacity_GW']<=0]
+
+                sns.histplot(data=df_cap_pos, x=x, hue="tech", multiple="stack",
+                                            weights='summer_power_capacity_GW',
+                                            hue_order=techs,palette=color_techs, binwidth=0.7, shrink=1,
+                                            edgecolor=None, legend=False, discrete=True, ax = ax)
+                sns.histplot(data=df_cap_neg, x=x, hue="tech", multiple="stack",
+                                                            weights='summer_power_capacity_GW',
+                                                            hue_order=techs,palette=color_techs, binwidth=0.7, shrink=1,
+                                                            edgecolor=None, legend=False, discrete=True, ax = ax)
+            else:
+                sns.histplot(data=df_cap, x=x, hue="tech", multiple="stack",
+                            weights='summer_power_capacity_GW',
+                            hue_order=techs,palette=color_techs, binwidth=0.7, shrink=1,
+                            edgecolor=None, legend=False, discrete=True, ax = ax)
 
             ax.set_title(region,fontsize=5,fontweight='bold',fontname="Arial",pad=-6)
 
@@ -197,10 +210,23 @@ def comparison_plotting_nat(df, finalyear, figname, x, title):
                     (df_cap[x]==year),
                     'summer_power_capacity_GW'] = df_cap_temp['summer_power_capacity_GW'][row]
 
-    sns.histplot(data=df_cap, x=x, hue="tech", multiple="stack",
-                 weights='summer_power_capacity_GW',
-                 hue_order=techs,palette=color_techs, binwidth=0.85, shrink=0.9,
-                 edgecolor=None, legend=False, discrete=True, ax = ax)
+    if (df_cap['summer_power_capacity_GW'] < 0).any():
+        df_cap_pos = df_cap[df_cap['summer_power_capacity_GW']>=0]
+        df_cap_neg = df_cap[df_cap['summer_power_capacity_GW']<=0]
+
+        sns.histplot(data=df_cap_pos, x=x, hue="tech", multiple="stack",
+                     weights='summer_power_capacity_GW',
+                     hue_order=techs,palette=color_techs, binwidth=0.85, shrink=0.9,
+                     edgecolor=None, legend=False, discrete=True, ax = ax)
+        sns.histplot(data=df_cap_neg, x=x, hue="tech", multiple="stack",
+                     weights='summer_power_capacity_GW',
+                     hue_order=techs,palette=color_techs, binwidth=0.85, shrink=0.9,
+                     edgecolor=None, legend=False, discrete=True, ax = ax)
+    else:          
+        sns.histplot(data=df_cap, x=x, hue="tech", multiple="stack",
+                    weights='summer_power_capacity_GW',
+                    hue_order=techs,palette=color_techs, binwidth=0.85, shrink=0.9,
+                    edgecolor=None, legend=False, discrete=True, ax = ax)
 
     ax.set_title('CONUS',fontsize=8,fontweight='bold',fontname="Arial",pad=-6)
 
