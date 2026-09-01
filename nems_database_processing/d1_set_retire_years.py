@@ -10,6 +10,7 @@ This sub-script:
 import pandas as pd
 import numpy as np
 import os
+import math
 
 def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
 
@@ -98,8 +99,11 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
                                          'lifetime'].values[0]
 
             # Assign retirement years to operating units with T_SYR <= current_year
-            if nems.loc[i,'status'] in ['(OP) Operating', 
-                                        '(OA) Out of service but expected to return to service in next calendar year']:
+            operating_cat = ['(OP) Operating',
+                             '(OS) Out of service and NOT expected to return to service in next calendar year',
+                             '(OA) Out of service but expected to return to service in next calendar year',
+                             '(SB) Standby/Backup: available for service but not normally used']
+            if nems.loc[i,'status'] in operating_cat:
                 
             # if start year is after refurbishment year (or if refurbishment year is null) 
             # and start year + lifetime is before current year, then extend retirement year by 10 years.
@@ -113,7 +117,8 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
                 
             if (nems.loc[i,'T_RYR'] <= current_year) | (nems.loc[i,'T_RYR'] == 9999):
                 if StartYear_temp + lifetime <= current_year:
-                    nems.loc[i,'T_RYR'] = current_year + 10
+                    extended_years = math.ceil((current_year + 10 - StartYear_temp - lifetime)/10)*10
+                    nems.loc[i,'T_RYR'] = StartYear_temp + lifetime + extended_years
                 else:
                     nems.loc[i,'T_RYR'] = StartYear_temp + lifetime
 
