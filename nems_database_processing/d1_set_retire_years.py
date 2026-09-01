@@ -50,7 +50,7 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
     nems['Retirement Year']  = nems['Retirement Year'].fillna(9999)
 
     for i in list(range(len(nems))):
-        if (nems['Retirement Year'][i] != nems['T_RYR'][i]) & ('coal' in nems['tech'][i]):            
+        if (nems['Retirement Year'][i] != nems['T_RYR'][i]) and ('coal' in nems['tech'][i]):            
             nems.loc[i,'T_RYR'] = nems.loc[i,'Retirement Year']
 
     nems = nems.drop(['Retirement Year'], axis=1)
@@ -62,7 +62,8 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
     no_retires = nems['T_RYR'] == 9999
     nems.loc[no_retires,'RetireYearGiven'] = False
     nems.loc[~no_retires,'RetireYearGiven'] = True
-    
+
+    # Update retire year for units based on max age
     lifetimes = pd.read_csv(os.path.join(reeds_path,'inputs','plant_characteristics','maxage.csv'),
                             header=None, names=['tech','lifetime'])
     lifetimes['tech'] = lifetimes['tech'].str.lower()
@@ -83,39 +84,35 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
     lifetimes = pd.concat([lifetimes,lifetime_lfill, lifetime_psh, 
                            lifetime_csp, lifetime_pvb_bat, lifetime_pvb_pv], ignore_index=True)
     lifetimes.loc[lifetimes['tech'].isin(['lfill-gas','pumped-hydro']),'lifetime'] = 100
-    
     lifetimes.loc[lifetimes['tech']=='geothermal','tech'] = 'geohydro_allkm'
-
-    lifetimes.set_index('tech',inplace=True)
     
     for i in range(0,len(nems),1):
+        tech = nems.loc[i,'tech'].lower()
+        if tech in lifetimes['tech']:
+            lifetime = lifetimes.loc[lifetimes['tech']==tech,'lifetime']
+        else:
+            lifetime = lifetimes.loc[lifetimes['tech'].str.contains(tech),
+                                     'lifetime'].values[0]
+        # Assign retire year to units that do not have give retire year from both AEO-NEMS and EIA860M
         if not nems.loc[i,'RetireYearGiven']:
-            tech = nems.loc[i,'tech'].lower()
             StartYear_temp = nems.loc[i,'T_SYR']
-            try:
-                lifetime = lifetimes.loc[tech,'lifetime']
-            except:
-                lifetime = lifetimes.loc[lifetimes.index.str.contains(tech),
-                                         'lifetime'].values[0]
-
             # Assign retirement years to operating units with T_SYR <= current_year
             operating_cat = ['(OP) Operating',
                              '(OS) Out of service and NOT expected to return to service in next calendar year',
                              '(OA) Out of service but expected to return to service in next calendar year',
                              '(SB) Standby/Backup: available for service but not normally used']
-            if nems.loc[i,'status'] in operating_cat:
-                
+            if nems.loc[i,'status'] in operating_cat: 
             # if start year is after refurbishment year (or if refurbishment year is null) 
-            # and start year + lifetime is before current year, then extend retirement year by 10 years.
+            # and start year + lifetime is before current year, then extend retirement year by 
+            # increments of 10 years until the new retire year is at least 10 years from current year.
             # On the other hand, if start year + lifetime is already after current year,
             # then keep retirement year = start year + lifetime
-
                 if (nems.loc[i,'T_SYR'] >= nems.loc[i,'TRFURB']) or (pd.isnull(nems['TRFURB'][i])):
                     StartYear_temp = nems.loc[i,'T_SYR']
                 else:
                     StartYear_temp = nems.loc[i,'TRFURB']
                 
-            if (nems.loc[i,'T_RYR'] <= current_year) | (nems.loc[i,'T_RYR'] == 9999):
+            if (nems.loc[i,'T_RYR'] <= current_year) or (nems.loc[i,'T_RYR'] == 9999):
                 if StartYear_temp + lifetime <= current_year:
                     extended_years = math.ceil((current_year + 10 - StartYear_temp - lifetime)/10)*10
                     nems.loc[i,'T_RYR'] = StartYear_temp + lifetime + extended_years
@@ -124,7 +121,21 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
 
         elif nems.loc[i,'RetireYearGiven']:
             pass
-                
+
+        ## Reset start year based on repower year
+        if (pd.notna(nems.at[i,'T_RPYR'])) and (nems.loc[i,'T_RPYR'] > nems.loc[i,'T_RYR']):
+            # If repower year is immediately after retire year, keep start year 
+            # and update retire year as repower year + lifetime
+            # (in this case the unit is not considered a new unit)
+            if nems.loc[i,'T_RYR'] + 1 == nems.loc[i,'T_RPYR']:
+                nems.loc[i, 'T_RYR'] = nems.loc[i,'T_RPYR'] + lifetime
+            # If repower year is not immediately after retire year, the unit is retired 
+            # and then restart, so update start year as repower year and update retire year
+            # (in this case the unit is considered a new unit with online year = repower year)
+            else:
+                nems.loc[i,'T_SYR'] = nems.loc[i,'T_RPYR']
+                nems.loc[i,'T_RYR'] = nems.loc[i,'T_SYR'] + lifetime
+        
     exist = nems['T_RYR'] > 2010
     not_exist = nems['T_RYR'] <= 2010
     nems.loc[exist,'IsExistUnit'] = True

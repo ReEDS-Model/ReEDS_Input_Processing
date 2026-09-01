@@ -135,9 +135,9 @@ for i,row in noFVOM.iterrows():
     ## Fix FOM first, then VOM
     for OM in ['FOM','VOM']:
         T_OM = f'T_{OM}'
-        if (row[T_OM] == 0) | (pd.isnull(row[T_OM])):
+        if (row[T_OM] == 0) or (pd.isnull(row[T_OM])):
             ### If there are no units in the target unit's region with FOM/VOM data, search across all regions
-            df_use = df_i.copy() if ((sum(df_ir[T_OM] == 0)) | (df_ir[T_OM].isnull().all())) else df_ir.copy()
+            df_use = df_i.copy() if ((sum(df_ir[T_OM] == 0)) or (df_ir[T_OM].isnull().all())) else df_ir.copy()
             ### Only include units that have FOM/VOM data
             df_use = df_use.loc[df_use[T_OM]>0]
             ### Second, find unit closest in Capacity and HeatRate to the target unit using

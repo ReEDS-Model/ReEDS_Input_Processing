@@ -212,9 +212,11 @@ def cleanEIA860MData(dir,ver_mon,ver_year,current_year,storage_duration,status):
     eia860M_data = eia860M_data.rename({'Balancing Authority Code': 'T_PCA'}, axis=1)
     if status == 'Operating':
         eia860M_data = eia860M_data.rename({'Planned Retirement Year': 'T_RYR_EIA860', 
-                                            'Operating Year': 'T_SYR_EIA860'}, axis=1)
+                                            'Operating Year': 'T_SYR_EIA860',
+                                            'Planned Repower Year':'T_RPYR'}, axis=1)
         eia860M_data['T_SYR_EIA860'] = eia860M_data['T_SYR_EIA860'].replace(r'^\s*$', np.nan, regex=True)
         eia860M_data['T_RYR_EIA860'] = eia860M_data['T_RYR_EIA860'].replace(r'^\s*$', np.nan, regex=True)
+        eia860M_data['T_RPYR'] = eia860M_data['T_RPYR'].replace(r'^\s*$', np.nan, regex=True)
         # If no retire year is given, give is 9999
         eia860M_data.loc[eia860M_data['T_RYR_EIA860'].isna(),'T_RYR_EIA860'] = 9999
 
@@ -222,11 +224,13 @@ def cleanEIA860MData(dir,ver_mon,ver_year,current_year,storage_duration,status):
         eia860M_data = eia860M_data.rename({'Planned Operation Year': 'T_SYR_EIA860'}, axis=1)
         eia860M_data['T_SYR_EIA860'] = eia860M_data['T_SYR_EIA860'].replace(r'^\s*$', np.nan, regex=True)
         eia860M_data['T_RYR_EIA860'] = 9999
+        eia860M_data['T_RPYR'] = np.nan
     elif status == 'Retired':
         eia860M_data = eia860M_data.rename({'Retirement Year': 'T_RYR_EIA860', 
                                             'Operating Year': 'T_SYR_EIA860'}, axis=1)
         eia860M_data['T_SYR_EIA860'] = eia860M_data['T_SYR_EIA860'].replace(r'^\s*$', np.nan, regex=True)
         eia860M_data['T_RYR_EIA860'] = eia860M_data['T_RYR_EIA860'].replace(r'^\s*$', np.nan, regex=True)
+        eia860M_data['T_RPYR'] = np.nan
 
     eia860M_data = eia860M_data.reset_index(drop=True)
 
@@ -270,7 +274,7 @@ def cleanEIA860MData(dir,ver_mon,ver_year,current_year,storage_duration,status):
                 'Nameplate Capacity (MW)','Net Summer Capacity (MW)',
                 'Net Winter Capacity (MW)','Nameplate Energy Capacity (MWh)',
                 'Technology','tech','reeds_tech', 'ctt', 'wst',
-                'Energy Source Code','T_SYR_EIA860','T_RYR_EIA860',
+                'Energy Source Code','T_SYR_EIA860','T_RYR_EIA860','T_RPYR',
                 'Latitude', 'Longitude','Storage Duration','Status','eia860']
 
     eia860M_data_final = eia860M_data[eia_cols]
@@ -283,10 +287,10 @@ def cleanEIA860MData(dir,ver_mon,ver_year,current_year,storage_duration,status):
 
 def mergeAEOandEIA860M(aeo_data,eia860M_data,aeo_cols,eia_cols):
 
-    aeo_eia_cols = ['tech','TC_SUM','TC_NP','TC_WIN','T_RYR','T_SYR','THRATE',
-                    'T_PID','T_UID','T_PNM','TVIN','EFDcd','ECPcd','T_PCA',
-                    'TRFURB','T_VOM','T_FOM','T_SMO','T_RMO', 'T_CCSROV','T_CCSF',
-                    'T_CCSV','T_CCSHR','T_CAPAD','T_CCSCAPA','T_CCSLOC',
+    aeo_eia_cols = ['tech','TC_SUM','TC_NP','TC_WIN','T_RYR','T_SYR','T_RPYR',
+                    'THRATE','T_PID','T_UID','T_PNM','TVIN','EFDcd','ECPcd',
+                    'T_PCA','TRFURB','T_VOM','T_FOM','T_SMO','T_RMO','T_CCSROV',
+                    'T_CCSF','T_CCSV','T_CCSHR','T_CAPAD','T_CCSCAPA','T_CCSLOC',
                     'T_LONG','T_LAT','ctt','wst','nems','eia860',
                     'sector','status','Technology','storage_duration']
     nems_eia860 = pd.merge(aeo_data, eia860M_data, on=['T_PID','T_UID'], 
