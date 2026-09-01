@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=./config.schema.json
 # User-facing configuration for the ATB workflow.
 # Set the workflow switches, review the paths/URLs, then run:
 #   python scripts/run_pipeline.py
@@ -38,83 +39,82 @@ historical_cost_sources:
   allow_insecure_ssl_fallback: true
   # Reviewed mappings from normalized observed series into ReEDS columns.
   # Values before processing.smooth_cost_curves.projection_start_year replace
-  # the corresponding manual value when a technology selects historical_data:
-  # real. Other historical columns continue to come from manual history.
+  # the corresponding manual value when that metric selects `real`. Every
+  # historical metric declares its own mode below.
   reeds_mappings:
     upv:
-      output_column: capcost
-      require_complete_history: true
-      filters:
-        source_id: utility_pv
-        metric: capital_cost
-        unit: USD/kW
-        capacity_basis: AC
-        statistic: capacity_weighted_mean
-        geography: United States
-    # EIA reported no biomass installations in 2018, so that year alone keeps its
-    # manual value. Annual biomass additions are small and idiosyncratic, so the
+      capcost:
+        filters:
+          source_id: utility_pv
+          metric: capital_cost
+          unit: USD/kW
+          capacity_basis: AC
+          statistic: capacity_weighted_mean
+          geography: United States
+    # EIA reported no biomass installations in 2018, so that internal gap is
+    # linearly interpolated from 2017 and 2019. Years before EIA begins in 2013
+    # use the nearest real observation; no manual values are mixed into `real`.
+    # Annual biomass additions are small and idiosyncratic, so the observed
     # capacity-weighted mean swings widely (1,889-4,910 $/kW over 2013-2021).
     biopower:
-      output_column: capcost
-      require_complete_history: false
-      backfill_to_first_observed_year: true
-      filters:
-        source_id: eia_generator_costs
-        metric: capital_cost
-        unit: USD/kW
-        technology_detail: Biomass
-        source_table: major_energy_source
-    # EIA's whole-plant combined cycle and combustion turbine match the ReEDS
-    # F-frame definitions. H-frame and aeroderivative variants are different
-    # machines EIA never breaks out, so they keep manual history. EIA starts in
-    # 2013, so 2010-2012 hold the 2013 value.
+      capcost:
+        filters:
+          source_id: eia_generator_costs
+          metric: capital_cost
+          unit: USD/kW
+          technology_detail: Biomass
+          source_table: major_energy_source
+    # EIA's whole-plant combined-cycle and combustion-turbine series are shared
+    # across the corresponding ReEDS variants so selecting `real` uses one
+    # source for every plotted gas configuration. EIA starts in 2013, so
+    # 2010-2012 use the nearest real observation rather than manual history.
     gas:
-      output_column: capcost
-      require_complete_history: true
-      backfill_to_first_observed_year: true
-      series:
-        - technologies:
-            - Gas-CC
-          filters:
-            source_id: eia_generator_costs
-            metric: capital_cost
-            unit: USD/kW
-            technology_detail: Natural gas combined cycle
-            source_table: natural_gas_technology
-        - technologies:
-            - Gas-CT
-          filters:
-            source_id: eia_generator_costs
-            metric: capital_cost
-            unit: USD/kW
-            technology_detail: Natural gas combustion turbine
-            source_table: natural_gas_technology
-    # Figure 31's projects are overwhelmingly fixed-bottom, so `fixed` only;
-    # `floating` keeps manual history. "Europe and United States" is the closest
-    # US proxy and is complete over the required years; scraped_input/README.md
-    # covers the "Global" and "Asia" alternatives.
+      capcost:
+        series:
+          - technologies:
+              - Gas-CC
+              - Gas-CC_H_1x1
+              - Gas-CC_H_2x1
+            filters:
+              source_id: eia_generator_costs
+              metric: capital_cost
+              unit: USD/kW
+              technology_detail: Natural gas combined cycle
+              source_table: natural_gas_technology
+          - technologies:
+              - Gas-CT
+              - Gas-CT_aero
+            filters:
+              source_id: eia_generator_costs
+              metric: capital_cost
+              unit: USD/kW
+              technology_detail: Natural gas combustion turbine
+              source_table: natural_gas_technology
+    # Figure 31's projects are overwhelmingly fixed-bottom. The reviewed
+    # "Europe and United States" series is shared by fixed and floating classes
+    # so selecting `real` does not silently retain manual values for one class.
+    # scraped_input/README.md covers the "Global" and "Asia" alternatives.
     wind-ofs:
-      output_column: capcost
-      require_complete_history: true
-      turbine_classes:
-        - fixed
-      filters:
-        source_id: offshore_wind
-        metric: capital_cost
-        unit: USD/kW
-        capacity_basis: nameplate
-        statistic: capacity_weighted_mean
-        geography: Europe and United States
+      capcost:
+        turbine_classes:
+          - fixed
+          - floating
+        filters:
+          source_id: offshore_wind
+          metric: capital_cost
+          unit: USD/kW
+          capacity_basis: nameplate
+          statistic: capacity_weighted_mean
+          geography: Europe and United States
     wind-ons:
-      output_column: capcost
-      require_complete_history: true
-      filters:
-        source_id: land_based_wind
-        metric: capital_cost
-        unit: USD/kW
-        capacity_basis: nameplate
-        statistic: capacity_weighted_mean
-        geography: United States
+      capcost:
+        filters:
+          source_id: land_based_wind
+          metric: capital_cost
+          unit: USD/kW
+          capacity_basis: nameplate
+          statistic: capacity_weighted_mean
+          geography: United States
   sources:
     land_based_wind:
       enabled: true
@@ -157,8 +157,8 @@ processing:
   reeds_start_year: 2010
   decimals: 6
   # Optional treatment of the historical/projection boundary and future ATB
-  # trajectory. Each technology independently selects one historical mode and
-  # its future-year smoothing switches.
+  # trajectory. Each technology explicitly selects a historical mode for every
+  # modeled metric and its future-year smoothing switches.
   smooth_cost_curves:
     enabled: true
     method: selective
@@ -177,101 +177,131 @@ processing:
     similar_value_relative_tolerance: 0.001
     similar_value_absolute_tolerance: 1.0e-9
     major_step_relative_threshold: 0.1
-    # historical_data modes:
-    #   real          preserve supplied observed history exactly
+    # historical_data values (editor dropdowns are supplied by the schema):
+    #   real          use observed history; interpolate internal missing years
     #   manual        preserve manual_input/historical exactly
-    #   broadcast     lift the contiguous low historical tail to the boundary
-    # `real` is available only to technologies with a reviewed mapping under
-    # historical_cost_sources.reeds_mappings.
+    #   broadcast     use the first ATB projection value for all history years
+    # `real` is offered only where a reviewed mapping exists. Heat rate and
+    # round-trip efficiency are preserved manually and are not smoothed.
+    # Every technology listed below is processed. Capacity-factor multipliers
+    # are included automatically when the technology output contains one.
     technologies:
       upv:
-        enabled: true  # options: true / false
-        include_capacity_factor_multiplier: true  # options: true / false
-        historical_data: real  # options: real / manual / broadcast
+        historical_data:
+          capcost: real  # options: real / manual / broadcast
+          fom: manual  # options: manual / broadcast
+          vom: manual  # options: manual / broadcast
+          cf_improvement: manual  # options: manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       wind-ons:
-        enabled: true  # options: true / false
-        include_capacity_factor_multiplier: true  # options: true / false
-        historical_data: real  # options: real / manual / broadcast
+        historical_data:
+          capcost: real  # options: real / manual / broadcast
+          fom: manual  # options: manual / broadcast
+          vom: manual  # options: manual / broadcast
+          cf_improvement: manual  # options: manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       wind-ofs:
-        enabled: true  # options: true / false
-        include_capacity_factor_multiplier: true  # options: true / false
-        historical_data: real  # options: real / manual / broadcast
+        historical_data:
+          capcost: real  # options: real / manual / broadcast
+          fom: manual  # options: manual / broadcast
+          vom: manual  # options: manual / broadcast
+          cf_improvement: manual  # options: manual / broadcast
+          rsc_mult: manual  # only option: manual
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       battery:
-        enabled: true  # options: true / false
-        include_capacity_factor_multiplier: false  # only option: false
-        historical_data: broadcast  # options: manual / broadcast
+        historical_data:
+          capcost: broadcast  # options: manual / broadcast
+          capcost_energy: broadcast  # options: manual / broadcast
+          fom: broadcast  # options: manual / broadcast
+          fom_energy: broadcast  # options: manual / broadcast
+          vom: broadcast  # options: manual / broadcast
+          rte: manual  # only option: manual
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       csp:
-        enabled: true  # options: true / false
-        include_capacity_factor_multiplier: false  # only option: false
-        historical_data: broadcast  # options: manual / broadcast
+        historical_data:
+          capcost: broadcast  # options: manual / broadcast
+          fom: broadcast  # options: manual / broadcast
+          vom: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       coal:
-        enabled: true  # options: true / false
-        include_capacity_factor_multiplier: false  # only option: false
-        historical_data: broadcast  # options: manual / broadcast
+        historical_data:
+          capcost: broadcast  # options: manual / broadcast
+          fom: broadcast  # options: manual / broadcast
+          vom: broadcast  # options: manual / broadcast
+          heatrate: manual  # only option: manual
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       coal-ccs:
-        enabled: true  # options: true / false
-        include_capacity_factor_multiplier: false  # only option: false
-        historical_data: broadcast  # options: manual / broadcast
+        historical_data:
+          capcost: broadcast  # options: manual / broadcast
+          fom: broadcast  # options: manual / broadcast
+          vom: broadcast  # options: manual / broadcast
+          heatrate: manual  # only option: manual
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       gas:
-        enabled: true  # options: true / false
-        include_capacity_factor_multiplier: false  # only option: false
-        historical_data: real  # options: real / manual / broadcast
+        historical_data:
+          capcost: real  # options: real / manual / broadcast
+          fom: manual  # options: manual / broadcast
+          vom: manual  # options: manual / broadcast
+          heatrate: manual  # only option: manual
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       gas-ccs:
-        enabled: true  # options: true / false
-        include_capacity_factor_multiplier: false  # only option: false
-        historical_data: broadcast  # options: manual / broadcast
+        historical_data:
+          capcost: broadcast  # options: manual / broadcast
+          fom: broadcast  # options: manual / broadcast
+          vom: broadcast  # options: manual / broadcast
+          heatrate: manual  # only option: manual
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       fuelcell:
-        enabled: true  # options: true / false
-        include_capacity_factor_multiplier: false  # only option: false
-        historical_data: broadcast  # options: manual / broadcast
+        historical_data:
+          capcost: broadcast  # options: manual / broadcast
+          fom: broadcast  # options: manual / broadcast
+          vom: broadcast  # options: manual / broadcast
+          heatrate: manual  # only option: manual
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       nuclear:
-        enabled: true  # options: true / false
-        include_capacity_factor_multiplier: false  # only option: false
-        historical_data: broadcast  # options: manual / broadcast
+        historical_data:
+          capcost: broadcast  # options: manual / broadcast
+          fom: broadcast  # options: manual / broadcast
+          vom: broadcast  # options: manual / broadcast
+          heatrate: manual  # only option: manual
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       nuclear-smr:
-        enabled: true  # options: true / false
-        include_capacity_factor_multiplier: false  # only option: false
-        historical_data: broadcast  # options: manual / broadcast
+        historical_data:
+          capcost: broadcast  # options: manual / broadcast
+          fom: broadcast  # options: manual / broadcast
+          vom: broadcast  # options: manual / broadcast
+          heatrate: manual  # only option: manual
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       biopower:
-        enabled: true  # options: true / false
-        include_capacity_factor_multiplier: false  # only option: false
-        historical_data: real  # options: real / manual / broadcast
+        historical_data:
+          capcost: real  # options: real / manual / broadcast
+          fom: manual  # options: manual / broadcast
+          vom: manual  # options: manual / broadcast
+          heatrate: manual  # only option: manual
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
@@ -296,7 +326,7 @@ plotting:
   output_directory: figures
   # Before/after plots are versioned; their unsmoothed inputs are held only in
   # a temporary directory while the full pipeline is running.
-  smoothing_comparison_directory: figures/smoothing_comparison
+  smoothing_comparison_directory: comparison/smoothing_comparison
   technologies:
     - Biopower
     - Coal_FE

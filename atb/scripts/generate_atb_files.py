@@ -330,14 +330,19 @@ def _seed_history_from_reeds(
     return history
 
 
-def _observed_values_by_year(tech, mapping, settings, deflator):
-    """Read, filter, and deflate one observed series into {year: value}."""
+def _observed_history_source_path(settings):
+    """Return the configured normalized observed-history CSV path."""
     source_settings = settings['config'].get('historical_cost_sources', {})
-    source_path = os.path.join(
+    return os.path.join(
         ATBDIR,
         source_settings['directory'],
         source_settings['normalized_filename'],
     )
+
+
+def _observed_values_by_year(tech, mapping, settings, deflator):
+    """Read, filter, and deflate one observed series into {year: value}."""
+    source_path = _observed_history_source_path(settings)
     if not os.path.isfile(source_path):
         raise FileNotFoundError(
             f"Observed historical-cost file is missing: {source_path}. "
@@ -351,7 +356,7 @@ def _observed_values_by_year(tech, mapping, settings, deflator):
             )
         observed = observed.loc[observed[column] == value]
     if observed.empty:
-        raise ValueError(
+        raise KeyError(
             f"No observed historical rows match the configured mapping for {tech}."
         )
     if observed['year'].duplicated().any():
@@ -384,26 +389,52 @@ def _observed_values_by_year(tech, mapping, settings, deflator):
     return converted_values
 
 
-def _backfill_leading_years(values, required_years, tech, label=None):
-    """Extend the earliest observed value back over the years preceding it.
+def _complete_observed_years(
+    values, required_years, tech, label=None, report=True
+):
+    """Fill a real-history series without falling back to manual history.
 
-    Leading years only. A hole inside the observed range means the source
-    reported no installations that year, which require_complete_history catches.
+    Missing years between observations are linearly interpolated. Years before
+    the first or after the last observation use the nearest observed endpoint,
+    because linear interpolation requires an observation on each side.
     """
     if not values or not required_years:
         return values
-    first_observed = min(values)
-    leading = sorted(year for year in required_years if year < first_observed)
-    if not leading:
-        return values
-    extended = dict(values)
-    for year in leading:
-        extended[year] = values[first_observed]
-    print(
-        f"  {label or tech}: backfilled {leading[0]}-{leading[-1]} from the "
-        f"{first_observed} observed value"
+    observed_years = np.asarray(sorted(values), dtype=float)
+    if len(observed_years) < 2 and not required_years.issubset(values):
+        raise ValueError(
+            f"Observed historical mapping for {label or tech} needs at least "
+            "two observations to fill missing years."
+        )
+    observed_values = np.asarray(
+        [values[int(year)] for year in observed_years], dtype=float
     )
-    return extended
+    missing_years = sorted(required_years - set(values))
+    if not missing_years:
+        return values
+
+    completed = dict(values)
+    completed.update({
+        year: float(np.interp(year, observed_years, observed_values))
+        for year in missing_years
+    })
+    if report:
+        internal = [
+            year for year in missing_years
+            if observed_years[0] < year < observed_years[-1]
+        ]
+        endpoints = sorted(set(missing_years) - set(internal))
+        if internal:
+            print(
+                f"  {label or tech}: linearly interpolated missing real-history "
+                f"years {internal}"
+            )
+        if endpoints:
+            print(
+                f"  {label or tech}: filled endpoint real-history years "
+                f"{endpoints} from the nearest observation"
+            )
+    return completed
 
 
 def _assign_observed_values(frame, mask, output_column, values):
@@ -501,8 +532,8 @@ def apply_real_history_single_series(frame, tech, mapping, resolved, historical_
 def apply_real_history_wind_ofs(frame, tech, mapping, resolved, historical_mask):
     """Applier for offshore wind, which carries one row per turbine class.
 
-    Assigns the series to the classes named by `turbine_classes`; the rest keep
-    manual history. config.yaml carries the reasoning for that choice.
+    Assigns the series to every class named by `turbine_classes` and refuses a
+    hidden manual fallback for any class omitted by a `real` selection.
     """
     series, values = _only_series(resolved, tech, 'wind-ofs')
     targets = series.get('turbine_classes', ['fixed'])
@@ -512,9 +543,10 @@ def apply_real_history_wind_ofs(frame, tech, mapping, resolved, historical_mask)
     )
     untouched = sorted(present - set(targets))
     if untouched:
-        print(
-            f"  {tech}: observed history applied to {sorted(targets)} only; "
-            f"{untouched} retain manual history."
+        raise KeyError(
+            f"{tech}.capcost selects real history, but turbine classes "
+            f"{untouched} have no real-history target. Add them to "
+            "turbine_classes or select another historical mode."
         )
     return result, sorted(replaced)
 
@@ -523,8 +555,7 @@ def apply_real_history_gas(frame, tech, mapping, resolved, historical_mask):
     """Applier for natural gas, which carries one row per plant configuration.
 
     Each `series` entry names the configurations it describes through
-    `technologies`; unclaimed ones keep manual history. config.yaml carries the
-    reasoning for that split.
+    `technologies`; every configuration must be claimed when `real` is selected.
     """
     present = set(frame['i'].unique()) if 'i' in frame.columns else set()
     result = frame
@@ -544,15 +575,16 @@ def apply_real_history_gas(frame, tech, mapping, resolved, historical_mask):
         targeted.update(targets)
     untouched = sorted(present - targeted)
     if untouched:
-        print(
-            f"  {tech}: observed history applied to {sorted(targeted)}; "
-            f"{untouched} retain manual history."
+        raise KeyError(
+            f"{tech}.capcost selects real history, but technologies "
+            f"{untouched} have no real-history target. Add them to a mapped "
+            "series or select another historical mode."
         )
     return result, sorted(replaced)
 
 
 # Each applier owns which rows its series may address, since that depends on
-# the technology's row shape. historical_data: real requires an entry here.
+# the technology's row shape. Every metric selecting `real` requires an entry.
 REAL_HISTORY_APPLIERS = {
     'biopower': apply_real_history_single_series,
     'upv': apply_real_history_single_series,
@@ -563,7 +595,12 @@ REAL_HISTORY_APPLIERS = {
 
 
 def _resolve_observed_series(
-    tech, mapping, settings, deflator, required_years, projection_start_year
+    tech,
+    mapping,
+    settings,
+    deflator,
+    required_years,
+    report_fill=True,
 ):
     """Resolve a mapping into [(series_config, {year: value}), ...].
 
@@ -576,67 +613,183 @@ def _resolve_observed_series(
     for entry in entries:
         merged = {**inherited, **entry}
         values = _observed_values_by_year(tech, merged, settings, deflator)
-        if merged.get('backfill_to_first_observed_year', False):
-            targets = merged.get('technologies') or merged.get('turbine_classes')
-            label = f"{tech} {', '.join(targets)}" if targets else tech
-            values = _backfill_leading_years(values, required_years, tech, label)
-        missing_years = sorted(required_years - set(values))
-        if missing_years and merged.get('require_complete_history', True):
-            raise ValueError(
-                f"Observed historical mapping for {tech} does not cover "
-                f"required years before {projection_start_year}: {missing_years}"
-            )
+        targets = merged.get('technologies') or merged.get('turbine_classes')
+        label = f"{tech} {', '.join(targets)}" if targets else tech
+        values = _complete_observed_years(
+            values,
+            required_years,
+            tech,
+            label,
+            report=report_fill,
+        )
         resolved.append((merged, values))
     return resolved
 
 
 def _apply_real_historical_costs(frame, tech, settings, deflator):
-    """Replace mapped pre-projection columns with normalized observed values."""
-    smoothing = settings['config']['processing'].get('smooth_cost_curves', {})
-    configured_technologies = smoothing.get('technologies', {})
-    if not isinstance(configured_technologies, dict):
+    """Replace mapped pre-projection metrics with normalized observed values."""
+    technology_config = _technology_smoothing_config(tech, settings)
+    if technology_config is None:
         return frame
-    technology_config = configured_technologies.get(tech, {})
-    if technology_config.get('historical_data') != 'real':
+    real_metrics = _real_historical_metrics(technology_config)
+    if not real_metrics:
         return frame
-
+    smoothing = settings['config']['processing']['smooth_cost_curves']
     source_settings = settings['config'].get('historical_cost_sources', {})
-    mapping = source_settings.get('reeds_mappings', {}).get(tech)
-    if mapping is None:
-        raise ValueError(
-            f"{tech} selects historical_data: real but has no reviewed mapping "
-            "under historical_cost_sources.reeds_mappings."
-        )
-
+    technology_mappings = source_settings.get('reeds_mappings', {}).get(tech, {})
     applier = REAL_HISTORY_APPLIERS.get(tech)
     if applier is None:
         raise NameError(
-            f"{tech} selects historical_data: real but has no observed-history "
+            f"{tech} selects a real historical metric but has no observed-history "
             "applier. Define one and add it to REAL_HISTORY_APPLIERS."
         )
-
-    output_column = mapping['output_column']
-    if output_column not in frame.columns:
-        raise KeyError(
-            f"Observed-history output column {output_column} is absent for {tech}."
-        )
-
     projection_start_year = int(smoothing.get('projection_start_year', 2022))
     historical_mask = frame['t'] < projection_start_year
     required_years = set(frame.loc[historical_mask, 't'].astype(int).unique())
-    resolved = _resolve_observed_series(
-        tech, mapping, settings, deflator, required_years, projection_start_year
+    result = frame
+    for metric in real_metrics:
+        mapping = technology_mappings.get(metric)
+        if mapping is None:
+            raise ValueError(
+                f"{tech}.{metric} selects historical_data: real but has no "
+                "reviewed mapping under historical_cost_sources.reeds_mappings."
+            )
+        if metric not in result.columns:
+            raise KeyError(
+                f"Observed-history metric {metric!r} is absent for {tech}."
+            )
+        metric_mapping = {**mapping, 'output_column': metric}
+        resolved = _resolve_observed_series(
+            tech,
+            metric_mapping,
+            settings,
+            deflator,
+            required_years,
+        )
+        result, replaced_years = applier(
+            result, tech, metric_mapping, resolved, historical_mask
+        )
+        if replaced_years:
+            current_dollar_year = int(settings['dollaryear'])
+            print(
+                f"Applied real historical {metric} for {tech}: "
+                f"{replaced_years[0]}-{replaced_years[-1]} "
+                f"({current_dollar_year}$)"
+            )
+    return result
+
+
+def validate_real_historical_data(settings, techs, deflator):
+    """Fail early when a selected ``real`` technology lacks observed data.
+
+    The normal per-technology checks still run while values are applied. This
+    preflight check gathers configuration and source-data problems before any
+    technology output is processed, and gives the user one recovery command.
+    """
+    smoothing = settings['config']['processing'].get('smooth_cost_curves', {})
+    if not smoothing.get('enabled', False):
+        return
+    real_metrics = []
+    for tech in techs:
+        technology_config = _technology_smoothing_config(tech, settings)
+        if technology_config is not None:
+            real_metrics.extend(
+                (tech, metric)
+                for metric in _real_historical_metrics(technology_config)
+            )
+    if not real_metrics:
+        return
+    real_labels = [f"{tech}.{metric}" for tech, metric in real_metrics]
+
+    source_settings = settings['config'].get('historical_cost_sources', {})
+    missing_source_settings = [
+        key for key in ('directory', 'normalized_filename')
+        if not source_settings.get(key)
+    ]
+    if missing_source_settings:
+        raise ValueError(
+            "Historical data validation failed for technologies configured "
+            f"with historical_data: real: {real_labels}. Missing settings under "
+            f"historical_cost_sources: {missing_source_settings}."
+        )
+
+    source_path = _observed_history_source_path(settings)
+    if not os.path.isfile(source_path):
+        raise FileNotFoundError(
+            "Historical data validation failed for technologies configured "
+            f"with historical_data: real: {real_labels}.\n"
+            f"The normalized historical-cost file does not exist: {source_path}\n"
+            "Run 'python scripts/scrape_historical_costs.py' from the atb "
+            "directory, then run the formatter again."
+        )
+
+    mappings = source_settings.get('reeds_mappings', {})
+    if not isinstance(mappings, dict):
+        raise TypeError("historical_cost_sources.reeds_mappings must be a mapping.")
+    projection_start_year = int(smoothing.get('projection_start_year', 2022))
+    required_years = set(range(
+        int(settings['reeds_start_year']), projection_start_year
+    ))
+    missing_choices = []
+    failures = []
+    for tech, metric in real_metrics:
+        mapping = mappings.get(tech, {}).get(metric)
+        if mapping is None:
+            missing_choices.append(
+                f"{tech}.{metric}: no mapping under "
+                "historical_cost_sources.reeds_mappings"
+            )
+            continue
+        if REAL_HISTORY_APPLIERS.get(tech) is None:
+            missing_choices.append(
+                f"{tech}.{metric}: no observed-history applier in "
+                "REAL_HISTORY_APPLIERS"
+            )
+            continue
+        if metric not in settings['techs'][tech]['cols']:
+            missing_choices.append(
+                f"{tech}.{metric}: metric is not in its ReEDS schema"
+            )
+            continue
+        try:
+            _resolve_observed_series(
+                tech,
+                {**mapping, 'output_column': metric},
+                settings,
+                deflator,
+                required_years,
+                report_fill=False,
+            )
+        except KeyError as error:
+            missing_choices.append(f"{tech}.{metric}: {error}")
+        except (FileNotFoundError, TypeError, ValueError) as error:
+            failures.append(f"{tech}.{metric}: {error}")
+
+    if missing_choices:
+        details = "\n".join(f"  - {failure}" for failure in missing_choices)
+        raise KeyError(
+            "A selected real historical metric is unavailable:\n"
+            f"{details}\n"
+            "Choose an available option in config.yaml or add and review the "
+            "required source mapping."
+        )
+    if failures:
+        details = "\n".join(f"  - {failure}" for failure in failures)
+        raise ValueError(
+            "Historical data validation failed for one or more technologies "
+            "configured with historical_data: real:\n"
+            f"{details}\n"
+            "The combined historical CSV may be missing a source. Run "
+            "'python scripts/scrape_historical_costs.py --no-download' from "
+            "the atb directory to rebuild it from all local source files, or "
+            "review the mappings in config.yaml."
+        )
+
+    print(
+        "Validated observed historical data for metrics configured as real: "
+        f"{real_labels}"
     )
 
-    result, replaced_years = applier(frame, tech, mapping, resolved, historical_mask)
-    if replaced_years:
-        current_dollar_year = int(settings['dollaryear'])
-        print(
-            f"Applied real historical {output_column} for {tech}: "
-            f"{replaced_years[0]}-{replaced_years[-1]} "
-            f"({current_dollar_year}$)"
-        )
-    return result
 
 def merge_historical_atb_data(
     tech_data, tech, settings, dollaryear, deflator
@@ -972,15 +1125,11 @@ def _selective_smooth_cost_values(
         else:
             smoothed[anchor:] = np.maximum.accumulate(smoothed[anchor:])
 
-    # Raise only the historical tail below the anchor value. Stop as soon as
-    # an earlier value already meets or exceeds the anchor. This removes gas
-    # and coal-CCS cost dips and levels low capacity-factor history without
-    # lowering technologies whose historical values are already higher.
+    # Broadcast the first ATB projection value backward across the complete
+    # historical period. This makes `broadcast` an exclusive generated history
+    # rather than a selective treatment mixed with manual input values.
     if historical_data_mode == 'broadcast':
-        position = anchor - 1
-        while position >= 0 and smoothed[position] < smoothed[anchor]:
-            smoothed[position] = smoothed[anchor]
-            position -= 1
+        smoothed[:anchor] = smoothed[anchor]
     if not smooth_projection_curve:
         return smoothed
 
@@ -1001,14 +1150,97 @@ FUTURE_SMOOTHING_TREATMENTS = (
     'smooth_projection_curve',
 )
 HISTORICAL_DATA_MODES = ('real', 'manual', 'broadcast')
+NON_HISTORY_COLUMNS = {'Scenario', 'i', 't', 'turbine', 'type'}
+
+
+def _historical_mode_for_metric(historical_data, metric):
+    """Return one explicitly configured metric history mode."""
+    try:
+        return historical_data[metric]
+    except KeyError as error:
+        raise KeyError(
+            f"Historical data has no configured entry for metric {metric!r}."
+        ) from error
+
+
+def _real_historical_metrics(technology_config):
+    """Return explicitly configured observed metrics for one technology."""
+    return sorted(
+        metric
+        for metric, mode in technology_config['historical_data'].items()
+        if mode == 'real'
+    )
+
+
+def _validate_historical_data_config(tech, historical_data, settings):
+    """Validate one technology's explicit metric-level history choices."""
+    label = (
+        f"processing.smooth_cost_curves.technologies.{tech}.historical_data"
+    )
+    if not isinstance(historical_data, dict):
+        raise TypeError(
+            f"{label} must be a mapping with one entry for every modeled metric."
+        )
+    valid_metrics = set(settings['techs'][tech]['cols']) - NON_HISTORY_COLUMNS
+    unknown = sorted(set(historical_data) - valid_metrics)
+    if unknown:
+        raise KeyError(f"Unknown historical metrics in {label}: {unknown}")
+    missing = sorted(valid_metrics - set(historical_data))
+    if missing:
+        raise KeyError(f"Missing historical metrics in {label}: {missing}")
+    invalid = {
+        metric: mode
+        for metric, mode in historical_data.items()
+        if mode not in HISTORICAL_DATA_MODES
+    }
+    if invalid:
+        raise KeyError(
+            f"Unavailable historical metric modes in {label}; choose from "
+            f"{list(HISTORICAL_DATA_MODES)}: {invalid}"
+        )
+    broadcastable = {
+        metric for metric in valid_metrics
+        if (
+            metric == 'cf_improvement'
+            or metric == 'vom'
+            or metric.startswith('capcost')
+            or metric.startswith('fom')
+        )
+    }
+    unavailable_broadcast = sorted(
+        metric for metric, mode in historical_data.items()
+        if mode == 'broadcast' and metric not in broadcastable
+    )
+    if unavailable_broadcast:
+        raise KeyError(
+            f"Broadcast treatment is unavailable for metrics in {label}: "
+            f"{unavailable_broadcast}"
+        )
+    mappings = (
+        settings['config']
+        .get('historical_cost_sources', {})
+        .get('reeds_mappings', {})
+        .get(tech, {})
+    )
+    unavailable_real = sorted(
+        metric for metric, mode in historical_data.items()
+        if mode == 'real' and metric not in mappings
+    )
+    if unavailable_real:
+        raise KeyError(
+            f"Observed history is unavailable for metrics in {label}: "
+            f"{unavailable_real}"
+        )
+    return dict(historical_data)
 
 
 def _technology_smoothing_config(tech, settings):
     """Merge common smoothing parameters with one technology's switches.
 
-    A mapping under ``technologies`` is the preferred form. The former ``all``
-    or list form remains supported and receives the legacy behavior in which
-    every treatment is enabled.
+    A mapping under ``technologies`` is the preferred form. Each technology
+    present in the mapping is enabled. The former ``all`` or list form remains
+    supported and receives the legacy behavior in which every treatment is
+    enabled.
     """
     smoothing = settings['config']['processing'].get('smooth_cost_curves', {})
     if not smoothing.get('enabled', False):
@@ -1026,14 +1258,6 @@ def _technology_smoothing_config(tech, settings):
                 "Each processing.smooth_cost_curves.technologies entry must "
                 "be a mapping."
             )
-        technology_enabled = technology_overrides.get('enabled', True)
-        if not isinstance(technology_enabled, bool):
-            raise TypeError(
-                f"processing.smooth_cost_curves.technologies.{tech}.enabled "
-                "must be boolean."
-            )
-        if not technology_enabled:
-            return None
     else:
         smooth_all_techs = (
             configured_techs == 'all' or configured_techs == ['all']
@@ -1082,19 +1306,11 @@ def _technology_smoothing_config(tech, settings):
         future_treatments.update(overrides)
     config['future_smoothing_treatments'] = future_treatments
 
-    historical_data = config.get('historical_data', 'manual')
-    if historical_data not in HISTORICAL_DATA_MODES:
-        raise ValueError(
-            f"processing.smooth_cost_curves.technologies.{tech}.historical_data "
-            f"must be one of {list(HISTORICAL_DATA_MODES)}."
-        )
-    config['historical_data'] = historical_data
-    include_cf = config.get('include_capacity_factor_multiplier', False)
-    if not isinstance(include_cf, bool):
-        raise TypeError(
-            f"processing.smooth_cost_curves.technologies.{tech}."
-            "include_capacity_factor_multiplier must be boolean."
-        )
+    config['historical_data'] = _validate_historical_data_config(
+        tech,
+        config.get('historical_data', {}),
+        settings,
+    )
     return config
 
 
@@ -1120,13 +1336,7 @@ def smooth_cost_curve(tech, settings, df):
         raise TypeError(
             "processing.smooth_cost_curves.columns must be 'all' or a list."
         )
-    include_cf = smoothing.get('include_capacity_factor_multiplier', False)
-    if include_cf and 'cf_improvement' not in df.columns:
-        raise ValueError(
-            f"{tech} cannot include a capacity-factor multiplier because its "
-            "ReEDS output has no cf_improvement column."
-        )
-    if include_cf and 'cf_improvement' not in columns:
+    if 'cf_improvement' in df.columns and 'cf_improvement' not in columns:
         columns.append('cf_improvement')
     if not columns:
         raise ValueError(
@@ -1168,7 +1378,11 @@ def smooth_cost_curve(tech, settings, df):
         smoothing.get('major_step_relative_threshold', 0.1)
     )
     future_treatments = smoothing['future_smoothing_treatments']
-    historical_data_mode = smoothing['historical_data']
+    historical_data = smoothing['historical_data']
+    historical_modes = {
+        column: _historical_mode_for_metric(historical_data, column)
+        for column in columns
+    }
     if slope_change_threshold <= 0:
         raise ValueError("slope_change_threshold must be greater than zero.")
     if max_kink_years < 1:
@@ -1204,7 +1418,7 @@ def smooth_cost_curve(tech, settings, df):
     ]
     print(
         f"Smoothing {tech} cost curves: method={method}, columns={columns}, "
-        f"historical={historical_data_mode}, "
+        f"historical={historical_modes}, "
         f"future_smoothing_treatments={enabled_future_treatments}"
     )
     for group_values, index in groups.items():
@@ -1220,7 +1434,7 @@ def smooth_cost_curve(tech, settings, df):
                     similar_value_relative_tolerance,
                     similar_value_absolute_tolerance,
                     major_step_threshold,
-                    historical_data_mode,
+                    historical_modes[column],
                     future_treatments['enforce_monotonic_projection'],
                     future_treatments['smooth_projection_curve'],
                 )
@@ -1240,10 +1454,14 @@ def smooth_cost_curve(tech, settings, df):
 
         anchor_index = anchor_rows.index[0]
         target_index = target_rows.index[0]
-        if historical_data_mode == 'broadcast':
+        broadcast_columns = [
+            column for column in columns
+            if historical_modes[column] == 'broadcast'
+        ]
+        if broadcast_columns:
             historical_index = group.index[group['t'] <= anchor_year]
-            output.loc[historical_index, columns] = output.loc[
-                anchor_index, columns
+            output.loc[historical_index, broadcast_columns] = output.loc[
+                anchor_index, broadcast_columns
             ].to_numpy()
         bridge_index = group.index[
             (group['t'] > anchor_year) & (group['t'] < target_year)
@@ -1923,6 +2141,8 @@ def main(args):
                              index_col='Scenario').squeeze()
     deflator = pd.read_csv(os.path.join(settings['reedspath'], 'inputs', 'financials', 'deflator.csv'), 
                            index_col='*Dollar.Year').squeeze()
+    if not args.skip_costs:
+        validate_real_historical_data(settings, techs_to_run, deflator)
     # load ATB flat file
     atb_data = load_atb_flat_file(settings, args, techs_to_run)
 

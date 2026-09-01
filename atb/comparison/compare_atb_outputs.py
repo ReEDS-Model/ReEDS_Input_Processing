@@ -49,6 +49,26 @@ METRIC_LABELS = {
     "rsc_mult": "Resource-supply-curve multiplier",
 }
 
+PROVENANCE_COLORS = {
+    "Manual history": "#0072B2",
+    "Observed history (real)": "#009E73",
+    "Filled real history": "#D55E00",
+    "Broadcast history": "#CC79A7",
+    "ATB projection (raw)": "#6E6E6E",
+    "ATB projection (smoothed)": "#E69F00",
+}
+
+SERIES_LINESTYLES = [
+    "-",
+    "--",
+    "-.",
+    ":",
+    (0, (5, 1)),
+    (0, (3, 1, 1, 1)),
+    (0, (1, 1)),
+    (0, (5, 2, 1, 2)),
+]
+
 
 def resolve_atb_config_path(value: str | Path) -> Path:
     """Resolve a configured path relative to the ATB workflow directory."""
@@ -264,6 +284,438 @@ def grouped_series(frame: pd.DataFrame, columns: list[str]):
     return groups
 
 
+def output_technology(filename: str, settings: dict) -> str:
+    """Return the internal technology key represented by an output filename."""
+    matches = []
+    for tech, tech_settings in settings["techs"].items():
+        filename_root = tech_settings.get("reeds_name", tech)
+        if filename.startswith(f"{filename_root}_ATB_"):
+            matches.append(tech)
+    if len(matches) != 1:
+        raise ValueError(
+            f"Could not identify one technology for smoothing plot {filename}: "
+            f"{matches}"
+        )
+    return matches[0]
+
+
+def smoothing_provenance(settings: dict, generated_path: Path) -> dict:
+    """Describe the source/treatment rules for one smoothing comparison."""
+    technology = output_technology(generated_path.name, settings)
+    smoothing = settings["config"]["processing"].get("smooth_cost_curves", {})
+    technology_settings = smoothing.get("technologies", {}).get(technology, {})
+    if not isinstance(technology_settings, dict):
+        technology_settings = {}
+    historical_data = technology_settings.get(
+        "historical_data", {}
+    )
+    mappings = (
+        settings["config"]
+        .get("historical_cost_sources", {})
+        .get("reeds_mappings", {})
+        .get(technology, {})
+    )
+    source_settings = settings["config"].get("historical_cost_sources", {})
+    source_path = resolve_atb_config_path(
+        Path(source_settings.get("directory", ""))
+        / source_settings.get("normalized_filename", "")
+    )
+    observed = pd.read_csv(source_path) if source_path.is_file() else pd.DataFrame()
+    observed_series = {}
+    boundary = int(smoothing.get("projection_start_year", 2022))
+    for metric, mapping in mappings.items():
+        entries = mapping.get("series") or [mapping]
+        inherited = {
+            key: value for key, value in mapping.items() if key != "series"
+        }
+        metric_series = []
+        for entry in entries:
+            merged = {**inherited, **entry}
+            selected = observed
+            for column, value in merged.get("filters", {}).items():
+                if column not in selected.columns:
+                    selected = selected.iloc[0:0]
+                    break
+                selected = selected.loc[selected[column] == value]
+            years = (
+                set(
+                    pd.to_numeric(selected["year"], errors="coerce")
+                    .dropna()
+                    .astype(int)
+                    .tolist()
+                )
+                if "year" in selected.columns
+                else set()
+            )
+            target_column = None
+            targets = None
+            if merged.get("turbine_classes"):
+                target_column = "turbine"
+                targets = set(merged["turbine_classes"])
+            elif merged.get("technologies"):
+                target_column = "i"
+                targets = set(merged["technologies"])
+            metric_series.append({
+                "years": years,
+                "target_column": target_column,
+                "targets": targets,
+            })
+        observed_series[metric] = metric_series
+    return {
+        "technology": technology,
+        "projection_start_year": boundary,
+        "historical_data": historical_data,
+        "observed_series": observed_series,
+    }
+
+
+def is_observed_history_point(
+    final_group: pd.DataFrame,
+    metric: str,
+    year: int,
+    provenance: dict,
+) -> bool:
+    """Return whether one plotted point was populated from observed history."""
+    for series in provenance["observed_series"].get(metric, []):
+        if year not in series["years"]:
+            continue
+        target_column = series["target_column"]
+        if target_column is None:
+            return True
+        if target_column not in final_group.columns:
+            continue
+        group_targets = set(final_group[target_column].dropna().unique())
+        if group_targets & series["targets"]:
+            return True
+    return False
+
+
+def is_real_history_target(
+    final_group: pd.DataFrame,
+    metric: str,
+    provenance: dict,
+) -> bool:
+    """Return whether a plotted series is covered by a selected real mapping."""
+    for series in provenance["observed_series"].get(metric, []):
+        target_column = series["target_column"]
+        if target_column is None:
+            return True
+        if target_column not in final_group.columns:
+            continue
+        group_targets = set(final_group[target_column].dropna().unique())
+        if group_targets & series["targets"]:
+            return True
+    return False
+
+
+def provenance_categories(
+    final_group: pd.DataFrame,
+    baseline_group: pd.DataFrame | None,
+    metric: str,
+    provenance: dict,
+) -> list[str]:
+    """Label each final point by its exclusive data source or treatment."""
+    years = pd.to_numeric(final_group["t"], errors="raise").astype(int)
+    final_values = pd.to_numeric(final_group[metric], errors="coerce")
+    if baseline_group is None:
+        baseline_values = pd.Series(np.nan, index=final_group.index)
+    else:
+        baseline_by_year = (
+            baseline_group[["t", metric]]
+            .drop_duplicates("t", keep="last")
+            .set_index("t")[metric]
+        )
+        baseline_values = years.map(baseline_by_year)
+        baseline_values.index = final_group.index
+        baseline_values = pd.to_numeric(baseline_values, errors="coerce")
+
+    changed = ~np.isclose(
+        final_values,
+        baseline_values,
+        rtol=1e-9,
+        atol=1e-9,
+        equal_nan=True,
+    )
+    boundary = provenance["projection_start_year"]
+    historical_data = provenance["historical_data"]
+    if metric not in historical_data:
+        raise KeyError(
+            f"{provenance['technology']} has no historical_data entry for "
+            f"metric {metric!r}."
+        )
+    historical_mode = historical_data[metric]
+    final_categories = []
+    for year, was_changed in zip(years, changed):
+        if year < boundary:
+            if historical_mode == "manual":
+                final_categories.append("Manual history")
+            elif historical_mode == "broadcast":
+                final_categories.append("Broadcast history")
+            elif historical_mode == "real":
+                if not is_real_history_target(final_group, metric, provenance):
+                    raise KeyError(
+                        f"{provenance['technology']}.{metric} selects real "
+                        "history, but this plotted series has no real mapping."
+                    )
+                final_categories.append(
+                    "Observed history (real)"
+                    if is_observed_history_point(
+                        final_group, metric, int(year), provenance
+                    )
+                    else "Filled real history"
+                )
+            else:
+                raise KeyError(
+                    f"Unknown historical mode for "
+                    f"{provenance['technology']}.{metric}: {historical_mode!r}"
+                )
+        else:
+            final_categories.append(
+                "ATB projection (smoothed)"
+                if was_changed
+                else "ATB projection (raw)"
+            )
+    return final_categories
+
+
+def input_point_categories(
+    final_group: pd.DataFrame,
+    metric: str,
+    provenance: dict,
+) -> list[str | None]:
+    """Label input points; derived history and broadcast history have no dot."""
+    years = pd.to_numeric(final_group["t"], errors="raise").astype(int)
+    boundary = provenance["projection_start_year"]
+    historical_data = provenance["historical_data"]
+    historical_mode = historical_data[metric]
+    categories = []
+    for year in years:
+        if year >= boundary:
+            categories.append("ATB projection (raw)")
+        elif historical_mode == "manual":
+            categories.append("Manual history")
+        elif historical_mode == "real" and is_observed_history_point(
+            final_group, metric, int(year), provenance
+        ):
+            categories.append("Observed history (real)")
+        else:
+            categories.append(None)
+    return categories
+
+
+def plot_colored_segments(
+    axis,
+    years: np.ndarray,
+    values: np.ndarray,
+    categories: list[str],
+    linestyle,
+) -> None:
+    """Plot intervals using the provenance color of their starting point."""
+    if not len(years):
+        return
+    if len(years) == 1:
+        axis.plot(
+            years,
+            values,
+            color=PROVENANCE_COLORS[categories[0]],
+            linestyle=linestyle,
+            linewidth=2.0,
+            alpha=0.95,
+            zorder=2,
+        )
+        return
+
+    interval_categories = categories[:-1]
+    run_start = 0
+    for position in range(1, len(interval_categories) + 1):
+        if (
+            position < len(interval_categories)
+            and interval_categories[position] == interval_categories[run_start]
+        ):
+            continue
+        axis.plot(
+            years[run_start:position + 1],
+            values[run_start:position + 1],
+            color=PROVENANCE_COLORS[interval_categories[run_start]],
+            linestyle=linestyle,
+            linewidth=2.0,
+            alpha=0.95,
+            zorder=2,
+        )
+        run_start = position
+
+
+def plot_file_with_provenance(
+    generated_path: Path,
+    reeds_path: Path,
+    plot_dir: Path,
+    settings: dict,
+) -> bool:
+    """Plot a smoothing comparison with color encoding source and treatment."""
+    generated = normalize_frame(pd.read_csv(generated_path))
+    baseline = normalize_frame(pd.read_csv(reeds_path))
+    metrics = metric_columns(generated, baseline)
+    if not metrics or "t" not in generated.columns or "t" not in baseline.columns:
+        return False
+
+    provenance = smoothing_provenance(settings, generated_path)
+    identifiers = sorted(
+        set(series_columns(generated)) | set(series_columns(baseline))
+    )
+    generated_groups = grouped_series(generated, identifiers)
+    baseline_groups = dict(grouped_series(baseline, identifiers))
+    labels = sorted(
+        {label for label, _ in generated_groups}
+        | set(baseline_groups)
+    )
+    series_styles = {
+        label: SERIES_LINESTYLES[index % len(SERIES_LINESTYLES)]
+        for index, label in enumerate(labels)
+    }
+
+    columns = min(3, len(metrics))
+    rows = math.ceil(len(metrics) / columns)
+    figure, axes = plt.subplots(
+        rows,
+        columns,
+        figsize=(5.4 * columns, 3.7 * rows),
+        squeeze=False,
+        constrained_layout=True,
+    )
+    figure.suptitle(
+        generated_path.stem,
+        y=1.03,
+        fontsize=12,
+        fontweight="bold",
+    )
+
+    present_categories = set()
+    points_present = False
+    for axis, metric in zip(axes.flat, metrics):
+        for label, final_group in generated_groups:
+            baseline_group = baseline_groups.get(label)
+            final_categories = provenance_categories(
+                final_group,
+                baseline_group,
+                metric,
+                provenance,
+            )
+            present_categories.update(final_categories)
+            years = final_group["t"].to_numpy()
+            values = final_group[metric].to_numpy()
+            plot_colored_segments(
+                axis,
+                years,
+                values,
+                final_categories,
+                series_styles[label],
+            )
+            if baseline_group is not None:
+                point_categories = input_point_categories(
+                    final_group,
+                    metric,
+                    provenance,
+                )
+                baseline_by_year = (
+                    baseline_group[["t", metric]]
+                    .drop_duplicates("t", keep="last")
+                    .set_index("t")[metric]
+                )
+                point_years = pd.to_numeric(
+                    final_group["t"], errors="raise"
+                ).to_numpy()
+                point_values = pd.to_numeric(
+                    pd.Series(point_years).map(baseline_by_year),
+                    errors="coerce",
+                ).to_numpy()
+                for category in PROVENANCE_COLORS:
+                    point_mask = np.asarray([
+                        item == category for item in point_categories
+                    ]) & np.isfinite(point_values)
+                    if not point_mask.any():
+                        continue
+                    points_present = True
+                    present_categories.add(category)
+                    axis.scatter(
+                        point_years[point_mask],
+                        point_values[point_mask],
+                        s=18,
+                        marker="o",
+                        facecolors=PROVENANCE_COLORS[category],
+                        edgecolors="none",
+                        alpha=0.95,
+                        zorder=3,
+                    )
+        axis.axvline(
+            provenance["projection_start_year"],
+            color="0.35",
+            linestyle=":",
+            linewidth=1.0,
+            alpha=0.7,
+        )
+        axis.set_title(METRIC_LABELS.get(metric, metric))
+        axis.set_xlabel("Year")
+        axis.set_ylabel(METRIC_LABELS.get(metric, metric))
+        axis.grid(True, alpha=0.25)
+
+    for axis in axes.flat[len(metrics):]:
+        axis.remove()
+
+    category_handles = [
+        plt.Line2D(
+            [0],
+            [0],
+            color=color,
+            linewidth=2.5,
+            label=category,
+        )
+        for category, color in PROVENANCE_COLORS.items()
+        if category in present_categories
+    ]
+    series_handles = []
+    if labels != ["all"]:
+        series_handles = [
+            plt.Line2D(
+                [0],
+                [0],
+                color="0.25",
+                linewidth=2,
+                linestyle=series_styles[label],
+                label=label,
+            )
+            for label in labels
+        ]
+    point_handles = []
+    if points_present:
+        point_handles.append(
+            plt.Line2D(
+                [0],
+                [0],
+                color="0.25",
+                linewidth=0,
+                marker="o",
+                markerfacecolor="0.25",
+                markeredgewidth=0,
+                label="Input data values",
+            )
+        )
+    handles = category_handles + point_handles + series_handles
+    figure.legend(
+        handles=handles,
+        loc="outside lower center",
+        ncol=min(4, len(handles)),
+        fontsize=8,
+        frameon=False,
+    )
+    figure.savefig(
+        plot_dir / f"{generated_path.stem}.png",
+        dpi=160,
+        bbox_inches="tight",
+    )
+    plt.close(figure)
+    return True
+
+
 def plot_file(
     generated_path: Path,
     reeds_path: Path,
@@ -446,6 +898,7 @@ def write_plots(
     include_overview: bool = True,
     reference_linestyle: str = "--",
     reference_marker: str | None = None,
+    provenance_settings: dict | None = None,
 ) -> int:
     """Generate the overview and all available file-level comparison plots."""
     plot_dir.mkdir(parents=True, exist_ok=True)
@@ -461,15 +914,23 @@ def write_plots(
     for generated_path in generated_files:
         reeds_path = reeds_dir / reeds_filename(generated_path.name)
         if reeds_path.exists():
-            wrote_plot = plot_file(
-                generated_path,
-                reeds_path,
-                plot_dir,
-                solid_label=solid_label,
-                dashed_label=dashed_label,
-                reference_linestyle=reference_linestyle,
-                reference_marker=reference_marker,
-            )
+            if provenance_settings is None:
+                wrote_plot = plot_file(
+                    generated_path,
+                    reeds_path,
+                    plot_dir,
+                    solid_label=solid_label,
+                    dashed_label=dashed_label,
+                    reference_linestyle=reference_linestyle,
+                    reference_marker=reference_marker,
+                )
+            else:
+                wrote_plot = plot_file_with_provenance(
+                    generated_path,
+                    reeds_path,
+                    plot_dir,
+                    provenance_settings,
+                )
             if wrote_plot:
                 plotted += 1
             else:
@@ -581,7 +1042,7 @@ def main() -> None:
         )
         smoothing_plot_setting = settings['config']['plotting'].get(
             'smoothing_comparison_directory',
-            'figures/smoothing_comparison',
+            'comparison/smoothing_comparison',
         )
         smoothing_plot_dir = resolve_atb_config_path(smoothing_plot_setting)
         smoothing_plotted = write_plots(
@@ -595,6 +1056,7 @@ def main() -> None:
             include_overview=False,
             reference_linestyle="None",
             reference_marker="o",
+            provenance_settings=settings,
         )
         print(
             f"Wrote {smoothing_plotted} before/after smoothing plots to "

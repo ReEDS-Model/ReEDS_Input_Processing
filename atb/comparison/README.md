@@ -1,7 +1,7 @@
 # Local ATB output comparison
 
-The comparison utility is versioned; its generated plots are local artifacts
-and remain ignored by Git.
+The comparison utility is versioned. Generated/ReEDS validation plots remain
+local and ignored, while before/after smoothing plots are versioned for review.
 
 For validation plus before/after smoothing figures, run formatting and
 comparison together from `atb/`:
@@ -38,6 +38,16 @@ because the temporary pre-smoothing data is intentionally not retained.
 
 The full pipeline also compares the temporary unsmoothed data with the final
 smoothed outputs. Those plots are written to
-`../figures/smoothing_comparison/` and are versioned so branch users can review
-the smoothing effect without retaining duplicate CSV outputs. Solid lines are
-after smoothing; point markers are the unsmoothed input values.
+`smoothing_comparison/` and are versioned so branch users can review
+the smoothing effect without retaining duplicate CSV outputs. Final processed
+values are lines, while solid dots identify input data values. Manual history
+and directly observed real history receive dots; broadcast history and filled
+real-history years do not. Future dots show the raw ATB values, while the line
+shows the final raw or smoothed trajectory. A selected manual or broadcast
+history uses one color for its entire historical curve. Real history uses green
+for observations and orange for years filled from that same real series; an
+internal gap is linearly interpolated. Gray and gold distinguish raw and
+smoothed ATB projections. A dotted vertical line marks the configured
+projection start year; line styles distinguish technology series. Each interval
+uses the source color of its starting year, so a new source color never extends
+backward into the preceding year.

@@ -80,6 +80,11 @@ This reads the local raw files plus the versioned history under
 does **not** download raw data. If a required raw file is missing, run Step 1
 first.
 
+Before processing any cost files, the formatter checks every selected
+technology metric configured as `real`. It stops with a single actionable error
+if the normalized historical-cost CSV, a reviewed metric mapping, or matching
+source rows are missing.
+
 A missing history file can be initialized from the matching file in
 `processing.reeds_repo` by temporarily setting
 `historical_data.seed_missing_from_reeds: true`. Current scraped ATB rows
@@ -95,14 +100,14 @@ it processes, and whether it copies results into ReEDS are all controlled under
 
 The optional `processing.smooth_cost_curves` block removes short-lived dips,
 bumps, and rounded stair steps without replacing each ATB trajectory with one
-fully smoothed curve. Each technology has independent switches under
-`smooth_cost_curves.technologies`:
+fully smoothed curve. Each technology has metric-level historical choices and
+independent future switches under `smooth_cost_curves.technologies`:
 
 | Historical mode | Effect before `projection_start_year` |
 | --- | --- |
-| `real` | Use the reviewed observed-series mapping under `historical_cost_sources.reeds_mappings` and preserve those values exactly. An unmapped technology raises an error. |
+| `real` | Use only the reviewed observed-series mapping for that metric. Preserve reported values, linearly interpolate internal missing years, and use the nearest observation for years outside the reported range. An unmapped metric or row variant raises an error. |
 | `manual` | Preserve the versioned rows in `manual_input/historical/` exactly. |
-| `broadcast` | Moving backward from the projection boundary, raise the contiguous historical tail below the boundary value. Stop at the first earlier value that already meets or exceeds it. |
+| `broadcast` | Use the first ATB projection value for every historical year. This generated history does not retain any manual historical values. |
 
 The independent switches under `future_smoothing_treatments` apply from
 `projection_start_year` onward:
@@ -112,14 +117,15 @@ The independent switches under `future_smoothing_treatments` apply from
 | `enforce_monotonic_projection` | Remove future movement opposite the anchor-to-endpoint direction: costs cannot temporarily increase, while improving multipliers cannot temporarily decrease. |
 | `smooth_projection_curve` | Bridge near-equal plateaus and compact clusters of slope changes. Major transitions and single ATB milestones remain explicit. |
 
-Each technology can also independently set `enabled`, `columns`, and
-`include_capacity_factor_multiplier`. Inline comments in `config.yaml` list
-only the valid options for each technology. `real` applies to every technology
-with an observed series that measures the same quantity as its ReEDS column:
-UPV, land-based wind, offshore wind, gas, and biopower. Capacity-factor
-multiplier selection is available only for
-utility PV and the two wind technologies; it is fixed to `false` elsewhere.
-Heat rate and efficiency are not changed.
+Every technology listed under `smooth_cost_curves.technologies` is processed.
+Every modeled metric has an explicit `historical_data` entry. For example,
+biopower uses `capcost: real`, while fixed O&M, variable O&M, and heat rate each
+explicitly select `manual`.
+Capacity-factor multipliers are included automatically when the technology
+output contains `cf_improvement` (utility PV and the two wind technologies).
+`real` applies to every technology with an observed series that measures the
+same quantity as its ReEDS column: UPV, land-based wind, offshore wind, gas,
+and biopower. Heat rate and efficiency are not changed.
 
 ### Per-technology observed-history appliers
 
@@ -131,8 +137,8 @@ all carry one row per year, so the two halves of the work are separated in
   series, requires a stated `dollar_year`, and deflates to the ReEDS dollar
   year.
 - an entry in `REAL_HISTORY_APPLIERS`, keyed by technology, decides which rows
-  that annual value is allowed to address. A technology selecting
-  `historical_data: real` without an entry raises `NameError`.
+  that annual value is allowed to address. A technology selecting a `real`
+  metric without an entry raises `NameError`.
 
 Frames at this stage stack all ATB scenarios together, and history is identical
 across them, so repetition across `Scenario` is expected. Repetition on any
@@ -142,8 +148,8 @@ letting one value silently overwrite several distinct series.
 | Applier | Used by | Behavior |
 | --- | --- | --- |
 | `apply_real_history_single_series` | `upv`, `wind-ons`, `biopower` | One row per scenario-year; assigns directly. |
-| `apply_real_history_wind_ofs` | `wind-ofs` | One row per turbine class. Assigns to the classes named by `turbine_classes`; the rest keep manual history. |
-| `apply_real_history_gas` | `gas` | One row per plant configuration. Each `series` entry assigns to the configurations it names; unclaimed ones keep manual history. |
+| `apply_real_history_wind_ofs` | `wind-ofs` | One row per turbine class. Every class must be named by `turbine_classes`; otherwise the run raises instead of mixing manual history. |
+| `apply_real_history_gas` | `gas` | One row per plant configuration. Every configuration must be claimed by a `series` entry; otherwise the run raises instead of mixing manual history. |
 
 Why a given technology targets the rows it does is recorded beside its mapping
 in `config.yaml`, where that choice is made.
@@ -153,15 +159,12 @@ registering it, rather than generalizing an existing one.
 
 ### Mapping options
 
-Each entry under `historical_cost_sources.reeds_mappings` accepts:
+Mappings are nested as `technology -> metric`. Each metric entry accepts:
 
 | Key | Default | Effect |
 | --- | --- | --- |
-| `output_column` | required | Which ReEDS column the observed series replaces. |
-| `filters` | required | Column/value pairs selecting exactly one row per year from the normalized CSV. |
-| `require_complete_history` | `true` | Raise unless every year from `reeds_start_year` to the projection boundary is covered. |
-| `backfill_to_first_observed_year` | `false` | Hold the earliest observed value flat across required years that precede it. |
-| `turbine_classes` | `[fixed]` | Offshore only: which turbine classes the series applies to. |
+| `filters` | required without `series` | Column/value pairs selecting exactly one row per year from the normalized CSV. |
+| `turbine_classes` | required for offshore wind | Offshore only: turbine classes receiving the observed series. Every output class must be included when `real` is selected. |
 | `series` | — | A list of sub-series, each with its own `filters` and `technologies`, for technologies whose rows need different observed series. Entries inherit the mapping's other keys. |
 
 Rows that all take the same series use `filters` directly; rows needing
@@ -169,25 +172,19 @@ different series use `series`, as `gas` does:
 
 ```yaml
 gas:
-  output_column: capcost
-  backfill_to_first_observed_year: true
-  series:
-    - technologies: [Gas-CC]
-      filters: {technology_detail: Natural gas combined cycle, ...}
-    - technologies: [Gas-CT]
-      filters: {technology_detail: Natural gas combustion turbine, ...}
+  capcost:
+    series:
+      - technologies: [Gas-CC, Gas-CC_H_1x1, Gas-CC_H_2x1]
+        filters: {technology_detail: Natural gas combined cycle, ...}
+      - technologies: [Gas-CT, Gas-CT_aero]
+        filters: {technology_detail: Natural gas combustion turbine, ...}
 ```
 
-`backfill_to_first_observed_year` exists because some sources start after
-`reeds_start_year` — every EIA generator-cost series begins in 2013, the first
-edition EIA published. Holding the first observed value flat across the earlier
-years keeps the series usable without inventing a trend for years the source
-never measured.
-
-It fills **leading** years only. A hole inside the observed range means the
-source reported no installations that year, which is a different situation, and
-`require_complete_history` still catches it. EIA biomass, missing 2018 in the
-middle of an otherwise continuous run, raises even with backfill enabled.
+Missing years never fall back to the manual file when `real` is selected.
+Internal gaps are linearly interpolated between the surrounding observations.
+For years outside the observed range, where interpolation is impossible, the
+nearest observed endpoint is used. The smoothing-comparison plot colors these
+derived years separately from directly reported observations.
 
 The current defaults in `config.yaml` are:
 
@@ -206,9 +203,11 @@ the future monotonic treatment:
 ```yaml
 technologies:
   upv:
-    enabled: true
-    include_capacity_factor_multiplier: true
-    historical_data: manual
+    historical_data:
+      capcost: manual
+      fom: manual
+      vom: manual
+      cf_improvement: manual
     future_smoothing_treatments:
       enforce_monotonic_projection: true
       smooth_projection_curve: false
@@ -216,6 +215,17 @@ technologies:
 
 The older flat-history/anchor-to-target behavior remains available as
 `method: linear_bridge`.
+
+### Configuration editor support
+
+`config.yaml` declares `config.schema.json` on its first line. Editors with YAML
+language-server support use that schema for completion lists, hover descriptions,
+required-field checks, and invalid-option warnings. Use the editor's completion
+command (typically `Ctrl+Space`) to choose valid history modes and other options.
+
+Historical choices are technology-by-metric. The schema offers `real` only for
+metrics with a reviewed observed mapping; other metrics offer `manual` and
+`broadcast`. Runtime validation remains authoritative when the workflow runs.
 
 ### File names and column schemas expected by ReEDS
 
@@ -310,7 +320,8 @@ The normal pipeline validates the formatted pre-smoothing data against the
 configured ReEDS repository when `workflow.make_comparison_plots` is enabled.
 It holds that data in a temporary directory, prints the validation summary to
 the terminal, writes local validation plots under `comparison/plots/`, and
-writes versioned before/after plots under `figures/smoothing_comparison/`. The
+writes versioned before/after plots under
+`comparison/smoothing_comparison/`. The
 temporary CSVs are deleted when the pipeline exits; no row-level or summary CSV
 reports are created.
 
@@ -323,6 +334,7 @@ URLs together when adopting a newer release.
 | Path | Purpose |
 | --- | --- |
 | `config.yaml` | User-facing workflow configuration |
+| `config.schema.json` | Editor completion lists and validation for `config.yaml` |
 | `scraped_input/` | Visible raw ATB and optional observed-cost downloads (local only; not committed) |
 | `manual_input/` | Versioned history and inputs unavailable in ATB downloads |
 | `scripts/settings.yaml` | Internal per-technology ReEDS formatting rules |
@@ -332,5 +344,6 @@ URLs together when adopting a newer release.
 | `scripts/atb_plotting.py` | Raw ATB plotting |
 | `output/` | Generated ReEDS-formatted CSVs |
 | `figures/` | Generated ATB plots |
+| `comparison/smoothing_comparison/` | Versioned before/after smoothing plots |
 
 See [`scripts/README.md`](scripts/README.md) for the scripts folder structure.
