@@ -37,7 +37,7 @@ techs:
     DisplayName: Utility PV - Class 4
     # columns in the ATB file to rename; each pairing should be "ATB col name: ReEDS col name"
     subset_rows:
-      Case: Market
+      Case: Exp
       CRPYears: 30
     renamecols:
       variable: t
@@ -68,7 +68,7 @@ techs:
     DisplayName: Land-Based Wind - Class 4 - Technology 1
     reeds_name: ons-wind
     subset_rows:
-      Case: Market
+      Case: Exp
       CRPYears: 30
     renamecols:
       variable: t
@@ -117,7 +117,7 @@ techs:
       Offshore Wind - Class 8: floating
     reeds_name: ofs-wind
     subset_rows:
-      Case: Market
+      Case: R&D
       CRPYears: 30 
     addcols:
       rsc_mult: 1
@@ -177,7 +177,7 @@ techs:
       # note: 2-hour battery is a placeholder for calculating the power and energy costs
       # see the 'format_continuous_battery' function
     subset_rows:
-      Case: Market
+      Case: Exp
       CRPYears: 30
     renamecols:
       DisplayName: i
@@ -205,7 +205,7 @@ techs:
       # using the year-specific ratios in manual_input/csp_cost_ratios_<year>.csv.
       CSP - Class 2: csp2
     subset_rows:
-      Case: Market
+      Case: R&D
       CRPYears: 30 
     renamecols:
       variable: t
@@ -230,7 +230,7 @@ techs:
       Coal-new: Coal-new
       Coal-IGCC: Coal-IGCC
     subset_rows:
-      Case: Market
+      Case: R&D
       CRPYears: 30
       Scenario: Moderate
     renamecols:
@@ -255,7 +255,7 @@ techs:
     DisplayName:
       Coal-95%-CCS: coal-CCS_mod
     subset_rows:
-      Case: Market
+      Case: R&D
       CRPYears: 30
     renamecols:
       DisplayName: i
@@ -282,7 +282,7 @@ techs:
       NG 1-on-1 Combined Cycle (H-Frame): Gas-CC_H_1x1
       NG 2-on-1 Combined Cycle (H-Frame): Gas-CC_H_2x1
     subset_rows:
-      Case: Market
+      Case: R&D
       CRPYears: 30
       Scenario: Moderate
     renamecols:
@@ -310,7 +310,7 @@ techs:
       NG 1-on-1 Combined Cycle (H-Frame) 95% CCS: Gas-CC_H_1x1-CCS_mod
       NG 2-on-1 Combined Cycle (H-Frame) 95% CCS: Gas-CC_H_2x1-CCS_mod
     subset_rows:
-      Case: Market
+      Case: R&D
       CRPYears: 30
     renamecols:
       DisplayName: i
@@ -332,7 +332,7 @@ techs:
     DisplayName:
       NG Fuel Cell: ng-fuel-cell
     subset_rows:
-      Case: Market
+      Case: R&D
       CRPYears: 30
     renamecols:
       DisplayName: i
@@ -354,7 +354,7 @@ techs:
     DisplayName:
       Nuclear - Large: Nuclear
     subset_rows:
-      Case: Market
+      Case: R&D
       CRPYears: 30
     renamecols:
       DisplayName: i
@@ -376,7 +376,7 @@ techs:
     DisplayName:
       Nuclear - Small: Nuclear-SMR
     subset_rows:
-      Case: Market
+      Case: R&D
       CRPYears: 30
     renamecols:
       DisplayName: i
@@ -398,7 +398,7 @@ techs:
     DisplayName:
       Biopower - Dedicated: biopower
     subset_rows:
-      Case: Market
+      Case: R&D
       CRPYears: 30
     renamecols:
       DisplayName: i

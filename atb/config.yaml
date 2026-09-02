@@ -10,9 +10,9 @@ workflow:
   make_comparison_plots: true
 
 atb:
-  year: 2024
-  release_version: 3
-  dollar_year: 2022
+  year: 2025
+  release_version: 1
+  dollar_year: 2023
 
 raw_data:
   directory: scraped_input
@@ -22,11 +22,11 @@ raw_data:
   # after that check fails.
   allow_insecure_ssl_fallback: true
   flat_file:
-    filename: atb_2024_flat_file.csv
-    url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2024/v3.0.0/ATBe.csv
+    filename: atb_2025_flat_file.csv
+    url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2025/v1.0.0/ATBe.csv
   workbook:
-    filename: atb_2024_workbook.xlsx
-    url: https://data.openei.org/files/6006/2024_v3_Workbook.xlsx
+    filename: atb_2025_workbook.xlsx
+    url: https://data.openei.org/files/8759/2025_v1_Workbook_08-27-2026.xlsx
 
 # Observed project costs are downloaded and normalized by the separate
 # scripts/scrape_historical_costs.py utility. Only explicitly reviewed entries

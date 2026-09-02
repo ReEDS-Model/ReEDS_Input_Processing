@@ -24,9 +24,6 @@ atb/_dev/
 # Guidelines in the top-level README).
 atb/scraped_input/*
 !atb/scraped_input/README.md
-# Unpublished ATB 2025 manual inputs; keep local, never commit
-atb/manual_input/battery_costs_2025.csv
-atb/manual_input/csp_cost_ratios_2025.csv
 # Legacy CF source; final historical CF multipliers now live in historical/.
 atb/manual_input/historic_capacity_factors.csv
 /NEMS_database_processing/Outputs/

@@ -6,7 +6,7 @@ import openpyxl
 import pandas as pd
 
 
-BATTERY_SHEET = "Utility-Scale Battery Storage"
+BATTERY_SHEET = "Utility-Scale Battery - Expand"
 BLOCKS = {
     "Capital Cost ($/kWh)": "capcost_energy",
     "Battery Power Capital Cost ($/kW)": "capcost",
