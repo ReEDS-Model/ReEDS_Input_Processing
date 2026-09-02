@@ -375,9 +375,8 @@
     "futureTreatments": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["enforce_monotonic_projection", "smooth_projection_curve"],
+      "required": ["smooth_projection_curve"],
       "properties": {
-        "enforce_monotonic_projection": {"type": "boolean"},
         "smooth_projection_curve": {"type": "boolean"}
       }
     },
@@ -477,8 +476,6 @@
         "projection_start_year",
         "slope_change_threshold",
         "max_kink_years",
-        "similar_value_relative_tolerance",
-        "similar_value_absolute_tolerance",
         "major_step_relative_threshold",
         "minimum_adjustment_relative_threshold",
         "technologies"
@@ -512,8 +509,6 @@
         "target_year": {"type": "integer", "minimum": 1900},
         "slope_change_threshold": {"type": "number", "exclusiveMinimum": 0},
         "max_kink_years": {"type": "integer", "minimum": 1},
-        "similar_value_relative_tolerance": {"type": "number", "minimum": 0},
-        "similar_value_absolute_tolerance": {"type": "number", "minimum": 0},
         "major_step_relative_threshold": {"type": "number", "exclusiveMinimum": 0},
         "minimum_adjustment_relative_threshold": {"type": "number", "minimum": 0},
         "future_smoothing_treatments": {"$ref": "#/definitions/futureTreatments"},

@@ -163,11 +163,12 @@ processing:
   smooth_cost_curves:
     enabled: true
     method: selective
-    # "capital_costs" selects capcost* for future smoothing. Historical source
-    # choices below apply to every metric independently of this selector, so
-    # O&M can use broadcast history while preserving published future ATB steps.
+    # "all" smooths every monetary column (capcost*, fom*, vom); rounding
+    # artifacts are no more real in O&M than in capital cost. Historical source
+    # choices below apply to every metric independently of this selector.
     # Capacity-factor multipliers are still included automatically where used.
-    columns: capital_costs
+    # Heat rate is not monetary and is never smoothed by "all".
+    columns: all
     # Years before this boundary are historical; this year and later are the
     # current ATB projection. Change this once here rather than in the code.
     projection_start_year: 2022
@@ -175,11 +176,9 @@ processing:
     # possible kink. Only clusters of 2+ changes are smoothed.
     slope_change_threshold: 0.4
     max_kink_years: 4
-    # Consecutive future values within 0.1% are treated as one rounded plateau.
-    # Its last year becomes the interpolation point, removing small stair steps
-    # and short flat dips. Transitions of 10% or more remain explicit steps.
-    similar_value_relative_tolerance: 0.001
-    similar_value_absolute_tolerance: 1.0e-9
+    # Year-to-year transitions of 10% or more are published milestones and are
+    # never smoothed. Runs of equal values are left alone too: a flat stretch
+    # is how ATB states that a cost stops improving.
     major_step_relative_threshold: 0.1
     # Keep the original ATB value when a proposed future adjustment is smaller
     # than 0.5%. This prevents visually insignificant smoothing changes.
@@ -200,7 +199,6 @@ processing:
           vom: broadcast  # options: manual / broadcast
           cf_improvement: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
-          enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       wind-ons:
         historical_data:
@@ -209,7 +207,6 @@ processing:
           vom: broadcast  # options: manual / broadcast
           cf_improvement: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
-          enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       wind-ofs:
         historical_data:
@@ -223,7 +220,6 @@ processing:
           cf_improvement: broadcast  # options: manual / broadcast
           rsc_mult: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
-          enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       battery:
         historical_data:
@@ -234,7 +230,6 @@ processing:
           vom: broadcast  # options: manual / broadcast
           rte: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
-          enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       csp:
         historical_data:
@@ -242,7 +237,6 @@ processing:
           fom: broadcast  # options: manual / broadcast
           vom: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
-          enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       coal:
         historical_data:
@@ -251,7 +245,6 @@ processing:
           vom: broadcast  # options: manual / broadcast
           heatrate: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
-          enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       coal-ccs:
         historical_data:
@@ -260,7 +253,6 @@ processing:
           vom: broadcast  # options: manual / broadcast
           heatrate: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
-          enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       gas:
         historical_data:
@@ -269,7 +261,6 @@ processing:
           vom: broadcast  # options: manual / broadcast
           heatrate: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
-          enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       gas-ccs:
         historical_data:
@@ -278,7 +269,6 @@ processing:
           vom: broadcast  # options: manual / broadcast
           heatrate: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
-          enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       fuelcell:
         historical_data:
@@ -287,7 +277,6 @@ processing:
           vom: broadcast  # options: manual / broadcast
           heatrate: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
-          enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       nuclear:
         historical_data:
@@ -296,7 +285,6 @@ processing:
           vom: broadcast  # options: manual / broadcast
           heatrate: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
-          enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       nuclear-smr:
         historical_data:
@@ -305,7 +293,6 @@ processing:
           vom: broadcast  # options: manual / broadcast
           heatrate: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
-          enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       biopower:
         historical_data:
@@ -314,7 +301,6 @@ processing:
           vom: broadcast  # options: manual / broadcast
           heatrate: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
-          enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
 
 # Versioned ReEDS history used before each ATB projection series begins.

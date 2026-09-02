@@ -103,12 +103,13 @@ bumps, and rounded stair steps without replacing each ATB trajectory with one
 fully smoothed curve. Each technology has metric-level historical choices and
 independent future switches under `smooth_cost_curves.technologies`:
 
-The default `columns: capital_costs` applies future monetary smoothing only to
-`capcost*` metrics. Historical source choices apply independently to every
-metric. By default, metrics with reviewed observations use `real`, while all
-others use `broadcast`. Fixed and variable O&M therefore use flat broadcast
-history but preserve their published ATB future steps. Capacity-factor
-multipliers remain included automatically for technologies that use them.
+The default `columns: all` applies future monetary smoothing to every monetary
+metric (`capcost*`, `fom*`, `vom`), since a rounding artifact is no more real in
+O&M than in capital cost. `capital_costs` narrows it to `capcost*`. Heat rate is
+not monetary and is never included by `all`. Historical source choices apply
+independently to every metric. By default, metrics with reviewed observations
+use `real`, while all others use `broadcast`. Capacity-factor multipliers remain
+included automatically for technologies that use them.
 
 | Historical mode | Effect before `projection_start_year` |
 | --- | --- |
@@ -116,13 +117,14 @@ multipliers remain included automatically for technologies that use them.
 | `manual` | Preserve the versioned rows in `manual_input/historical/` exactly. |
 | `broadcast` | Use the first ATB projection value for every historical year. This generated history does not retain any manual historical values. |
 
-The independent switches under `future_smoothing_treatments` apply from
-`projection_start_year` onward:
+The switches under `future_smoothing_treatments` apply from
+`projection_start_year` onward. ATB's published direction is never overridden:
+a cost the source projects to rise, such as the 2023 solar and wind increases,
+is passed through unchanged.
 
 | Future smoothing treatment | Effect |
 | --- | --- |
-| `enforce_monotonic_projection` | Remove future movement opposite the anchor-to-endpoint direction: costs cannot temporarily increase, while improving multipliers cannot temporarily decrease. |
-| `smooth_projection_curve` | Bridge near-equal plateaus and compact clusters of slope changes. Major transitions and single ATB milestones remain explicit. |
+| `smooth_projection_curve` | Bridge compact clusters of slope changes. Major transitions, single ATB milestones, and flat stretches remain explicit. |
 
 Every technology listed under `smooth_cost_curves.technologies` is processed.
 Every modeled metric has an explicit `historical_data` entry. For example,
@@ -216,15 +218,13 @@ The current defaults in `config.yaml` are:
 | Setting | Default | Meaning |
 | --- | ---: | --- |
 | `projection_start_year` | `2022` | Years before this are historical; this year and later are the current projection |
-| `similar_value_relative_tolerance` | `0.001` | Values within 0.1% can form one plateau |
-| `similar_value_absolute_tolerance` | `1e-9` | Numerical tolerance near zero |
 | `slope_change_threshold` | `0.4` | Detect a normalized slope change of 40% or more |
 | `max_kink_years` | `4` | Maximum span of a compact slope-change cluster |
 | `major_step_relative_threshold` | `0.1` | Preserve year-to-year changes of 10% or more |
 | `minimum_adjustment_relative_threshold` | `0.005` | Keep the original ATB value when a proposed future smoothing adjustment is smaller than 0.5% |
 
-For example, this preserves manually supplied UPV history while retaining only
-the future monotonic treatment:
+For example, this preserves manually supplied UPV history and passes the ATB
+projection through untouched:
 
 ```yaml
 technologies:
@@ -235,7 +235,6 @@ technologies:
       vom: manual
       cf_improvement: manual
     future_smoothing_treatments:
-      enforce_monotonic_projection: true
       smooth_projection_curve: false
 ```
 

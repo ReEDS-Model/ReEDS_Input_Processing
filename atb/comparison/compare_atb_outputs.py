@@ -366,7 +366,47 @@ def smoothing_provenance(settings: dict, generated_path: Path) -> dict:
         "projection_start_year": boundary,
         "historical_data": historical_data,
         "observed_series": observed_series,
+        "history_class_column": (
+            settings["techs"].get(technology, {}).get("history_class_column")
+        ),
     }
+
+
+def resolve_historical_mode(
+    metric: str,
+    final_group: pd.DataFrame,
+    provenance: dict,
+) -> str:
+    """Return one metric's history mode for the plotted sub-technology class.
+
+    A metric may give one mode per class, so the mode depends on which class
+    this series plots rather than on the technology alone.
+    """
+    historical_data = provenance["historical_data"]
+    if metric not in historical_data:
+        raise KeyError(
+            f"{provenance['technology']} has no historical_data entry for "
+            f"metric {metric!r}."
+        )
+    configured = historical_data[metric]
+    if not isinstance(configured, dict):
+        return configured
+    class_column = provenance["history_class_column"]
+    if not class_column or class_column not in final_group.columns:
+        raise KeyError(
+            f"{provenance['technology']}.{metric} gives one history mode per "
+            f"sub-technology class, but the plotted series has no "
+            f"{class_column!r} column identifying which class it is."
+        )
+    classes = set(final_group[class_column].dropna().unique())
+    modes = {configured[c] for c in classes if c in configured}
+    if len(modes) != 1:
+        raise KeyError(
+            f"{provenance['technology']}.{metric} resolves to {sorted(modes)} "
+            f"for plotted classes {sorted(classes)}; one series must plot one "
+            "class so it has a single history mode."
+        )
+    return modes.pop()
 
 
 def is_observed_history_point(
@@ -437,13 +477,7 @@ def provenance_categories(
         equal_nan=True,
     )
     boundary = provenance["projection_start_year"]
-    historical_data = provenance["historical_data"]
-    if metric not in historical_data:
-        raise KeyError(
-            f"{provenance['technology']} has no historical_data entry for "
-            f"metric {metric!r}."
-        )
-    historical_mode = historical_data[metric]
+    historical_mode = resolve_historical_mode(metric, final_group, provenance)
     final_categories = []
     for year, was_changed in zip(years, changed):
         if year < boundary:
@@ -486,8 +520,7 @@ def input_point_categories(
     """Label input points; derived history and broadcast history have no dot."""
     years = pd.to_numeric(final_group["t"], errors="raise").astype(int)
     boundary = provenance["projection_start_year"]
-    historical_data = provenance["historical_data"]
-    historical_mode = historical_data[metric]
+    historical_mode = resolve_historical_mode(metric, final_group, provenance)
     categories = []
     for year in years:
         if year >= boundary:
