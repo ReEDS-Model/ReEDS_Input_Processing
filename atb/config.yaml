@@ -64,17 +64,17 @@ historical_cost_sources:
           unit: USD/kW
           technology_detail: Biomass
           source_table: major_energy_source
-    # EIA's whole-plant combined-cycle and combustion-turbine series are shared
-    # across the corresponding ReEDS variants so selecting `real` uses one
-    # source for every plotted gas configuration. EIA starts in 2013, so
-    # 2010-2012 use the nearest real observation rather than manual history.
+    # EIA reports gas plants only as "combined cycle" or "combustion turbine";
+    # Form EIA-860 has no field for turbine frame class or plant configuration,
+    # so there is no observation for the H-Frame or aeroderivative variants.
+    # Each series therefore describes the one variant it measures, and the
+    # others generate their own history under smooth_cost_curves below. EIA
+    # starts in 2013, so 2010-2012 use the nearest real observation.
     gas:
       capcost:
         series:
           - technologies:
               - Gas-CC
-              - Gas-CC_H_1x1
-              - Gas-CC_H_2x1
             filters:
               source_id: eia_generator_costs
               metric: capital_cost
@@ -83,7 +83,6 @@ historical_cost_sources:
               source_table: natural_gas_technology
           - technologies:
               - Gas-CT
-              - Gas-CT_aero
             filters:
               source_id: eia_generator_costs
               metric: capital_cost
@@ -256,7 +255,15 @@ processing:
           smooth_projection_curve: true  # options: true / false
       gas:
         historical_data:
-          capcost: real  # options: real / manual / broadcast
+          # Only the plain combined-cycle and combustion-turbine plants have an
+          # EIA observation. The H-Frame and aeroderivative variants have none,
+          # so they generate their own history instead of borrowing one.
+          capcost:
+            Gas-CC: real  # options: real / manual / broadcast
+            Gas-CC_H_1x1: broadcast  # options: manual / broadcast
+            Gas-CC_H_2x1: broadcast  # options: manual / broadcast
+            Gas-CT: real  # options: real / manual / broadcast
+            Gas-CT_aero: broadcast  # options: manual / broadcast
           fom: broadcast  # options: manual / broadcast
           vom: broadcast  # options: manual / broadcast
           heatrate: broadcast  # options: manual / broadcast

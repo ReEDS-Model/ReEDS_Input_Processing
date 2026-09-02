@@ -292,6 +292,9 @@ techs:
       - Scenario
       - i
       - t
+    # column naming the sub-technology, so config.yaml can give each plant
+    # configuration its own historical_data mode
+    history_class_column: i
     cols:
       - i
       - t

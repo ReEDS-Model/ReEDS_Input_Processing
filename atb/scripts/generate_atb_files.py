@@ -481,44 +481,51 @@ def _only_series(resolved, tech, applier_name):
     return resolved[0]
 
 
-def _assign_series_to_targets(
-    frame, tech, mapping, values, historical_mask, key_column, targets, applier_name
-):
-    """Assign one observed series to each row key its mapping names.
+def _series_target(series, tech):
+    """Return the one sub-technology a mapping series describes.
 
-    One target at a time, so listing several deliberately shares a series while
-    a single target matching several rows still raises.
+    A series measures one thing, so it names one sub-technology. Sharing a
+    series across several made unrelated rows carry identical history and hid
+    the fact that no observation existed for the others.
     """
+    targets = series.get('turbine_classes') or series.get('technologies') or []
+    if len(targets) != 1:
+        raise ValueError(
+            f"{tech} observed-history mapping series names {targets or 'nothing'}. "
+            "Each series describes exactly one sub-technology; give the others "
+            "their own series or their own mode in historical_data."
+        )
+    return targets[0]
+
+
+def _assign_series_to_target(
+    frame, tech, mapping, values, historical_mask, key_column, target
+):
+    """Assign one observed series to the rows of one sub-technology."""
     if key_column not in frame.columns:
         raise KeyError(
             f"{tech} observed-history applier expects a {key_column!r} column "
             "identifying the sub-technology."
         )
     present = set(frame[key_column].unique())
-    unknown = sorted(set(targets) - present)
-    if unknown:
+    if target not in present:
         raise ValueError(
-            f"{tech} observed-history mapping targets {unknown}, which are "
+            f"{tech} observed-history mapping targets {target!r}, which is "
             f"absent from the frame. Present: {sorted(present)}."
         )
-    result = frame
-    replaced = set()
-    for target in targets:
-        mask = (
-            historical_mask
-            & result['t'].isin(values)
-            & (result[key_column] == target)
-        )
-        _assert_one_row_per_year(result, mask, tech, applier_name)
-        result, years = _assign_observed_values(
-            result, mask, mapping['output_column'], values
-        )
-        replaced.update(years)
-    return result, replaced
+    mask = (
+        historical_mask
+        & frame['t'].isin(values)
+        & (frame[key_column] == target)
+    )
+    _assert_one_row_per_year(frame, mask, tech, key_column)
+    return _assign_observed_values(
+        frame, mask, mapping['output_column'], values
+    )
 
 
 def apply_real_history_single_series(
-    frame, tech, mapping, resolved, historical_mask, historical_data
+    frame, tech, mapping, resolved, historical_mask, historical_data, class_column
 ):
     """Applier for technologies carrying one row per scenario-year.
 
@@ -531,63 +538,41 @@ def apply_real_history_single_series(
     return _assign_observed_values(frame, mask, mapping['output_column'], values)
 
 
-def apply_real_history_wind_ofs(
-    frame, tech, mapping, resolved, historical_mask, historical_data
+def apply_real_history_by_class(
+    frame, tech, mapping, resolved, historical_mask, historical_data, class_column
 ):
-    """Applier for offshore wind, which carries one row per turbine class.
+    """Applier for technologies carrying one row per sub-technology.
 
-    Assigns the series to every class named by `turbine_classes`. A class the
-    mapping omits must select its own mode in historical_data, so no class
+    Offshore wind splits by turbine class and gas by plant configuration; both
+    assign each series to the one sub-technology it measures. A sub-technology
+    no series describes must select its own mode in historical_data, so none
     falls back to manual values by accident.
     """
-    series, values = _only_series(resolved, tech, 'wind-ofs')
-    targets = series.get('turbine_classes', ['fixed'])
-    present = set(frame['turbine'].unique()) if 'turbine' in frame.columns else set()
-    result, replaced = _assign_series_to_targets(
-        frame, tech, mapping, values, historical_mask, 'turbine', targets, 'wind-ofs'
-    )
-    metric = mapping['output_column']
-    configured = set(_metric_modes(historical_data, metric)) - {None}
-    untouched = sorted(present - set(targets) - configured)
-    if untouched:
+    if not class_column:
         raise KeyError(
-            f"{tech}.{metric} selects real history, but turbine classes "
-            f"{untouched} have no real-history target. Add them to "
-            "turbine_classes or give each one its own historical mode."
+            f"{tech} uses the per-class observed-history applier but declares "
+            "no history_class_column in settings.yaml."
         )
-    return result, sorted(replaced)
-
-
-def apply_real_history_gas(
-    frame, tech, mapping, resolved, historical_mask, historical_data
-):
-    """Applier for natural gas, which carries one row per plant configuration.
-
-    Each `series` entry names the configurations it describes through
-    `technologies`; every configuration must be claimed when `real` is selected.
-    """
-    present = set(frame['i'].unique()) if 'i' in frame.columns else set()
+    present = (
+        set(frame[class_column].unique()) if class_column in frame.columns else set()
+    )
     result = frame
     replaced = set()
     targeted = set()
     for series, values in resolved:
-        targets = series.get('technologies')
-        if not targets:
-            raise ValueError(
-                f"{tech} observed-history mapping has a series entry without "
-                "`technologies`. Name the ReEDS technologies it describes."
-            )
-        result, years = _assign_series_to_targets(
-            result, tech, mapping, values, historical_mask, 'i', targets, 'gas'
+        target = _series_target(series, tech)
+        result, years = _assign_series_to_target(
+            result, tech, mapping, values, historical_mask, class_column, target
         )
         replaced.update(years)
-        targeted.update(targets)
-    untouched = sorted(present - targeted)
+        targeted.add(target)
+    metric = mapping['output_column']
+    configured = set(_metric_modes(historical_data, metric)) - {None}
+    untouched = sorted(present - targeted - configured)
     if untouched:
         raise KeyError(
-            f"{tech}.capcost selects real history, but technologies "
-            f"{untouched} have no real-history target. Add them to a mapped "
-            "series or select another historical mode."
+            f"{tech}.{metric} selects real history, but {untouched} have no "
+            "observed series. Give each one its own mode in historical_data."
         )
     return result, sorted(replaced)
 
@@ -600,8 +585,8 @@ REAL_HISTORY_APPLIERS = {
     'biopower': apply_real_history_single_series,
     'upv': apply_real_history_single_series,
     'wind-ons': apply_real_history_single_series,
-    'wind-ofs': apply_real_history_wind_ofs,
-    'gas': apply_real_history_gas,
+    'wind-ofs': apply_real_history_by_class,
+    'gas': apply_real_history_by_class,
 }
 
 
@@ -684,6 +669,7 @@ def _apply_real_historical_costs(frame, tech, settings, deflator):
             resolved,
             historical_mask,
             technology_config['historical_data'],
+            settings['techs'][tech].get('history_class_column'),
         )
         if replaced_years:
             current_dollar_year = int(settings['dollaryear'])
@@ -1155,7 +1141,7 @@ def _real_historical_metrics(technology_config):
 
 
 def _mapping_target_classes(mapping):
-    """Return every sub-technology class a reviewed mapping claims."""
+    """Return the sub-technologies a reviewed mapping claims, one per series."""
     entries = mapping.get('series') or [mapping]
     inherited = {key: value for key, value in mapping.items() if key != 'series'}
     targets = set()

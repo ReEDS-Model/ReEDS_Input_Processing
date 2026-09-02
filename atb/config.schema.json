@@ -279,7 +279,7 @@
       "type": "object",
       "additionalProperties": false,
       "minProperties": 1,
-      "description": "One history mode per turbine class. Use when an observed series describes only some classes; each class listed here must match the mapping's turbine_classes when it selects real. Only fixed offers real: NREL's Figure 31 CapEx series is fixed-bottom, and no observed floating cost history exists.",
+      "description": "One history mode per turbine class. Use when an observed series describes only some classes; each class selecting real must match the mapping's turbine_classes. Only fixed offers real: NREL's Figure 31 CapEx series is fixed-bottom, and no observed floating cost history exists.",
       "properties": {
         "fixed": {"$ref": "#/definitions/historyMode"},
         "floating": {"$ref": "#/definitions/historyModeWithoutReal"}
@@ -289,6 +289,25 @@
       "oneOf": [
         {"$ref": "#/definitions/historyMode"},
         {"$ref": "#/definitions/historyModeByTurbineClass"}
+      ]
+    },
+    "historyModeByGasPlant": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per gas plant configuration. EIA reports only 'combined cycle' and 'combustion turbine', so just Gas-CC and Gas-CT offer real; the H-Frame and aeroderivative variants have no observation and must generate their own history.",
+      "properties": {
+        "Gas-CC": {"$ref": "#/definitions/historyMode"},
+        "Gas-CT": {"$ref": "#/definitions/historyMode"},
+        "Gas-CC_H_1x1": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "Gas-CC_H_2x1": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "Gas-CT_aero": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyModeOrByGasPlant": {
+      "oneOf": [
+        {"$ref": "#/definitions/historyMode"},
+        {"$ref": "#/definitions/historyModeByGasPlant"}
       ]
     },
     "historyObservedCapcostWithCf": {
@@ -325,7 +344,7 @@
       "additionalProperties": false,
       "required": ["capcost", "fom", "vom", "heatrate"],
       "properties": {
-        "capcost": {"$ref": "#/definitions/historyMode"},
+        "capcost": {"$ref": "#/definitions/historyModeOrByGasPlant"},
         "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
         "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
         "heatrate": {"$ref": "#/definitions/historyModeWithoutReal"}

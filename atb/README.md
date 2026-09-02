@@ -131,9 +131,11 @@ Every modeled metric has an explicit `historical_data` entry. For example,
 biopower uses `capcost: real`, while fixed O&M, variable O&M, and heat rate each
 explicitly select `broadcast`.
 
-A metric may instead give one mode per sub-technology class, for a technology
-whose observed series describes only some of its rows. Offshore wind CapEx does:
-the observed series is fixed-bottom, so only that class reads it.
+A metric may instead give one mode per sub-technology, for a technology whose
+observed series describes only some of its rows. Two do. Offshore wind CapEx is
+a fixed-bottom series, so only that class reads it; EIA reports gas plants only
+as "combined cycle" or "combustion turbine", so the H-Frame and aeroderivative
+variants have no observation at all.
 
 ```yaml
 wind-ofs:
@@ -141,12 +143,23 @@ wind-ofs:
     capcost:
       fixed: real
       floating: broadcast
+
+gas:
+  historical_data:
+    capcost:
+      Gas-CC: real
+      Gas-CC_H_1x1: broadcast
+      Gas-CC_H_2x1: broadcast
+      Gas-CT: real
+      Gas-CT_aero: broadcast
 ```
 
-The split form requires the technology to name its class column through
-`history_class_column` in `scripts/settings.yaml`, and the classes selecting
-`real` must match the mapping's `turbine_classes` exactly; a disagreement
-raises rather than leaving one class on unintended history.
+The split form requires the technology to name its sub-technology column
+through `history_class_column` in `scripts/settings.yaml` (`turbine` for
+offshore wind, `i` for gas), and the entries selecting `real` must match the
+mapping's targets exactly; a disagreement raises rather than leaving one
+sub-technology on unintended history. The schema offers `real` only where an
+observation exists, so a typo is caught in the editor.
 Capacity-factor multipliers are included automatically when the technology
 output contains `cf_improvement` (utility PV and the two wind technologies).
 `real` applies to every technology with an observed series that measures the
@@ -175,8 +188,7 @@ letting one value silently overwrite several distinct series.
 | Applier | Used by | Behavior |
 | --- | --- | --- |
 | `apply_real_history_single_series` | `upv`, `wind-ons`, `biopower` | One row per scenario-year; assigns directly. |
-| `apply_real_history_wind_ofs` | `wind-ofs` | One row per turbine class. Every class must be named by `turbine_classes` or select its own mode in `historical_data`; otherwise the run raises instead of mixing manual history. |
-| `apply_real_history_gas` | `gas` | One row per plant configuration. Every configuration must be claimed by a `series` entry; otherwise the run raises instead of mixing manual history. |
+| `apply_real_history_by_class` | `wind-ofs`, `gas` | One row per sub-technology, named by `history_class_column`. Each series describes exactly one sub-technology; any other must select its own mode in `historical_data`, otherwise the run raises instead of mixing manual history. |
 
 Why a given technology targets the rows it does is recorded beside its mapping
 in `config.yaml`, where that choice is made.
@@ -191,8 +203,12 @@ Mappings are nested as `technology -> metric`. Each metric entry accepts:
 | Key | Default | Effect |
 | --- | --- | --- |
 | `filters` | required without `series` | Column/value pairs selecting exactly one row per year from the normalized CSV. |
-| `turbine_classes` | required for offshore wind | Offshore only: turbine classes receiving the observed series. A class left out must select its own mode under `historical_data`. |
+| `turbine_classes` | required for offshore wind | Offshore only: the one turbine class receiving the observed series. Any other class must select its own mode under `historical_data`. |
 | `series` | — | A list of sub-series, each with its own `filters` and `technologies`, for technologies whose rows need different observed series. Entries inherit the mapping's other keys. |
+
+A series measures one thing, so it names exactly one sub-technology. Sharing a
+series across several made unrelated rows carry identical history and hid the
+fact that no observation existed for the others.
 
 Rows that all take the same series use `filters` directly; rows needing
 different series use `series`, as `gas` does:
