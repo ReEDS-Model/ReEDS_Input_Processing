@@ -11,7 +11,7 @@ def fix_upgrades(nems):
 
     nems["Unique ID"] = nems.index
     
-    subset = nems[['tech','reeds_ba','resource_region','summer_power_capacity_MW','RetireYear','StartYear','IsExistUnit','HeatRate','T_PID','TVIN','TRFURB','Unique ID']]
+    subset = nems[['tech','summer_power_capacity_MW','RetireYear','StartYear','IsExistUnit','HeatRate','T_PID','TVIN','TRFURB','Unique ID']]
     
     # Note that T_SYR (now StartYear) is the online year for the most recent time the unit
     # came online. TRFURB holds the original start date of the plant.
@@ -77,12 +77,10 @@ def fix_upgrades(nems):
     for refurb in range(0,len(plant_refurbs),1):
         nems.loc[plant_refurbs.loc[refurb,'UID_refurb'],'StartYear'] = nems.loc[plant_refurbs.loc[refurb,'UID_retire'],'StartYear']
     
-    ret_cols = ['RetireYear','NukeRefRetireYear','NukeEarlyRetireYear','Nuke60RetireYear','Nuke80RetireYear']
-    
+
     # For plants with upgraded capacity, add the capacity difference as a new plant
     for upgrade in range(0,len(plant_upgrades),1):
-        for ret_col in ret_cols:
-            nems.loc[plant_upgrades.loc[upgrade,'UID_retire'],ret_col] = nems.loc[plant_upgrades.loc[upgrade,'UID_refurb'],ret_col]
+        nems.loc[plant_upgrades.loc[upgrade,'UID_retire'],'RetireYear'] = nems.loc[plant_upgrades.loc[upgrade,'UID_refurb'],'RetireYear']
         cap_dif = nems.loc[plant_upgrades.loc[upgrade,'UID_refurb'],'summer_power_capacity_MW'] - nems.loc[plant_upgrades.loc[upgrade,'UID_retire'],'summer_power_capacity_MW']
         nems.loc[plant_upgrades.loc[upgrade,'UID_refurb'],'summer_power_capacity_MW'] = cap_dif
         

@@ -67,18 +67,20 @@ def categorize(eha_file, dispatchability_file, reedsgens):
 
 if __name__ == "__main__":
 
+    print("Starting d_hydro_classification.py")
+
     gdbinputname = 'c_to_d.csv'
     gdboutputname = 'd_to_e.csv'
 
     ornl_hydro_unit_ver = sys.argv[1]
     hydro_dispatchability = sys.argv[2]
 
-    gendb = pd.read_csv(os.path.join('Outputs', gdbinputname),
+    gendb = pd.read_csv(os.path.join('outputs', gdbinputname),
                         float_precision="round_trip", low_memory=False)
 
     eha_techs = categorize(
-        os.path.join('Inputs','ORNL_EHA',ornl_hydro_unit_ver),
-        os.path.join('Inputs','ORNL_EHA',hydro_dispatchability),
+        os.path.join('inputs','ORNL_EHA',ornl_hydro_unit_ver),
+        os.path.join('inputs','ORNL_EHA',hydro_dispatchability),
         gendb)
 
     # Merge EHA unit data back into new unit database file
@@ -87,5 +89,7 @@ if __name__ == "__main__":
     gendb.loc[~gendb.eha_tech.isna(), "tech"] = gendb.loc[~gendb.eha_tech.isna(), "eha_tech"]
     gendb.drop(columns="eha_tech", inplace=True)
 
-    gendb.to_csv(os.path.join('Outputs', gdboutputname), index=False)
+    gendb.to_csv(os.path.join('outputs', gdboutputname), index=False)
+
+    print("Finished d_hydro_classification.py")
 
