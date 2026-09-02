@@ -275,8 +275,21 @@
     "historyModeWithoutReal": {
       "enum": ["manual", "broadcast"]
     },
-    "historyManualOnly": {
-      "const": "manual"
+    "historyModeByTurbineClass": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per turbine class. Use when an observed series describes only some classes; each class listed here must match the mapping's turbine_classes when it selects real. Only fixed offers real: NREL's Figure 31 CapEx series is fixed-bottom, and no observed floating cost history exists.",
+      "properties": {
+        "fixed": {"$ref": "#/definitions/historyMode"},
+        "floating": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyModeOrByTurbineClass": {
+      "oneOf": [
+        {"$ref": "#/definitions/historyMode"},
+        {"$ref": "#/definitions/historyModeByTurbineClass"}
+      ]
     },
     "historyObservedCapcostWithCf": {
       "type": "object",
@@ -300,11 +313,11 @@
         "rsc_mult"
       ],
       "properties": {
-        "capcost": {"$ref": "#/definitions/historyMode"},
+        "capcost": {"$ref": "#/definitions/historyModeOrByTurbineClass"},
         "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
         "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
         "cf_improvement": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "rsc_mult": {"$ref": "#/definitions/historyManualOnly"}
+        "rsc_mult": {"$ref": "#/definitions/historyModeWithoutReal"}
       }
     },
     "historyObservedCapcost": {
@@ -315,7 +328,7 @@
         "capcost": {"$ref": "#/definitions/historyMode"},
         "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
         "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "heatrate": {"$ref": "#/definitions/historyManualOnly"}
+        "heatrate": {"$ref": "#/definitions/historyModeWithoutReal"}
       }
     },
     "historyBattery": {
@@ -335,7 +348,7 @@
         "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
         "fom_energy": {"$ref": "#/definitions/historyModeWithoutReal"},
         "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "rte": {"$ref": "#/definitions/historyManualOnly"}
+        "rte": {"$ref": "#/definitions/historyModeWithoutReal"}
       }
     },
     "historyCosts": {
@@ -356,7 +369,7 @@
         "capcost": {"$ref": "#/definitions/historyModeWithoutReal"},
         "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
         "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "heatrate": {"$ref": "#/definitions/historyManualOnly"}
+        "heatrate": {"$ref": "#/definitions/historyModeWithoutReal"}
       }
     },
     "futureTreatments": {
@@ -467,6 +480,7 @@
         "similar_value_relative_tolerance",
         "similar_value_absolute_tolerance",
         "major_step_relative_threshold",
+        "minimum_adjustment_relative_threshold",
         "technologies"
       ],
       "properties": {
@@ -475,6 +489,7 @@
         "columns": {
           "oneOf": [
             {"const": "all"},
+            {"const": "capital_costs"},
             {
               "type": "array",
               "minItems": 1,
@@ -500,6 +515,7 @@
         "similar_value_relative_tolerance": {"type": "number", "minimum": 0},
         "similar_value_absolute_tolerance": {"type": "number", "minimum": 0},
         "major_step_relative_threshold": {"type": "number", "exclusiveMinimum": 0},
+        "minimum_adjustment_relative_threshold": {"type": "number", "minimum": 0},
         "future_smoothing_treatments": {"$ref": "#/definitions/futureTreatments"},
         "technologies": {
           "type": "object",

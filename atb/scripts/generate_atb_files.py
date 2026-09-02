@@ -517,7 +517,9 @@ def _assign_series_to_targets(
     return result, replaced
 
 
-def apply_real_history_single_series(frame, tech, mapping, resolved, historical_mask):
+def apply_real_history_single_series(
+    frame, tech, mapping, resolved, historical_mask, historical_data
+):
     """Applier for technologies carrying one row per scenario-year.
 
     upv and wind-ons each select a single ATB DisplayName. The guard catches a
@@ -529,11 +531,14 @@ def apply_real_history_single_series(frame, tech, mapping, resolved, historical_
     return _assign_observed_values(frame, mask, mapping['output_column'], values)
 
 
-def apply_real_history_wind_ofs(frame, tech, mapping, resolved, historical_mask):
+def apply_real_history_wind_ofs(
+    frame, tech, mapping, resolved, historical_mask, historical_data
+):
     """Applier for offshore wind, which carries one row per turbine class.
 
-    Assigns the series to every class named by `turbine_classes` and refuses a
-    hidden manual fallback for any class omitted by a `real` selection.
+    Assigns the series to every class named by `turbine_classes`. A class the
+    mapping omits must select its own mode in historical_data, so no class
+    falls back to manual values by accident.
     """
     series, values = _only_series(resolved, tech, 'wind-ofs')
     targets = series.get('turbine_classes', ['fixed'])
@@ -541,17 +546,21 @@ def apply_real_history_wind_ofs(frame, tech, mapping, resolved, historical_mask)
     result, replaced = _assign_series_to_targets(
         frame, tech, mapping, values, historical_mask, 'turbine', targets, 'wind-ofs'
     )
-    untouched = sorted(present - set(targets))
+    metric = mapping['output_column']
+    configured = set(_metric_modes(historical_data, metric)) - {None}
+    untouched = sorted(present - set(targets) - configured)
     if untouched:
         raise KeyError(
-            f"{tech}.capcost selects real history, but turbine classes "
+            f"{tech}.{metric} selects real history, but turbine classes "
             f"{untouched} have no real-history target. Add them to "
-            "turbine_classes or select another historical mode."
+            "turbine_classes or give each one its own historical mode."
         )
     return result, sorted(replaced)
 
 
-def apply_real_history_gas(frame, tech, mapping, resolved, historical_mask):
+def apply_real_history_gas(
+    frame, tech, mapping, resolved, historical_mask, historical_data
+):
     """Applier for natural gas, which carries one row per plant configuration.
 
     Each `series` entry names the configurations it describes through
@@ -585,6 +594,8 @@ def apply_real_history_gas(frame, tech, mapping, resolved, historical_mask):
 
 # Each applier owns which rows its series may address, since that depends on
 # the technology's row shape. Every metric selecting `real` requires an entry.
+# Each receives the metric's historical_data modes so it can tell a row left
+# unclaimed by accident from one that explicitly generates its own history.
 REAL_HISTORY_APPLIERS = {
     'biopower': apply_real_history_single_series,
     'upv': apply_real_history_single_series,
@@ -667,7 +678,12 @@ def _apply_real_historical_costs(frame, tech, settings, deflator):
             required_years,
         )
         result, replaced_years = applier(
-            result, tech, metric_mapping, resolved, historical_mask
+            result,
+            tech,
+            metric_mapping,
+            resolved,
+            historical_mask,
+            technology_config['historical_data'],
         )
         if replaced_years:
             current_dollar_year = int(settings['dollaryear'])
@@ -1153,23 +1169,73 @@ HISTORICAL_DATA_MODES = ('real', 'manual', 'broadcast')
 NON_HISTORY_COLUMNS = {'Scenario', 'i', 't', 'turbine', 'type'}
 
 
-def _historical_mode_for_metric(historical_data, metric):
-    """Return one explicitly configured metric history mode."""
+def _metric_modes(historical_data, metric):
+    """Return one metric's configured modes keyed by sub-technology class.
+
+    A metric configured as a plain mode applies to every row and is returned
+    under the ``None`` key. A metric split by class returns one entry per
+    class, which lets an observed series describe some rows of a technology
+    while the rest generate their own history.
+    """
     try:
-        return historical_data[metric]
+        configured = historical_data[metric]
     except KeyError as error:
         raise KeyError(
             f"Historical data has no configured entry for metric {metric!r}."
         ) from error
+    if isinstance(configured, dict):
+        return dict(configured)
+    return {None: configured}
+
+
+def _historical_mode_for_metric(historical_data, metric, class_value=None):
+    """Return one metric history mode, resolved for one sub-technology class."""
+    modes = _metric_modes(historical_data, metric)
+    if None in modes:
+        return modes[None]
+    try:
+        return modes[class_value]
+    except KeyError as error:
+        raise KeyError(
+            f"Historical data for metric {metric!r} has no entry for "
+            f"{class_value!r}. Configured classes: {sorted(modes)}."
+        ) from error
+
+
+def _real_historical_classes(historical_data, metric):
+    """Return the sub-technology classes one metric reads from observations."""
+    return sorted(
+        class_value
+        for class_value, mode in _metric_modes(historical_data, metric).items()
+        if mode == 'real' and class_value is not None
+    )
 
 
 def _real_historical_metrics(technology_config):
-    """Return explicitly configured observed metrics for one technology."""
+    """Return explicitly configured observed metrics for one technology.
+
+    A metric split by sub-technology class qualifies when any class selects
+    `real`; its applier then assigns observations to only those classes.
+    """
+    historical_data = technology_config['historical_data']
     return sorted(
         metric
-        for metric, mode in technology_config['historical_data'].items()
-        if mode == 'real'
+        for metric in historical_data
+        if 'real' in _metric_modes(historical_data, metric).values()
     )
+
+
+def _mapping_target_classes(mapping):
+    """Return every sub-technology class a reviewed mapping claims."""
+    entries = mapping.get('series') or [mapping]
+    inherited = {key: value for key, value in mapping.items() if key != 'series'}
+    targets = set()
+    for entry in entries:
+        merged = {**inherited, **entry}
+        targets.update(
+            merged.get('turbine_classes') or merged.get('technologies') or []
+        )
+    return targets
 
 
 def _validate_historical_data_config(tech, historical_data, settings):
@@ -1188,9 +1254,21 @@ def _validate_historical_data_config(tech, historical_data, settings):
     missing = sorted(valid_metrics - set(historical_data))
     if missing:
         raise KeyError(f"Missing historical metrics in {label}: {missing}")
+    class_column = settings['techs'][tech].get('history_class_column')
+    split_metrics = sorted(
+        metric for metric in historical_data
+        if isinstance(historical_data[metric], dict)
+    )
+    if split_metrics and not class_column:
+        raise KeyError(
+            f"Metrics {split_metrics} in {label} are split by sub-technology "
+            f"class, but {tech} declares no history_class_column in "
+            "settings.yaml naming the column that identifies the class."
+        )
     invalid = {
-        metric: mode
-        for metric, mode in historical_data.items()
+        f"{metric}.{class_value}" if class_value else metric: mode
+        for metric in historical_data
+        for class_value, mode in _metric_modes(historical_data, metric).items()
         if mode not in HISTORICAL_DATA_MODES
     }
     if invalid:
@@ -1198,39 +1276,39 @@ def _validate_historical_data_config(tech, historical_data, settings):
             f"Unavailable historical metric modes in {label}; choose from "
             f"{list(HISTORICAL_DATA_MODES)}: {invalid}"
         )
-    broadcastable = {
-        metric for metric in valid_metrics
-        if (
-            metric == 'cf_improvement'
-            or metric == 'vom'
-            or metric.startswith('capcost')
-            or metric.startswith('fom')
-        )
-    }
-    unavailable_broadcast = sorted(
-        metric for metric, mode in historical_data.items()
-        if mode == 'broadcast' and metric not in broadcastable
-    )
-    if unavailable_broadcast:
-        raise KeyError(
-            f"Broadcast treatment is unavailable for metrics in {label}: "
-            f"{unavailable_broadcast}"
-        )
     mappings = (
         settings['config']
         .get('historical_cost_sources', {})
         .get('reeds_mappings', {})
         .get(tech, {})
     )
-    unavailable_real = sorted(
-        metric for metric, mode in historical_data.items()
-        if mode == 'real' and metric not in mappings
+    real_metrics = sorted(
+        metric for metric in historical_data
+        if 'real' in _metric_modes(historical_data, metric).values()
     )
+    unavailable_real = [
+        metric for metric in real_metrics if metric not in mappings
+    ]
     if unavailable_real:
         raise KeyError(
             f"Observed history is unavailable for metrics in {label}: "
             f"{unavailable_real}"
         )
+    # A class-split metric states twice which rows observations describe: here
+    # and in the mapping that selects them. Disagreement would silently leave
+    # one class on the wrong history, so require the two to name the same set.
+    for metric in real_metrics:
+        real_classes = set(_real_historical_classes(historical_data, metric))
+        if not real_classes:
+            continue
+        targeted = _mapping_target_classes(mappings[metric])
+        if targeted != real_classes:
+            raise ValueError(
+                f"{label}.{metric} selects real history for classes "
+                f"{sorted(real_classes)}, but its mapping under "
+                f"historical_cost_sources.reeds_mappings.{tech}.{metric} "
+                f"targets {sorted(targeted)}. Make the two agree."
+            )
     return dict(historical_data)
 
 
@@ -1330,6 +1408,11 @@ def smooth_cost_curve(tech, settings, df):
     configured_columns = smoothing.get('columns', 'all')
     if configured_columns == 'all' or configured_columns == ['all']:
         columns = _cost_columns(df)
+    elif configured_columns == 'capital_costs':
+        columns = [
+            column for column in df.columns
+            if column.startswith('capcost')
+        ]
     elif isinstance(configured_columns, list):
         columns = list(configured_columns)
     else:
@@ -1377,11 +1460,19 @@ def smooth_cost_curve(tech, settings, df):
     major_step_threshold = float(
         smoothing.get('major_step_relative_threshold', 0.1)
     )
+    minimum_adjustment_threshold = float(
+        smoothing.get('minimum_adjustment_relative_threshold', 0.005)
+    )
     future_treatments = smoothing['future_smoothing_treatments']
     historical_data = smoothing['historical_data']
-    historical_modes = {
-        column: _historical_mode_for_metric(historical_data, column)
-        for column in columns
+    history_columns = [
+        column for column in historical_data if column in df.columns
+    ]
+    # Modes are resolved per group below, because a metric may select one mode
+    # per sub-technology class and each group is one class.
+    mode_columns = list(dict.fromkeys([*history_columns, *columns]))
+    configured_modes = {
+        column: historical_data[column] for column in mode_columns
     }
     if slope_change_threshold <= 0:
         raise ValueError("slope_change_threshold must be greater than zero.")
@@ -1400,6 +1491,10 @@ def smooth_cost_curve(tech, settings, df):
             "major_step_relative_threshold must be greater than "
             "similar_value_relative_tolerance."
         )
+    if minimum_adjustment_threshold < 0:
+        raise ValueError(
+            "minimum_adjustment_relative_threshold must be nonnegative."
+        )
 
     tech_settings = settings['techs'][tech]
     idcols = [
@@ -1407,10 +1502,12 @@ def smooth_cost_curve(tech, settings, df):
         if column not in ['Scenario', 't']
     ]
     groupcols = ['Scenario', *idcols]
+    class_column = tech_settings.get('history_class_column')
     output = df.sort_values([*groupcols, 't']).copy()
     # Interpolation generally creates fractional values even when an input
     # frame happened to infer an integer dtype.
     output[columns] = output[columns].astype(float)
+    original_values = output[columns].copy()
     groups = output.groupby(groupcols, dropna=False, sort=False).groups
 
     enabled_future_treatments = [
@@ -1418,11 +1515,44 @@ def smooth_cost_curve(tech, settings, df):
     ]
     print(
         f"Smoothing {tech} cost curves: method={method}, columns={columns}, "
-        f"historical={historical_modes}, "
+        f"historical={configured_modes}, "
+        f"minimum_adjustment={minimum_adjustment_threshold:.3%}, "
         f"future_smoothing_treatments={enabled_future_treatments}"
     )
     for group_values, index in groups.items():
         group = output.loc[index].sort_values('t')
+        label_values = (
+            group_values
+            if isinstance(group_values, tuple)
+            else (group_values,)
+        )
+        label = dict(zip(groupcols, label_values))
+        # Each group is one sub-technology class, so a metric split by class
+        # resolves to a single mode here.
+        group_modes = {
+            column: _historical_mode_for_metric(
+                historical_data, column, label.get(class_column)
+            )
+            for column in mode_columns
+        }
+        anchor_rows = group.loc[group['t'] == projection_start_year]
+        if len(anchor_rows) != 1:
+            raise ValueError(
+                f"Cannot apply historical data modes for {tech} series "
+                f"{label}: expected exactly one row for projection start "
+                f"year {projection_start_year}."
+            )
+        anchor_index = anchor_rows.index[0]
+        historical_index = group.index[group['t'] < projection_start_year]
+        broadcast_columns = [
+            column for column in history_columns
+            if group_modes[column] == 'broadcast'
+        ]
+        if broadcast_columns:
+            output.loc[historical_index, broadcast_columns] = output.loc[
+                anchor_index, broadcast_columns
+            ].to_numpy()
+            group = output.loc[index].sort_values('t')
         if method == 'selective':
             for column in columns:
                 output.loc[group.index, column] = _selective_smooth_cost_values(
@@ -1434,7 +1564,7 @@ def smooth_cost_curve(tech, settings, df):
                     similar_value_relative_tolerance,
                     similar_value_absolute_tolerance,
                     major_step_threshold,
-                    historical_modes[column],
+                    group_modes[column],
                     future_treatments['enforce_monotonic_projection'],
                     future_treatments['smooth_projection_curve'],
                 )
@@ -1442,10 +1572,6 @@ def smooth_cost_curve(tech, settings, df):
 
         anchor_rows = group.loc[group['t'] == anchor_year]
         target_rows = group.loc[group['t'] == target_year]
-        label_values = (
-            group_values if isinstance(group_values, tuple) else (group_values,)
-        )
-        label = dict(zip(groupcols, label_values))
         if len(anchor_rows) != 1 or len(target_rows) != 1:
             raise ValueError(
                 f"Cannot smooth {tech} series {label}: expected exactly one row "
@@ -1456,7 +1582,7 @@ def smooth_cost_curve(tech, settings, df):
         target_index = target_rows.index[0]
         broadcast_columns = [
             column for column in columns
-            if historical_modes[column] == 'broadcast'
+            if group_modes[column] == 'broadcast'
         ]
         if broadcast_columns:
             historical_index = group.index[group['t'] <= anchor_year]
@@ -1475,6 +1601,23 @@ def smooth_cost_curve(tech, settings, df):
                 * (bridge_years - anchor_year)
                 / (target_year - anchor_year)
             )
+
+    # Respect the published ATB trajectory when smoothing proposes only a
+    # negligible future adjustment. Historical mode changes (including a full
+    # broadcast) are intentionally outside this filter.
+    future_mask = output['t'] >= projection_start_year
+    candidate_values = output.loc[future_mask, columns]
+    source_values = original_values.loc[future_mask, columns]
+    relative_scale = source_values.abs().clip(
+        lower=similar_value_absolute_tolerance
+    )
+    relative_adjustment = (
+        (candidate_values - source_values).abs() / relative_scale
+    )
+    keep_original = relative_adjustment < minimum_adjustment_threshold
+    output.loc[future_mask, columns] = candidate_values.mask(
+        keep_original, source_values
+    )
 
     return output.sort_index()
 

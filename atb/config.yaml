@@ -90,15 +90,16 @@ historical_cost_sources:
               unit: USD/kW
               technology_detail: Natural gas combustion turbine
               source_table: natural_gas_technology
-    # Figure 31's projects are overwhelmingly fixed-bottom. The reviewed
-    # "Europe and United States" series is shared by fixed and floating classes
-    # so selecting `real` does not silently retain manual values for one class.
+    # Figure 31 reports one capacity-weighted mean over all offshore projects
+    # with no substructure split, but by 2023 only 231 MW of the ~75 GW built
+    # worldwide was floating (report Figure 18), so the series describes
+    # fixed-bottom costs. It is mapped to `fixed` only; `floating` broadcasts
+    # its own first ATB projection value under smooth_cost_curves below.
     # scraped_input/README.md covers the "Global" and "Asia" alternatives.
     wind-ofs:
       capcost:
         turbine_classes:
           - fixed
-          - floating
         filters:
           source_id: offshore_wind
           metric: capital_cost
@@ -162,8 +163,11 @@ processing:
   smooth_cost_curves:
     enabled: true
     method: selective
-    # "all" selects capcost*, fom*, and vom, including battery energy costs.
-    columns: all
+    # "capital_costs" selects capcost* for future smoothing. Historical source
+    # choices below apply to every metric independently of this selector, so
+    # O&M can use broadcast history while preserving published future ATB steps.
+    # Capacity-factor multipliers are still included automatically where used.
+    columns: capital_costs
     # Years before this boundary are historical; this year and later are the
     # current ATB projection. Change this once here rather than in the code.
     projection_start_year: 2022
@@ -177,40 +181,47 @@ processing:
     similar_value_relative_tolerance: 0.001
     similar_value_absolute_tolerance: 1.0e-9
     major_step_relative_threshold: 0.1
+    # Keep the original ATB value when a proposed future adjustment is smaller
+    # than 0.5%. This prevents visually insignificant smoothing changes.
+    minimum_adjustment_relative_threshold: 0.005
     # historical_data values (editor dropdowns are supplied by the schema):
     #   real          use observed history; interpolate internal missing years
     #   manual        preserve manual_input/historical exactly
     #   broadcast     use the first ATB projection value for all history years
-    # `real` is offered only where a reviewed mapping exists. Heat rate and
-    # round-trip efficiency are preserved manually and are not smoothed.
+    # `real` is offered only where a reviewed mapping exists. The defaults use
+    # `real` where reviewed observations exist and `broadcast` everywhere else.
     # Every technology listed below is processed. Capacity-factor multipliers
     # are included automatically when the technology output contains one.
     technologies:
       upv:
         historical_data:
           capcost: real  # options: real / manual / broadcast
-          fom: manual  # options: manual / broadcast
-          vom: manual  # options: manual / broadcast
-          cf_improvement: manual  # options: manual / broadcast
+          fom: broadcast  # options: manual / broadcast
+          vom: broadcast  # options: manual / broadcast
+          cf_improvement: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       wind-ons:
         historical_data:
           capcost: real  # options: real / manual / broadcast
-          fom: manual  # options: manual / broadcast
-          vom: manual  # options: manual / broadcast
-          cf_improvement: manual  # options: manual / broadcast
+          fom: broadcast  # options: manual / broadcast
+          vom: broadcast  # options: manual / broadcast
+          cf_improvement: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       wind-ofs:
         historical_data:
-          capcost: real  # options: real / manual / broadcast
-          fom: manual  # options: manual / broadcast
-          vom: manual  # options: manual / broadcast
-          cf_improvement: manual  # options: manual / broadcast
-          rsc_mult: manual  # only option: manual
+          # Observed offshore CapEx is a fixed-bottom series, so only that
+          # class reads it. No floating cost history exists to observe.
+          capcost:
+            fixed: real  # options: real / manual / broadcast
+            floating: broadcast  # options: manual / broadcast
+          fom: broadcast  # options: manual / broadcast
+          vom: broadcast  # options: manual / broadcast
+          cf_improvement: broadcast  # options: manual / broadcast
+          rsc_mult: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
@@ -221,7 +232,7 @@ processing:
           fom: broadcast  # options: manual / broadcast
           fom_energy: broadcast  # options: manual / broadcast
           vom: broadcast  # options: manual / broadcast
-          rte: manual  # only option: manual
+          rte: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
@@ -238,7 +249,7 @@ processing:
           capcost: broadcast  # options: manual / broadcast
           fom: broadcast  # options: manual / broadcast
           vom: broadcast  # options: manual / broadcast
-          heatrate: manual  # only option: manual
+          heatrate: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
@@ -247,16 +258,16 @@ processing:
           capcost: broadcast  # options: manual / broadcast
           fom: broadcast  # options: manual / broadcast
           vom: broadcast  # options: manual / broadcast
-          heatrate: manual  # only option: manual
+          heatrate: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       gas:
         historical_data:
           capcost: real  # options: real / manual / broadcast
-          fom: manual  # options: manual / broadcast
-          vom: manual  # options: manual / broadcast
-          heatrate: manual  # only option: manual
+          fom: broadcast  # options: manual / broadcast
+          vom: broadcast  # options: manual / broadcast
+          heatrate: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
@@ -265,7 +276,7 @@ processing:
           capcost: broadcast  # options: manual / broadcast
           fom: broadcast  # options: manual / broadcast
           vom: broadcast  # options: manual / broadcast
-          heatrate: manual  # only option: manual
+          heatrate: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
@@ -274,7 +285,7 @@ processing:
           capcost: broadcast  # options: manual / broadcast
           fom: broadcast  # options: manual / broadcast
           vom: broadcast  # options: manual / broadcast
-          heatrate: manual  # only option: manual
+          heatrate: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
@@ -283,7 +294,7 @@ processing:
           capcost: broadcast  # options: manual / broadcast
           fom: broadcast  # options: manual / broadcast
           vom: broadcast  # options: manual / broadcast
-          heatrate: manual  # only option: manual
+          heatrate: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
@@ -292,16 +303,16 @@ processing:
           capcost: broadcast  # options: manual / broadcast
           fom: broadcast  # options: manual / broadcast
           vom: broadcast  # options: manual / broadcast
-          heatrate: manual  # only option: manual
+          heatrate: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false
       biopower:
         historical_data:
           capcost: real  # options: real / manual / broadcast
-          fom: manual  # options: manual / broadcast
-          vom: manual  # options: manual / broadcast
-          heatrate: manual  # only option: manual
+          fom: broadcast  # options: manual / broadcast
+          vom: broadcast  # options: manual / broadcast
+          heatrate: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
           enforce_monotonic_projection: true  # options: true / false
           smooth_projection_curve: true  # options: true / false

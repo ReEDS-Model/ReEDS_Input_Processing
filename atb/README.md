@@ -103,6 +103,13 @@ bumps, and rounded stair steps without replacing each ATB trajectory with one
 fully smoothed curve. Each technology has metric-level historical choices and
 independent future switches under `smooth_cost_curves.technologies`:
 
+The default `columns: capital_costs` applies future monetary smoothing only to
+`capcost*` metrics. Historical source choices apply independently to every
+metric. By default, metrics with reviewed observations use `real`, while all
+others use `broadcast`. Fixed and variable O&M therefore use flat broadcast
+history but preserve their published ATB future steps. Capacity-factor
+multipliers remain included automatically for technologies that use them.
+
 | Historical mode | Effect before `projection_start_year` |
 | --- | --- |
 | `real` | Use only the reviewed observed-series mapping for that metric. Preserve reported values, linearly interpolate internal missing years, and use the nearest observation for years outside the reported range. An unmapped metric or row variant raises an error. |
@@ -120,12 +127,30 @@ The independent switches under `future_smoothing_treatments` apply from
 Every technology listed under `smooth_cost_curves.technologies` is processed.
 Every modeled metric has an explicit `historical_data` entry. For example,
 biopower uses `capcost: real`, while fixed O&M, variable O&M, and heat rate each
-explicitly select `manual`.
+explicitly select `broadcast`.
+
+A metric may instead give one mode per sub-technology class, for a technology
+whose observed series describes only some of its rows. Offshore wind CapEx does:
+the observed series is fixed-bottom, so only that class reads it.
+
+```yaml
+wind-ofs:
+  historical_data:
+    capcost:
+      fixed: real
+      floating: broadcast
+```
+
+The split form requires the technology to name its class column through
+`history_class_column` in `scripts/settings.yaml`, and the classes selecting
+`real` must match the mapping's `turbine_classes` exactly; a disagreement
+raises rather than leaving one class on unintended history.
 Capacity-factor multipliers are included automatically when the technology
 output contains `cf_improvement` (utility PV and the two wind technologies).
 `real` applies to every technology with an observed series that measures the
 same quantity as its ReEDS column: UPV, land-based wind, offshore wind, gas,
-and biopower. Heat rate and efficiency are not changed.
+and biopower. Metrics without a reviewed observed mapping use broadcast history,
+including heat rate and efficiency.
 
 ### Per-technology observed-history appliers
 
@@ -148,7 +173,7 @@ letting one value silently overwrite several distinct series.
 | Applier | Used by | Behavior |
 | --- | --- | --- |
 | `apply_real_history_single_series` | `upv`, `wind-ons`, `biopower` | One row per scenario-year; assigns directly. |
-| `apply_real_history_wind_ofs` | `wind-ofs` | One row per turbine class. Every class must be named by `turbine_classes`; otherwise the run raises instead of mixing manual history. |
+| `apply_real_history_wind_ofs` | `wind-ofs` | One row per turbine class. Every class must be named by `turbine_classes` or select its own mode in `historical_data`; otherwise the run raises instead of mixing manual history. |
 | `apply_real_history_gas` | `gas` | One row per plant configuration. Every configuration must be claimed by a `series` entry; otherwise the run raises instead of mixing manual history. |
 
 Why a given technology targets the rows it does is recorded beside its mapping
@@ -164,7 +189,7 @@ Mappings are nested as `technology -> metric`. Each metric entry accepts:
 | Key | Default | Effect |
 | --- | --- | --- |
 | `filters` | required without `series` | Column/value pairs selecting exactly one row per year from the normalized CSV. |
-| `turbine_classes` | required for offshore wind | Offshore only: turbine classes receiving the observed series. Every output class must be included when `real` is selected. |
+| `turbine_classes` | required for offshore wind | Offshore only: turbine classes receiving the observed series. A class left out must select its own mode under `historical_data`. |
 | `series` | — | A list of sub-series, each with its own `filters` and `technologies`, for technologies whose rows need different observed series. Entries inherit the mapping's other keys. |
 
 Rows that all take the same series use `filters` directly; rows needing
@@ -196,6 +221,7 @@ The current defaults in `config.yaml` are:
 | `slope_change_threshold` | `0.4` | Detect a normalized slope change of 40% or more |
 | `max_kink_years` | `4` | Maximum span of a compact slope-change cluster |
 | `major_step_relative_threshold` | `0.1` | Preserve year-to-year changes of 10% or more |
+| `minimum_adjustment_relative_threshold` | `0.005` | Keep the original ATB value when a proposed future smoothing adjustment is smaller than 0.5% |
 
 For example, this preserves manually supplied UPV history while retaining only
 the future monotonic treatment:
@@ -225,7 +251,9 @@ command (typically `Ctrl+Space`) to choose valid history modes and other options
 
 Historical choices are technology-by-metric. The schema offers `real` only for
 metrics with a reviewed observed mapping; other metrics offer `manual` and
-`broadcast`. Runtime validation remains authoritative when the workflow runs.
+`broadcast`. Offshore wind CapEx additionally accepts a per-turbine-class
+mapping of modes. Runtime validation remains authoritative when the workflow
+runs.
 
 ### File names and column schemas expected by ReEDS
 
