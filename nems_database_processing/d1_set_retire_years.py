@@ -174,7 +174,9 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
     nems_cleaned = pd.concat([nems_cleaned, df_temp], axis=0)
     nems_cleaned = nems_cleaned.reset_index(drop=True)
 
-    ### Edgewater unit 5: Convert coal unit to gas-cc in 2028:
+    ### Edgewater unit 5: Retire coal unit in 2025 and convert it to gas-cc in 2028:
+    # Both old coal unit and new gas-cc unit are kept in the database
+    # Add new row for new unit (gas-cc)
     df_temp = nems_cleaned[(nems_cleaned['T_PNM'].str.contains('Edgewater')) &
                            (nems_cleaned['T_UID'].str.contains('5')) &
                            (nems_cleaned['EFDcd']=='CSC')].copy()
@@ -182,7 +184,7 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
     df_temp['EFDcd'] = 'CTN'
     df_temp['T_SYR'] = 2028
     df_temp['T_RYR'] = 2108
-
+    # Keep the old coal unit and update its retirement year to 2025
     nems_cleaned.loc[(nems_cleaned['T_RYR'] > 2021) &
                      (nems_cleaned['T_UID'].str.contains('5')) &
                      (nems_cleaned['T_PNM'].str.contains('Edgewater')) &
