@@ -63,6 +63,7 @@ def load_processing_settings(config_path=None):
             "reedspath": str(Path(processing["reeds_repo"])),
             "copy_to_reeds": bool(processing["copy_to_reeds"]),
             "reeds_start_year": int(processing["reeds_start_year"]),
+            "reeds_end_year": int(processing["reeds_end_year"]),
             "decimals": int(processing["decimals"]),
             "output_dir": str(resolve_atb_path(processing["output_directory"])),
             "flat_file_path": str(raw_file_path(config, "flat_file")),

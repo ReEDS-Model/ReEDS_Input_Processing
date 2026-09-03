@@ -156,6 +156,7 @@ processing:
   update_financials: false
   sensitivity_name: null
   reeds_start_year: 2010
+  reeds_end_year: 2050
   decimals: 6
   # Optional treatment of the historical/projection boundary and future ATB
   # trajectory. Each technology explicitly selects a historical mode for every

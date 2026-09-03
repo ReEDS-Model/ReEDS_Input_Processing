@@ -251,7 +251,8 @@ def _validate_year_continuity(frame, tech, settings):
     grouper = groupcols[0] if len(groupcols) == 1 else groupcols
     for group_values, group in frame.groupby(grouper, dropna=False, sort=False):
         years = sorted(pd.to_numeric(group['t'], errors='raise').astype(int).unique())
-        expected = set(range(settings['reeds_start_year'], max(years) + 1))
+        end_year = int(settings['reeds_end_year'])
+        expected = set(range(settings['reeds_start_year'], end_year + 1))
         missing = sorted(expected - set(years))
         if years[0] != settings['reeds_start_year'] or missing:
             values = group_values if isinstance(group_values, tuple) else (group_values,)
@@ -865,6 +866,9 @@ def merge_historical_atb_data(
     )
     output = output.reset_index(drop=True)
     output = _apply_real_historical_costs(output, tech, settings, deflator)
+    output = output.loc[
+        pd.to_numeric(output['t'], errors='raise') <= settings['reeds_end_year']
+    ].reset_index(drop=True)
     _validate_year_continuity(output, tech, settings)
     return output
 

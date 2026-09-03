@@ -85,6 +85,7 @@
         "update_costs",
         "update_financials",
         "reeds_start_year",
+        "reeds_end_year",
         "decimals",
         "smooth_cost_curves"
       ],
@@ -109,6 +110,7 @@
         "update_financials": {"type": "boolean"},
         "sensitivity_name": {"type": ["string", "null"]},
         "reeds_start_year": {"type": "integer", "minimum": 1900},
+        "reeds_end_year": {"type": "integer", "minimum": 1900},
         "decimals": {"type": "integer", "minimum": 0, "maximum": 12},
         "smooth_cost_curves": {"$ref": "#/definitions/smoothing"}
       }
