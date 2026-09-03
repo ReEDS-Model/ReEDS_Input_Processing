@@ -28,9 +28,6 @@ Inputs that are not available from the raw ATB downloads. They are consumed by
   relative to the base configuration (csp2). They come from the separate ReEDS
   CSP thermal-storage sizing/SAM analysis rather than either ATB download. The
   2024 multipliers reproduce the published ReEDS ATB 2024 configurations.
-  The csp1/csp3/csp4 rows under `historical/` are derived from csp2 with these
-  ratios, so rebuild them whenever the ratios change or the history and the
-  projection will disagree at the boundary.
 - `offshore_cost_multipliers_<year>.csv` — ReEDS fixed-bottom and floating
   configuration adjustments applied to the corresponding ATB offshore class
   proxies. These account for ReEDS configuration assumptions outside the raw
