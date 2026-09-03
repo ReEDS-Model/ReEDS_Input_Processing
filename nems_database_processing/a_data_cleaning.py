@@ -523,7 +523,9 @@ if __name__ == "__main__":
 
     # =========================================================================
     # Save output file:
-    intermediate_output_path = os.path.join(dir,'outputs','intermediate_outputs')
+    output_path = os.path.join(dir,'outputs')
+    os.makedirs(output_path, exist_ok=True)
+    intermediate_output_path = os.path.join(output_path,'intermediate_outputs')
     os.makedirs(intermediate_output_path, exist_ok=True)
 
     nems_cleaned.to_csv(os.path.join(intermediate_output_path, gdboutname), index=False)

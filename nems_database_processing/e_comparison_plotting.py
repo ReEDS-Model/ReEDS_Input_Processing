@@ -7,12 +7,9 @@ import numpy as np
 import seaborn as sns
 from textwrap import wrap
 
+debug_path = os.path.join('outputs','debug')
 figure_path = os.path.join('outputs','figures')
 os.makedirs(figure_path, exist_ok=True)
-
-debug_path = os.path.join('outputs','debug')
-os.makedirs(debug_path, exist_ok=True)
-os.system('rm -rf '+os.path.expanduser(debug_path)+'/*')
 
 #%%
 

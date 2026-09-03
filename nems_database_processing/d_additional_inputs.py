@@ -33,6 +33,10 @@ reeds_path = os.path.expanduser(reeds_path)
 sys.path.append(reeds_path)
 import reeds
 
+debug_path = os.path.join('outputs','debug')
+os.makedirs(debug_path, exist_ok=True)
+os.system('rm -rf '+os.path.expanduser(debug_path)+'/*')
+
 gdboldname = 'ReEDS_generator_database_final_EIA-NEMS.csv'
 
 print("Starting d_additional_inputs.py")
