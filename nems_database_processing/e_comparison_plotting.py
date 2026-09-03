@@ -235,10 +235,8 @@ def comparison_plotting_nat(ax,i,df,finalyear,x,title):
     ax.set_axisbelow(True)
     ax.tick_params(axis='both', which='major', width=0.5, length=1.5, pad=1)
     ax.tick_params(axis='both', which='minor', width=0.3, length=1, pad=1)
-    if 'retire' in title:
-        labelsize = 7
-    else:
-        labelsize = 9
+    labelsize = 7
+
     ax.tick_params(labelsize=labelsize)
     ax.yaxis.get_offset_text().set_fontsize(labelsize)
     ax.tick_params(axis='x', labelrotation=90)
