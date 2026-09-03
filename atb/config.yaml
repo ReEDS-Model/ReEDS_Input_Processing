@@ -171,7 +171,7 @@ processing:
     columns: all
     # A relative change in adjacent annual slopes at or above this value is a
     # possible kink. Only clusters of 2+ changes are smoothed.
-    slope_change_threshold: 0.4
+    slope_change_threshold: 0.6
     max_kink_years: 4
     # Year-to-year transitions of 10% or more are published milestones and are
     # never smoothed. Runs of equal values are left alone too: a flat stretch
@@ -292,7 +292,7 @@ processing:
           heatrate: broadcast  # options: manual / broadcast
         fill_historical: false  # use observed data for ATB years already in the past
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: false  # options: true / false
       nuclear:
         historical_data:
           capcost: broadcast  # options: manual / broadcast
@@ -301,7 +301,7 @@ processing:
           heatrate: broadcast  # options: manual / broadcast
         fill_historical: false  # use observed data for ATB years already in the past
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: false  # options: true / false
       nuclear-smr:
         historical_data:
           capcost: broadcast  # options: manual / broadcast
