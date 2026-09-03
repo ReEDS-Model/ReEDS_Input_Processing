@@ -429,7 +429,7 @@ def smoothing_provenance(settings: dict, generated_path: Path) -> dict:
     return {
         "technology": technology,
         "projection_start_year": boundary,
-        "fill_historical": bool(technology_settings.get("fill_historical", False)),
+        "fill_atbstartyear2atbyear_with_real": bool(technology_settings.get("fill_atbstartyear2atbyear_with_real", False)),
         "atb_year": int(settings["atbyear"]),
         "historical_data": historical_data,
         "observed_series": observed_series,
@@ -506,7 +506,7 @@ def is_filled_history_point(
     provenance: dict,
 ) -> bool:
     """Return whether a projection year was filled from observed history."""
-    if not provenance.get("fill_historical"):
+    if not provenance.get("fill_atbstartyear2atbyear_with_real"):
         return False
     if not provenance["projection_start_year"] <= year <= provenance["atb_year"]:
         return False

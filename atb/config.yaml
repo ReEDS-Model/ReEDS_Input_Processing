@@ -196,7 +196,7 @@ processing:
           fom: manual  # options: manual / broadcast
           vom: manual  # options: manual / broadcast
           cf_improvement: manual  # options: manual / broadcast
-        fill_historical: true  # use observed data for ATB years already in the past
+        fill_atbstartyear2atbyear_with_real: true  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       wind-ons:
@@ -205,7 +205,7 @@ processing:
           fom: manual  # options: manual / broadcast
           vom: manual  # options: manual / broadcast
           cf_improvement: manual  # options: manual / broadcast
-        fill_historical: true  # use observed data for ATB years already in the past
+        fill_atbstartyear2atbyear_with_real: true  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       wind-ofs:
@@ -219,7 +219,7 @@ processing:
           vom: manual  # options: manual / broadcast
           cf_improvement: manual  # options: manual / broadcast
           rsc_mult: manual  # options: manual / broadcast
-        fill_historical: true  # use observed data for ATB years already in the past
+        fill_atbstartyear2atbyear_with_real: true  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       battery:
@@ -230,7 +230,7 @@ processing:
           fom_energy: broadcast  # options: manual / broadcast
           vom: broadcast  # options: manual / broadcast
           rte: broadcast  # options: manual / broadcast
-        fill_historical: false  # use observed data for ATB years already in the past
+        fill_atbstartyear2atbyear_with_real: false  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       csp:
@@ -238,7 +238,7 @@ processing:
           capcost: manual  # options: manual / broadcast
           fom: manual  # options: manual / broadcast
           vom: manual  # options: manual / broadcast
-        fill_historical: false  # use observed data for ATB years already in the past
+        fill_atbstartyear2atbyear_with_real: false  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       coal:
@@ -247,7 +247,7 @@ processing:
           fom: broadcast  # options: manual / broadcast
           vom: broadcast  # options: manual / broadcast
           heatrate: broadcast  # options: manual / broadcast
-        fill_historical: false  # use observed data for ATB years already in the past
+        fill_atbstartyear2atbyear_with_real: false  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       coal-ccs:
@@ -256,7 +256,7 @@ processing:
           fom: broadcast  # options: manual / broadcast
           vom: broadcast  # options: manual / broadcast
           heatrate: broadcast  # options: manual / broadcast
-        fill_historical: false  # use observed data for ATB years already in the past
+        fill_atbstartyear2atbyear_with_real: false  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       gas:
@@ -273,7 +273,7 @@ processing:
           fom: broadcast  # options: manual / broadcast
           vom: broadcast  # options: manual / broadcast
           heatrate: broadcast  # options: manual / broadcast
-        fill_historical: true  # use observed data for ATB years already in the past
+        fill_atbstartyear2atbyear_with_real: true  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       gas-ccs:
@@ -282,7 +282,7 @@ processing:
           fom: broadcast  # options: manual / broadcast
           vom: broadcast  # options: manual / broadcast
           heatrate: broadcast  # options: manual / broadcast
-        fill_historical: false  # use observed data for ATB years already in the past
+        fill_atbstartyear2atbyear_with_real: false  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       fuelcell:
@@ -291,7 +291,7 @@ processing:
           fom: manual  # options: manual / broadcast
           vom: manual  # options: manual / broadcast
           heatrate: manual  # options: manual / broadcast
-        fill_historical: false  # use observed data for ATB years already in the past
+        fill_atbstartyear2atbyear_with_real: false  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       nuclear:
@@ -300,7 +300,7 @@ processing:
           fom: manual  # options: manual / broadcast
           vom: manual  # options: manual / broadcast
           heatrate: manual  # options: manual / broadcast
-        fill_historical: false  # use observed data for ATB years already in the past
+        fill_atbstartyear2atbyear_with_real: false  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       nuclear-smr:
@@ -309,7 +309,7 @@ processing:
           fom: manual  # options: manual / broadcast
           vom: manual  # options: manual / broadcast
           heatrate: manual  # options: manual / broadcast
-        fill_historical: false  # use observed data for ATB years already in the past
+        fill_atbstartyear2atbyear_with_real: false  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       biopower:
@@ -318,7 +318,7 @@ processing:
           fom: broadcast  # options: manual / broadcast
           vom: broadcast  # options: manual / broadcast
           heatrate: broadcast  # options: manual / broadcast
-        fill_historical: true  # use observed data for ATB years already in the past
+        fill_atbstartyear2atbyear_with_real: true  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
 

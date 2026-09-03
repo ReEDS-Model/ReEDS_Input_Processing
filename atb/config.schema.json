@@ -405,12 +405,12 @@
       "additionalProperties": false,
       "required": [
         "historical_data",
-        "fill_historical",
+        "fill_atbstartyear2atbyear_with_real",
         "future_smoothing_treatments"
       ],
       "properties": {
         "historical_data": {"type": "object"},
-        "fill_historical": {"type": "boolean"},
+        "fill_atbstartyear2atbyear_with_real": {"type": "boolean"},
         "future_smoothing_treatments": {"$ref": "#/definitions/futureTreatments"}
       }
     },
