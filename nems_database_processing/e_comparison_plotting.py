@@ -181,18 +181,10 @@ def comparison_plotting_r(df, zones, finalyear,  techs, color_techs, figname, x,
     # Save data
     fig.savefig(os.path.join(figure_path,figname+'.png'), dpi=600, bbox_inches='tight')
 
-def comparison_plotting_nat(df, finalyear, figname, x, title):
+def comparison_plotting_nat(ax,i,df,finalyear,x,title):
 
-    figsize = (5,3)
-    markersize_plot = 2
-    handletextpad = 0.1
-
+    print('Plotting national capacity: ' + title)
     year_set = sorted(range(startyear,finalyear+1))
-
-    ### Plot:
-    fig, ax = plt.subplots(figsize=figsize)
-        
-    print('Plotting national capacity')
     df_cap_temp = df.copy()
 
     # tech and year combination
@@ -221,11 +213,11 @@ def comparison_plotting_nat(df, finalyear, figname, x, title):
                      edgecolor=None, legend=False, discrete=True, ax = ax)
     else:          
         sns.histplot(data=df_cap, x=x, hue="tech", multiple="stack",
-                    weights='summer_power_capacity_GW',
-                    hue_order=techs,palette=color_techs, binwidth=0.85, shrink=0.9,
-                    edgecolor=None, legend=False, discrete=True, ax = ax)
+                     weights='summer_power_capacity_GW',
+                     hue_order=techs,palette=color_techs, binwidth=0.85, shrink=0.9,
+                     edgecolor=None, legend=False, discrete=True, ax = ax)
 
-    ax.set_title('CONUS',fontsize=8,fontweight='bold',fontname="Arial",pad=-6)
+    ax.set_title(title,fontsize=8,fontweight='bold',fontname="Arial",pad=-6)
 
     # Only display a few years in x-axis
     # Define the exact tick marks you want to show
@@ -253,45 +245,43 @@ def comparison_plotting_nat(df, finalyear, figname, x, title):
     ax.tick_params(right=False, labelright=False)
     ax.tick_params(top=False, labeltop=False)
 
-    ax.set_ylabel(title, fontsize=7,fontweight='bold',fontname="Arial", labelpad=1)
-    
-    ax.plot([], c='#FF4A88', marker='s', markersize=markersize_plot, linestyle='', label='battery_li')
-    ax.plot([], c='#A75F8A', marker='s', markersize=markersize_plot, linestyle='', label='pvb_battery')
-    ax.plot([], c='#C630B2', marker='s', markersize=markersize_plot, linestyle='', label='pumped-hydro')
-    ax.plot([], c='#FFC903', marker='s', markersize=markersize_plot, linestyle='', label='upv')
-    ax.plot([], c='#FEE603', marker='s', markersize=markersize_plot, linestyle='', label='dupv')
-    ax.plot([], c='#A27C12', marker='s', markersize=markersize_plot, linestyle='', label='pvb_pv')
-    ax.plot([], c='#F3660E', marker='s', markersize=markersize_plot, linestyle='', label='csp-ns')
-    ax.plot([], c='#00B6EF', marker='s', markersize=markersize_plot, linestyle='', label='wind-ons')
-    ax.plot([], c='#106BA7', marker='s', markersize=markersize_plot, linestyle='', label='wind-ofs')
-    ax.plot([], c='#5B9844', marker='s', markersize=markersize_plot, linestyle='', label='biopower')
-    ax.plot([], c='#3B692A', marker='s', markersize=markersize_plot, linestyle='', label='lfill-gas')
-    ax.plot([], c='#187F94', marker='s', markersize=markersize_plot, linestyle='', label='hydEND')
-    ax.plot([], c='#37A5BB', marker='s', markersize=markersize_plot, linestyle='', label='hydED')
-    ax.plot([], c='#31D6E2', marker='s', markersize=markersize_plot, linestyle='', label='hydNPND')
-    ax.plot([], c='#5FA6A8', marker='s', markersize=markersize_plot, linestyle='', label='hydND')
-    ax.plot([], c='#52216B', marker='s', markersize=markersize_plot, linestyle='', label='gas-cc')
-    ax.plot([], c='#C2A1DB', marker='s', markersize=markersize_plot, linestyle='', label='gas-ct')
-    ax.plot([], c='#765189', marker='s', markersize=markersize_plot, linestyle='', label='o-g-s')
-    ax.plot([], c='#222222', marker='s', markersize=markersize_plot, linestyle='', label='coaloldscr')
-    ax.plot([], c='#3E3C3C', marker='s', markersize=markersize_plot, linestyle='', label='coalolduns')
-    ax.plot([], c='#5B5A5A', marker='s', markersize=markersize_plot, linestyle='', label='coal-igcc')
-    ax.plot([], c='#A19E9E', marker='s', markersize=markersize_plot, linestyle='', label='coal-new')
-    ax.plot([], c='#820000', marker='s', markersize=markersize_plot, linestyle='', label='nuclear')
+    ax.set_ylabel('[GW]', fontsize=8,fontweight='bold',fontname="Arial", labelpad=1)
 
-    leg = ax.legend(loc='center left', bbox_to_anchor=(0.97, 0.5), 
-                    fontsize=6, handletextpad=handletextpad, 
-                    labelspacing=0.1, frameon=False)
-    plt.setp(leg.get_texts(), family='Arial', fontsize=6)
+    if i == 2:
+        ax.plot([], c='#FF4A88', marker='s', markersize=markersize_plot, linestyle='', label='battery_li')
+        ax.plot([], c='#A75F8A', marker='s', markersize=markersize_plot, linestyle='', label='pvb_battery')
+        ax.plot([], c='#C630B2', marker='s', markersize=markersize_plot, linestyle='', label='pumped-hydro')
+        ax.plot([], c='#FFC903', marker='s', markersize=markersize_plot, linestyle='', label='upv')
+        ax.plot([], c='#FEE603', marker='s', markersize=markersize_plot, linestyle='', label='dupv')
+        ax.plot([], c='#A27C12', marker='s', markersize=markersize_plot, linestyle='', label='pvb_pv')
+        ax.plot([], c='#F3660E', marker='s', markersize=markersize_plot, linestyle='', label='csp-ns')
+        ax.plot([], c='#00B6EF', marker='s', markersize=markersize_plot, linestyle='', label='wind-ons')
+        ax.plot([], c='#106BA7', marker='s', markersize=markersize_plot, linestyle='', label='wind-ofs')
+        ax.plot([], c='#5B9844', marker='s', markersize=markersize_plot, linestyle='', label='biopower')
+        ax.plot([], c='#3B692A', marker='s', markersize=markersize_plot, linestyle='', label='lfill-gas')
+        ax.plot([], c='#187F94', marker='s', markersize=markersize_plot, linestyle='', label='hydEND')
+        ax.plot([], c='#37A5BB', marker='s', markersize=markersize_plot, linestyle='', label='hydED')
+        ax.plot([], c='#31D6E2', marker='s', markersize=markersize_plot, linestyle='', label='hydNPND')
+        ax.plot([], c='#5FA6A8', marker='s', markersize=markersize_plot, linestyle='', label='hydND')
+        ax.plot([], c='#52216B', marker='s', markersize=markersize_plot, linestyle='', label='gas-cc')
+        ax.plot([], c='#C2A1DB', marker='s', markersize=markersize_plot, linestyle='', label='gas-ct')
+        ax.plot([], c='#765189', marker='s', markersize=markersize_plot, linestyle='', label='o-g-s')
+        ax.plot([], c='#222222', marker='s', markersize=markersize_plot, linestyle='', label='coaloldscr')
+        ax.plot([], c='#3E3C3C', marker='s', markersize=markersize_plot, linestyle='', label='coalolduns')
+        ax.plot([], c='#5B5A5A', marker='s', markersize=markersize_plot, linestyle='', label='coal-igcc')
+        ax.plot([], c='#A19E9E', marker='s', markersize=markersize_plot, linestyle='', label='coal-new')
+        ax.plot([], c='#820000', marker='s', markersize=markersize_plot, linestyle='', label='nuclear')
+
+        leg = ax.legend(loc='center left', bbox_to_anchor=(0.97, 0.5), 
+                        fontsize=7, handletextpad=handletextpad, 
+                        labelspacing=0.1, frameon=False)
+        plt.setp(leg.get_texts(), family='Arial', fontsize=7)
     
     # Only keep top and right spines of plot
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_linewidth(0.7)
     ax.spines['left'].set_linewidth(0.7)
-    
-    # Save data
-    fig.savefig(os.path.join(figure_path,figname+'.png'), dpi=600, bbox_inches='tight')
 
 def mismatching_FIPS(df_old, df_new, x, type):
     data_new_fips = df_new.copy()
@@ -367,15 +357,25 @@ if __name__ == "__main__":
     online_data_diff_nat = online_data_diff.groupby(['tech','StartYear'], as_index=False).sum()
 
     # Plot new, old NEMS at national level and their difference
-    comparison_plotting_nat(online_data_new_nat, finalyear_online, 
-                            figname='planned_oneline_new_conus', x='StartYear', 
-                            title='Planned online capacity - CONUS - new NEMS [GW]')
-    comparison_plotting_nat(online_data_old_nat, finalyear_online, 
-                                figname='planned_oneline_current_conus', x='StartYear', 
-                                title='Planned online capacity - CONUS - current NEMS [GW]')
-    comparison_plotting_nat(online_data_diff_nat, finalyear_online, 
-                                figname='planned_oneline_diff_conus', x='StartYear', 
-                                title='Planned online capacity difference - CONUS [GW]')
+    figsize = (5,7)
+    markersize_plot = 2
+    handletextpad = 0.1
+    nrows = 3
+    fig, axes = plt.subplots(nrows,figsize=figsize, sharex=True, sharey=True)
+    for i in list(range(nrows)):
+        ax = axes[i]
+        if i == 0:
+            comparison_plotting_nat(ax,i,online_data_new_nat,finalyear_online, 
+                                    x='StartYear',title='Planned online capacity - CONUS - new NEMS')
+        elif i == 1:
+            comparison_plotting_nat(ax,i,online_data_old_nat,finalyear_online, 
+                                    x='StartYear',title='Planned online capacity - CONUS - current NEMS')
+        elif i == 2:
+            comparison_plotting_nat(ax,i,online_data_diff_nat,finalyear_online, 
+                                    x='StartYear',title='Planned online capacity difference - CONUS')
+
+    # Save data
+    fig.savefig(os.path.join(figure_path,'planned_online_conus.png'), dpi=600, bbox_inches='tight')
 
     # Plot new, old NEMS at zonal level and their difference
     comparison_plotting_r(online_data_new, zones, finalyear_online, techs, color_techs, 
@@ -427,16 +427,27 @@ if __name__ == "__main__":
     retire_data_diff_nat = retire_data_diff.groupby(['tech','RetireYear'], as_index=False).sum()
 
     # Plot new, old NEMS at national level and their difference
-    comparison_plotting_nat(retire_data_new_nat, finalyear_retire, 
-                            figname='planned_retire_new_conus', x='RetireYear', 
-                            title='Planned retire capacity - CONUS - new NEMS [GW]')
-    comparison_plotting_nat(retire_data_old_nat, finalyear_retire, 
-                            figname='planned_retire_current_conus', x='RetireYear', 
-                            title='Planned retire capacity - CONUS - current NEMS [GW]')
-    comparison_plotting_nat(retire_data_diff_nat, finalyear_retire, 
-                            figname='planned_retire_diff_conus', x='RetireYear', 
-                            title='Planned retire capacity difference - CONUS [GW]')
-    
+    figsize = (5,7)
+    markersize_plot = 2
+    handletextpad = 0.1
+    nrows = 3
+    fig, axes = plt.subplots(nrows,figsize=figsize, sharex=True, sharey=True)
+    for i in list(range(nrows)):
+        ax = axes[i]
+
+        if i == 0:
+            comparison_plotting_nat(ax,i,retire_data_new_nat,finalyear_retire, 
+                                    x='RetireYear',title='Planned retire capacity - CONUS - new NEMS')
+        elif i == 1:
+            comparison_plotting_nat(ax,i,retire_data_old_nat,finalyear_retire, 
+                                    x='RetireYear',title='Planned retire capacity - CONUS - current NEMS')
+        # Difference (new NEMS - current NEMS)
+        elif i == 2:
+            comparison_plotting_nat(ax,i,retire_data_diff_nat,finalyear_retire, 
+                                    x='RetireYear',title='Planned retire capacity difference - CONUS')
+    # Save data
+    fig.savefig(os.path.join(figure_path,'planned_retire_conus.png'), dpi=600, bbox_inches='tight')
+
     # Plot new, old NEMS at zonal level and their difference
     comparison_plotting_r(retire_data_new, zones, finalyear_retire,  techs, color_techs, 
                           figname='planned_retire_new_r',x='RetireYear', 
