@@ -90,6 +90,7 @@
       ],
       "properties": {
         "reeds_repo": {"type": "string", "minLength": 1},
+        "reeds_atb_year": {"type": "integer", "minimum": 2015},
         "output_directory": {"type": "string", "minLength": 1},
         "copy_to_reeds": {"type": "boolean"},
         "technologies": {
@@ -127,7 +128,6 @@
       "additionalProperties": false,
       "required": [
         "metrics",
-        "case",
         "crp_years",
         "figure_format",
         "output_directory",
@@ -143,7 +143,6 @@
             "enum": ["CAPEX", "OCC", "Fixed O&M", "Variable O&M"]
           }
         },
-        "case": {"enum": ["Market", "R&D"]},
         "crp_years": {"type": "integer", "minimum": 1},
         "figure_format": {"enum": ["png", "pdf", "svg"]},
         "output_directory": {"type": "string", "minLength": 1},
@@ -492,7 +491,6 @@
         "enabled",
         "method",
         "columns",
-        "projection_start_year",
         "slope_change_threshold",
         "max_kink_years",
         "major_step_relative_threshold",
@@ -523,7 +521,6 @@
             }
           ]
         },
-        "projection_start_year": {"type": "integer", "minimum": 1900},
         "anchor_year": {"type": "integer", "minimum": 1900},
         "target_year": {"type": "integer", "minimum": 1900},
         "slope_change_threshold": {"type": "number", "exclusiveMinimum": 0},

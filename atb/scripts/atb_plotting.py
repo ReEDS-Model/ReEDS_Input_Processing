@@ -6,7 +6,13 @@ import math
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from atb_config import ATBE_COLUMN_MAPPING, load_config, raw_file_path, resolve_atb_path
+from atb_config import (
+    ATBE_COLUMN_MAPPING,
+    load_config,
+    load_processing_settings,
+    raw_file_path,
+    resolve_atb_path,
+)
 
 
 SCENARIOS = ("Moderate", "Advanced", "Conservative")
@@ -42,7 +48,30 @@ def load_raw_atb(config):
     return pd.read_csv(path, low_memory=False).rename(columns=ATBE_COLUMN_MAPPING)
 
 
-def clean_metric_data(raw, metric, case, crp_years, technologies):
+def technology_cases(config_path, technologies):
+    """Return the ATB case settings.yaml selects for each plotted technology."""
+    settings = load_processing_settings(config_path)
+    cases = {}
+    for tech, tech_settings in settings["techs"].items():
+        atb_technology = tech_settings["Technology"]
+        case = tech_settings["subset_rows"]["Case"]
+        previous = cases.setdefault(atb_technology, (case, tech))
+        if previous[0] != case:
+            raise ValueError(
+                f"ATB technology {atb_technology!r} is plotted once but its "
+                f"ReEDS technologies disagree on Case: {previous[1]}={previous[0]!r} "
+                f"vs {tech}={case!r}. Give them the same case or plot them apart."
+            )
+    missing = sorted(set(technologies) - set(cases))
+    if missing:
+        raise ValueError(
+            f"plotting.technologies includes {missing}, which no technology in "
+            "settings.yaml maps to, so their case is unknown."
+        )
+    return {tech: cases[tech][0] for tech in technologies}
+
+
+def clean_metric_data(raw, metric, cases, crp_years, technologies):
     """Select and aggregate one metric into a plotting-friendly table."""
     required = {
         "Technology", "DisplayName", "Scenario", "Parameter", "Case",
@@ -52,9 +81,10 @@ def clean_metric_data(raw, metric, case, crp_years, technologies):
     if missing:
         raise ValueError(f"Raw ATB flat file is missing columns: {missing}")
 
+    selected_case = raw["Technology"].map(cases)
     data = raw.loc[
         (raw["Parameter"] == metric)
-        & (raw["Case"] == case)
+        & (raw["Case"] == selected_case)
         & (raw["CRPYears"] == crp_years)
         & (raw["Technology"].isin(technologies))
         & (raw["Scenario"].isin(SCENARIOS)),
@@ -81,7 +111,7 @@ def plot_metric(data, metric, config, figure_format, output_dir):
     technologies = [tech for tech in technologies if tech in set(data["Technology"])]
     if not technologies:
         raise ValueError(
-            f"No data found for metric={metric!r}, case={config['plotting']['case']!r}, "
+            f"No data found for metric={metric!r} at "
             f"CRPYears={config['plotting']['crp_years']}."
         )
 
@@ -132,7 +162,7 @@ def plot_metric(data, metric, config, figure_format, output_dir):
 
     figure.suptitle(
         f"NLR ATB {config['atb']['year']} — {metric} "
-        f"({config['plotting']['case']}, CRP {config['plotting']['crp_years']})"
+        f"(CRP {config['plotting']['crp_years']})"
     )
     figure.tight_layout()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -148,6 +178,10 @@ def make_plots(config, metrics=None, show=False, save_cleaned=False):
     """Create all configured plots from the local raw flat file."""
     plot_config = config["plotting"]
     metrics = metrics or plot_config["metrics"]
+    cases = technology_cases(config["_config_path"], plot_config["technologies"])
+    print("Plotting each technology under its configured case:")
+    for technology, case in cases.items():
+        print(f"  {technology}: {case}")
     raw = load_raw_atb(config)
     output_dir = resolve_atb_path(plot_config["output_directory"])
     outputs = []
@@ -155,7 +189,7 @@ def make_plots(config, metrics=None, show=False, save_cleaned=False):
         data = clean_metric_data(
             raw,
             metric,
-            plot_config["case"],
+            cases,
             plot_config["crp_years"],
             plot_config["technologies"],
         )

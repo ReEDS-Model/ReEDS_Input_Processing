@@ -76,12 +76,15 @@ def resolve_atb_config_path(value: str | Path) -> Path:
     return path.resolve() if path.is_absolute() else (ATB_DIR / path).resolve()
 
 
-def reeds_filename(generated_name: str) -> str:
+def reeds_filename(generated_name: str, atb_year=None, reeds_year=None) -> str:
     """Map a generated filename to its ReEDS filename."""
+    name = generated_name
+    if reeds_year is not None and atb_year is not None and reeds_year != atb_year:
+        name = name.replace(f"_ATB_{atb_year}_", f"_ATB_{reeds_year}_")
     for generated_prefix, reeds_prefix in FILENAME_PREFIX_MAP.items():
-        if generated_name.startswith(generated_prefix):
-            return reeds_prefix + generated_name[len(generated_prefix):]
-    return generated_name
+        if name.startswith(generated_prefix):
+            return reeds_prefix + name[len(generated_prefix):]
+    return name
 
 
 def normalize_frame(frame: pd.DataFrame) -> pd.DataFrame:
@@ -781,7 +784,7 @@ def plot_file(
         constrained_layout=True,
     )
     figure.suptitle(
-        generated_path.stem,
+        f"{generated_path.stem} generated  vs  {reeds_path.stem} in ReEDS",
         y=1.03,
         fontsize=12,
         fontweight="bold",
@@ -857,7 +860,7 @@ def plot_overview(summary: pd.DataFrame, plot_dir: Path, atb_year: int) -> None:
         ["status", "changed_cells"], ascending=[True, True]
     ).reset_index(drop=True)
     labels = plot_data["generated_file"].str.replace(
-        "_ATB_2024_", " | ", regex=False
+        f"_ATB_{atb_year}_", " | ", regex=False
     )
     y = np.arange(len(plot_data))
 
@@ -926,6 +929,7 @@ def write_plots(
     reeds_dir: Path,
     plot_dir: Path,
     atb_year: int,
+    reeds_year: int | None = None,
     solid_label: str = "Generated",
     dashed_label: str = "ReEDS",
     include_overview: bool = True,
@@ -942,10 +946,13 @@ def write_plots(
             raise ValueError("A comparison summary is required for the overview plot.")
         plot_overview(summary, plot_dir, atb_year)
 
+    reeds_year = atb_year if reeds_year is None else reeds_year
     plotted = 0
     skipped = []
     for generated_path in generated_files:
-        reeds_path = reeds_dir / reeds_filename(generated_path.name)
+        reeds_path = reeds_dir / reeds_filename(
+            generated_path.name, atb_year, reeds_year
+        )
         if reeds_path.exists():
             if provenance_settings is None:
                 wrote_plot = plot_file(
@@ -1006,8 +1013,6 @@ def main() -> None:
     baseline_dir = args.unsmoothed_dir.resolve() if args.unsmoothed_dir else None
     if args.generated_dir:
         generated_dir = args.generated_dir.resolve()
-    elif baseline_dir is not None:
-        generated_dir = baseline_dir
     else:
         generated_dir = Path(settings['output_dir']).resolve()
     reeds_dir = (
@@ -1017,6 +1022,11 @@ def main() -> None:
     )
     plot_dir = args.plot_dir.resolve()
     atb_year = int(settings['atbyear'])
+    reeds_year = int(
+        settings['config']['processing'].get('reeds_atb_year', atb_year)
+    )
+    if reeds_year != atb_year:
+        print(f"Comparing ATB {atb_year} output against ReEDS ATB {reeds_year} files.")
 
     generated_files = sorted(generated_dir.glob(f"*_ATB_{atb_year}_*.csv"))
     if not generated_files:
@@ -1028,7 +1038,9 @@ def main() -> None:
 
     results = []
     for generated_path in generated_files:
-        reeds_path = reeds_dir / reeds_filename(generated_path.name)
+        reeds_path = reeds_dir / reeds_filename(
+            generated_path.name, atb_year, reeds_year
+        )
         result = compare_file(
             generated_path,
             reeds_path,
@@ -1041,10 +1053,12 @@ def main() -> None:
         )
 
     summary = pd.DataFrame(results)
-    expected_reeds_names = {reeds_filename(path.name) for path in generated_files}
+    expected_reeds_names = {
+        reeds_filename(path.name, atb_year, reeds_year) for path in generated_files
+    }
     reeds_only_files = sorted(
         path.name
-        for path in reeds_dir.glob(f"*_ATB_{atb_year}_*.csv")
+        for path in reeds_dir.glob(f"*_ATB_{reeds_year}_*.csv")
         if path.name not in expected_reeds_names
     )
     plotted = write_plots(
@@ -1053,11 +1067,8 @@ def main() -> None:
         reeds_dir,
         plot_dir,
         atb_year,
-        solid_label=(
-            "Before smoothing (generated)"
-            if baseline_dir is not None
-            else "Generated"
-        ),
+        reeds_year=reeds_year,
+        solid_label="Generated",
         dashed_label="ReEDS",
     )
     print(f"\nWrote overview and {plotted} file-level plots to {plot_dir}")

@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pandas as pd
 import yaml
 
 
@@ -74,4 +75,12 @@ def load_processing_settings(config_path=None):
             "config": config,
         }
     )
+    flat_file = raw_file_path(config, "flat_file")
+    if flat_file.is_file():
+        years = pd.read_csv(
+            flat_file, usecols=["core_metric_variable"], low_memory=False
+        )["core_metric_variable"]
+        config["processing"].setdefault("smooth_cost_curves", {})[
+            "projection_start_year"
+        ] = int(pd.to_numeric(years, errors="coerce").min())
     return settings

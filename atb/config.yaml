@@ -148,6 +148,7 @@ historical_cost_sources:
 
 processing:
   reeds_repo: C:/ReEDS/ReEDS
+  reeds_atb_year: 2024   # ReEDS ATB year in ReEDS\inputs\plant_characteristics for comparison
   output_directory: output
   copy_to_reeds: false
   technologies: all
@@ -168,9 +169,6 @@ processing:
     # Capacity-factor multipliers are still included automatically where used.
     # Heat rate is not monetary and is never smoothed by "all".
     columns: all
-    # Years before this boundary are historical; this year and later are the
-    # current ATB projection. Change this once here rather than in the code.
-    projection_start_year: 2022
     # A relative change in adjacent annual slopes at or above this value is a
     # possible kink. Only clusters of 2+ changes are smoothed.
     slope_change_threshold: 0.4
@@ -324,7 +322,6 @@ plotting:
     - CAPEX
     - Fixed O&M
     - Variable O&M
-  case: Market
   crp_years: 20
   figure_format: png
   output_directory: figures
