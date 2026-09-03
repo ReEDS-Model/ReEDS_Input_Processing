@@ -1026,7 +1026,7 @@ def _smooth_curve_segment(
         if len(cluster) < 2 or years[last] - years[first] > max_kink_years:
             continue
         left = max(0, first - 1)
-        right = min(len(smoothed) - 1, last + 2)
+        right = min(len(smoothed) - 1, last)
         step_changes = [
             _relative_change(smoothed[position], smoothed[position + 1], epsilon)
             for position in range(left, right)
