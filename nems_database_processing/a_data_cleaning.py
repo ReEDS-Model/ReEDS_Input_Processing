@@ -235,7 +235,6 @@ def cleanEIA860MData(dir,ver_mon,ver_year,current_year,storage_duration,status):
     eia860M_data = eia860M_data.reset_index(drop=True)
 
     # Add techs to match with NEMS:
-    eia860M_data['tech'] = eia860M_data['Technology']
     eia860M_data['tech'] = 'others'
     eia_reeds_tech_map = pd.read_csv(os.path.join(dir,'inputs','tech_mappings',
                                                   'eia_reeds_tech_map.csv')).rename(columns={'eia_tech':'Technology'})
