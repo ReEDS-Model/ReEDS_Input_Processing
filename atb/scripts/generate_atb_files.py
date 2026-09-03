@@ -813,6 +813,7 @@ def merge_historical_atb_data(
         if col not in ['Scenario', 't']
     ]
     combined = []
+    series_starts = {}
     current_dollar_year = settings['dollaryear']
     history_dollar_year = settings['history_dollar_year']
 
@@ -844,6 +845,8 @@ def merge_historical_atb_data(
         history_for_output['Scenario'] = scenario
         combined.extend([history_for_output, current])
 
+        for _, row in _projection_boundary_rows(current, idcols).iterrows():
+            series_starts[(scenario, *(row[column] for column in idcols))] = int(row['t'])
         boundary = _projection_boundary_rows(current, idcols)[tech_settings['cols']]
         boundary = boundary.copy()
         boundary_costcols = _cost_columns(boundary)
@@ -868,6 +871,7 @@ def merge_historical_atb_data(
         subset=tech_settings['indexcols'], keep='last'
     )
     output = output.reset_index(drop=True)
+    settings.setdefault('atb_series_start', {})[tech] = series_starts
     output = _apply_real_historical_costs(output, tech, settings, deflator)
     output = output.loc[
         pd.to_numeric(output['t'], errors='raise') <= settings['reeds_end_year']
@@ -1423,6 +1427,7 @@ def smooth_cost_curve(tech, settings, df):
     major_step_threshold = parameters['major_step_threshold']
     minimum_adjustment_threshold = parameters['minimum_adjustment_threshold']
 
+    series_starts = settings.get('atb_series_start', {}).get(tech, {})
     future_treatments = smoothing['future_smoothing_treatments']
     historical_data = smoothing['historical_data']
     history_columns = [
@@ -1449,6 +1454,7 @@ def smooth_cost_curve(tech, settings, df):
     original_values = output[columns].copy()
     groups = output.groupby(groupcols, dropna=False, sort=False).groups
 
+    row_series_start = pd.Series(projection_start_year, index=output.index)
     enabled_future_treatments = [
         name for name, enabled in future_treatments.items() if enabled
     ]
@@ -1474,15 +1480,23 @@ def smooth_cost_curve(tech, settings, df):
             )
             for column in mode_columns
         }
-        anchor_rows = group.loc[group['t'] == projection_start_year]
+        # ATB publishes some technologies later than the release year, so a
+        # series stays historical until its own data begins rather than until
+        # the release's first year.
+        series_start = series_starts.get(
+            (label['Scenario'], *(label[column] for column in idcols)),
+            projection_start_year,
+        )
+        anchor_rows = group.loc[group['t'] == series_start]
         if len(anchor_rows) != 1:
             raise ValueError(
                 f"Cannot apply historical data modes for {tech} series "
                 f"{label}: expected exactly one row for projection start "
-                f"year {projection_start_year}."
+                f"year {series_start}."
             )
+        row_series_start.loc[index] = series_start
         anchor_index = anchor_rows.index[0]
-        historical_index = group.index[group['t'] < projection_start_year]
+        historical_index = group.index[group['t'] < series_start]
         broadcast_columns = [
             column for column in history_columns
             if group_modes[column] == 'broadcast'
@@ -1497,7 +1511,7 @@ def smooth_cost_curve(tech, settings, df):
                 output.loc[group.index, column] = _selective_smooth_cost_values(
                     group['t'],
                     group[column],
-                    projection_start_year,
+                    series_start,
                     slope_change_threshold,
                     max_kink_years,
                     major_step_threshold,
@@ -1541,7 +1555,7 @@ def smooth_cost_curve(tech, settings, df):
     # Respect the published ATB trajectory when smoothing proposes only a
     # negligible future adjustment. Historical mode changes (including a full
     # broadcast) are intentionally outside this filter.
-    future_mask = output['t'] >= projection_start_year
+    future_mask = output['t'] >= row_series_start
     candidate_values = output.loc[future_mask, columns]
     source_values = original_values.loc[future_mask, columns]
     relative_scale = source_values.abs().clip(lower=RELATIVE_SCALE_FLOOR)
@@ -1893,14 +1907,6 @@ def process_tech_file(atb_data, tech, settings, filenames, dollaryear, deflator,
     # so it can bridge the history/current-ATB boundary without changing the
     # versioned historical source files. It is disabled by default.
     tech_data_out = smooth_cost_curve(tech, settings, tech_data_out)
-
-    # for fuel cells, backfill capcost values as 9999 for all pre-2035 years
-    if tech == 'fuelcell' and 'capcost' in tech_data_out.columns:
-        print("Assigning capcost = 9999 for fuelcell years before 2035")
-        tech_data_out.loc[tech_data_out['t'] < 2035, 'capcost'] = 9999
-        tech_data_unsmoothed.loc[
-            tech_data_unsmoothed['t'] < 2035, 'capcost'
-        ] = 9999
 
     smoothing = settings['config']['processing'].get('smooth_cost_curves', {})
     baseline_directory = settings.get('unsmoothed_output_dir')

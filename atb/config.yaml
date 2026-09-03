@@ -193,18 +193,18 @@ processing:
       upv:
         historical_data:
           capcost: real  # options: real / manual / broadcast
-          fom: broadcast  # options: manual / broadcast
-          vom: broadcast  # options: manual / broadcast
-          cf_improvement: broadcast  # options: manual / broadcast
+          fom: manual  # options: manual / broadcast
+          vom: manual  # options: manual / broadcast
+          cf_improvement: manual  # options: manual / broadcast
         fill_historical: true  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       wind-ons:
         historical_data:
           capcost: real  # options: real / manual / broadcast
-          fom: broadcast  # options: manual / broadcast
-          vom: broadcast  # options: manual / broadcast
-          cf_improvement: broadcast  # options: manual / broadcast
+          fom: manual  # options: manual / broadcast
+          vom: manual  # options: manual / broadcast
+          cf_improvement: manual  # options: manual / broadcast
         fill_historical: true  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
@@ -214,11 +214,11 @@ processing:
           # class reads it. No floating cost history exists to observe.
           capcost:
             fixed: real  # options: real / manual / broadcast
-            floating: broadcast  # options: manual / broadcast
-          fom: broadcast  # options: manual / broadcast
-          vom: broadcast  # options: manual / broadcast
-          cf_improvement: broadcast  # options: manual / broadcast
-          rsc_mult: broadcast  # options: manual / broadcast
+            floating: manual  # options: manual / broadcast
+          fom: manual  # options: manual / broadcast
+          vom: manual  # options: manual / broadcast
+          cf_improvement: manual  # options: manual / broadcast
+          rsc_mult: manual  # options: manual / broadcast
         fill_historical: true  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
@@ -235,9 +235,9 @@ processing:
           smooth_projection_curve: true  # options: true / false
       csp:
         historical_data:
-          capcost: broadcast  # options: manual / broadcast
-          fom: broadcast  # options: manual / broadcast
-          vom: broadcast  # options: manual / broadcast
+          capcost: manual  # options: manual / broadcast
+          fom: manual  # options: manual / broadcast
+          vom: manual  # options: manual / broadcast
         fill_historical: false  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
@@ -287,28 +287,28 @@ processing:
           smooth_projection_curve: true  # options: true / false
       fuelcell:
         historical_data:
-          capcost: broadcast  # options: manual / broadcast
-          fom: broadcast  # options: manual / broadcast
-          vom: broadcast  # options: manual / broadcast
-          heatrate: broadcast  # options: manual / broadcast
+          capcost: manual  # options: manual / broadcast
+          fom: manual  # options: manual / broadcast
+          vom: manual  # options: manual / broadcast
+          heatrate: manual  # options: manual / broadcast
         fill_historical: false  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       nuclear:
         historical_data:
-          capcost: broadcast  # options: manual / broadcast
-          fom: broadcast  # options: manual / broadcast
-          vom: broadcast  # options: manual / broadcast
-          heatrate: broadcast  # options: manual / broadcast
+          capcost: manual  # options: manual / broadcast
+          fom: manual  # options: manual / broadcast
+          vom: manual  # options: manual / broadcast
+          heatrate: manual  # options: manual / broadcast
         fill_historical: false  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       nuclear-smr:
         historical_data:
-          capcost: broadcast  # options: manual / broadcast
-          fom: broadcast  # options: manual / broadcast
-          vom: broadcast  # options: manual / broadcast
-          heatrate: broadcast  # options: manual / broadcast
+          capcost: manual  # options: manual / broadcast
+          fom: manual  # options: manual / broadcast
+          vom: manual  # options: manual / broadcast
+          heatrate: manual  # options: manual / broadcast
         fill_historical: false  # use observed data for ATB years already in the past
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
