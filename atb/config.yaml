@@ -328,6 +328,9 @@ processing:
 # so a later ATB release can move that year into history without a gap.
 historical_data:
   directory: manual_input/historical
+  # Copied from <reeds_repo>/inputs/financials/deflator.csv; update by hand
+  # when ReEDS publishes a new dollar year.
+  deflator_file: manual_input/deflator.csv
   dollar_year: 2022
   seed_missing_from_reeds: false
 

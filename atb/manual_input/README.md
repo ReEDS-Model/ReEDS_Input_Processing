@@ -20,10 +20,17 @@ Inputs that are not available from the raw ATB downloads. They are consumed by
 
   The formatter rolls the first current projection year into these files
   automatically after every run, so any run rewrites one row per series.
+- `deflator.csv` — GDP deflator used to convert every stored or observed value
+  into `atb.dollar_year`. Copied from `<reeds_repo>/inputs/financials/deflator.csv`
+  so a run does not depend on a ReEDS checkout; update it by hand when ReEDS
+  publishes a new dollar year.
 - `csp_cost_ratios_<year>.csv` — CSP configuration cost multipliers (csp1–csp4)
   relative to the base configuration (csp2). They come from the separate ReEDS
   CSP thermal-storage sizing/SAM analysis rather than either ATB download. The
   2024 multipliers reproduce the published ReEDS ATB 2024 configurations.
+  The csp1/csp3/csp4 rows under `historical/` are derived from csp2 with these
+  ratios, so rebuild them whenever the ratios change or the history and the
+  projection will disagree at the boundary.
 - `offshore_cost_multipliers_<year>.csv` — ReEDS fixed-bottom and floating
   configuration adjustments applied to the corresponding ATB offshore class
   proxies. These account for ReEDS configuration assumptions outside the raw

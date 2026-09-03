@@ -118,9 +118,15 @@
     "historical_data": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["directory", "dollar_year", "seed_missing_from_reeds"],
+      "required": [
+        "directory",
+        "deflator_file",
+        "dollar_year",
+        "seed_missing_from_reeds"
+      ],
       "properties": {
         "directory": {"type": "string", "minLength": 1},
+        "deflator_file": {"type": "string", "minLength": 1},
         "dollar_year": {"type": "integer", "minimum": 1900},
         "seed_missing_from_reeds": {"type": "boolean"}
       }

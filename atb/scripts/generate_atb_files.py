@@ -2213,7 +2213,7 @@ def main(args):
     # load dollaryear file in ReEDS
     dollaryear = pd.read_csv(os.path.join(settings['reedspath'], 'inputs', 'plant_characteristics', 'dollaryear.csv'), 
                              index_col='Scenario').squeeze()
-    deflator = pd.read_csv(os.path.join(settings['reedspath'], 'inputs', 'financials', 'deflator.csv'), 
+    deflator = pd.read_csv(settings['deflator_path'],
                            index_col='*Dollar.Year').squeeze()
     if not args.skip_costs:
         validate_real_historical_data(settings, techs_to_run, deflator)

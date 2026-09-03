@@ -69,6 +69,7 @@ def load_processing_settings(config_path=None):
             "flat_file_path": str(raw_file_path(config, "flat_file")),
             "workbook_path": str(raw_file_path(config, "workbook")),
             "history_dir": str(resolve_atb_path(history["directory"])),
+            "deflator_path": str(resolve_atb_path(history["deflator_file"])),
             "history_dollar_year": int(history["dollar_year"]),
             "seed_missing_history": bool(
                 history.get("seed_missing_from_reeds", False)
