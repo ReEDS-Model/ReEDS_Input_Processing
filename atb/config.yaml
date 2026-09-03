@@ -173,7 +173,7 @@ processing:
     # A relative change in adjacent annual slopes at or above this value is a
     # possible kink. Only clusters of 2+ changes are smoothed.
     slope_change_threshold: 0.6
-    max_kink_years: 4
+    max_kink_years: 10
     # Year-to-year transitions of 10% or more are published milestones and are
     # never smoothed. Runs of equal values are left alone too: a flat stretch
     # is how ATB states that a cost stops improving.
@@ -207,7 +207,7 @@ processing:
           cf_improvement: broadcast  # options: manual / broadcast
         fill_historical: true  # use observed data for ATB years already in the past
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: false  # options: true / false
       wind-ofs:
         historical_data:
           # Observed offshore CapEx is a fixed-bottom series, so only that
@@ -311,7 +311,7 @@ processing:
           heatrate: broadcast  # options: manual / broadcast
         fill_historical: false  # use observed data for ATB years already in the past
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: false  # options: true / false
       biopower:
         historical_data:
           capcost: real  # options: real / manual / broadcast
