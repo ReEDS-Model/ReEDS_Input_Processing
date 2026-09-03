@@ -1,0 +1,566 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/NREL/ReEDS-2.0/atb/config.schema.json",
+  "title": "ReEDS ATB workflow configuration",
+  "description": "Editor validation and option lists for atb/config.yaml.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "workflow",
+    "atb",
+    "raw_data",
+    "historical_cost_sources",
+    "processing",
+    "historical_data",
+    "plotting"
+  ],
+  "properties": {
+    "workflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scrape_raw_data",
+        "format_reeds_inputs",
+        "make_plots",
+        "make_comparison_plots"
+      ],
+      "properties": {
+        "scrape_raw_data": {"type": "boolean"},
+        "format_reeds_inputs": {"type": "boolean"},
+        "make_plots": {"type": "boolean"},
+        "make_comparison_plots": {"type": "boolean"}
+      }
+    },
+    "atb": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["year", "release_version", "dollar_year"],
+      "properties": {
+        "year": {"type": "integer", "minimum": 2015},
+        "release_version": {"type": "integer", "minimum": 1},
+        "dollar_year": {"type": "integer", "minimum": 1900}
+      }
+    },
+    "raw_data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["directory", "flat_file", "workbook"],
+      "properties": {
+        "directory": {"type": "string", "minLength": 1},
+        "allow_insecure_ssl_fallback": {"type": "boolean"},
+        "flat_file": {"$ref": "#/definitions/downloadArtifact"},
+        "workbook": {"$ref": "#/definitions/downloadArtifact"}
+      }
+    },
+    "historical_cost_sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "directory",
+        "normalized_filename",
+        "manifest_filename",
+        "reeds_mappings",
+        "sources"
+      ],
+      "properties": {
+        "directory": {"type": "string", "minLength": 1},
+        "normalized_filename": {"type": "string", "minLength": 1},
+        "manifest_filename": {"type": "string", "minLength": 1},
+        "allow_insecure_ssl_fallback": {"type": "boolean"},
+        "reeds_mappings": {"$ref": "#/definitions/reedsMappings"},
+        "sources": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/definitions/historicalSource"}
+        }
+      }
+    },
+    "processing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reeds_repo",
+        "output_directory",
+        "copy_to_reeds",
+        "technologies",
+        "update_costs",
+        "update_financials",
+        "reeds_start_year",
+        "reeds_end_year",
+        "decimals",
+        "smooth_cost_curves"
+      ],
+      "properties": {
+        "reeds_repo": {"type": "string", "minLength": 1},
+        "reeds_atb_year": {"type": "integer", "minimum": 2015},
+        "output_directory": {"type": "string", "minLength": 1},
+        "copy_to_reeds": {"type": "boolean"},
+        "technologies": {
+          "description": "Technologies formatted by the workflow.",
+          "oneOf": [
+            {"const": "all"},
+            {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"$ref": "#/definitions/technologyName"}
+            }
+          ]
+        },
+        "update_costs": {"type": "boolean"},
+        "update_financials": {"type": "boolean"},
+        "sensitivity_name": {"type": ["string", "null"]},
+        "reeds_start_year": {"type": "integer", "minimum": 1900},
+        "reeds_end_year": {"type": "integer", "minimum": 1900},
+        "decimals": {"type": "integer", "minimum": 0, "maximum": 12},
+        "smooth_cost_curves": {"$ref": "#/definitions/smoothing"}
+      }
+    },
+    "historical_data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "directory",
+        "deflator_file",
+        "dollar_year",
+        "seed_missing_from_reeds"
+      ],
+      "properties": {
+        "directory": {"type": "string", "minLength": 1},
+        "deflator_file": {"type": "string", "minLength": 1},
+        "dollar_year": {"type": "integer", "minimum": 1900},
+        "seed_missing_from_reeds": {"type": "boolean"}
+      }
+    },
+    "plotting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metrics",
+        "crp_years",
+        "figure_format",
+        "output_directory",
+        "smoothing_comparison_directory",
+        "technologies"
+      ],
+      "properties": {
+        "metrics": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["CAPEX", "OCC", "Fixed O&M", "Variable O&M"]
+          }
+        },
+        "crp_years": {"type": "integer", "minimum": 1},
+        "figure_format": {"enum": ["png", "pdf", "svg"]},
+        "output_directory": {"type": "string", "minLength": 1},
+        "smoothing_comparison_directory": {"type": "string", "minLength": 1},
+        "technologies": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "Biopower",
+              "Coal_FE",
+              "CSP",
+              "LandbasedWind",
+              "NaturalGas_FE",
+              "Nuclear",
+              "OffShoreWind",
+              "Utility-Scale Battery Storage",
+              "UtilityPV"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "downloadArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filename", "url"],
+      "properties": {
+        "filename": {"type": "string", "minLength": 1},
+        "url": {"type": "string", "minLength": 1}
+      }
+    },
+    "historicalSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "page_url", "filename"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "report_year": {"type": "integer", "minimum": 1900},
+        "first_year": {"type": "integer", "minimum": 1900},
+        "last_year": {"type": "integer", "minimum": 1900},
+        "last_historical_year": {"type": "integer", "minimum": 1900},
+        "page_url": {"type": "string", "minLength": 1},
+        "data_url": {"type": "string", "minLength": 1},
+        "current_data_url": {"type": "string", "minLength": 1},
+        "archive_data_url": {"type": "string", "minLength": 1},
+        "filename": {"type": "string", "minLength": 1}
+      },
+      "anyOf": [
+        {"required": ["data_url"]},
+        {"required": ["current_data_url", "archive_data_url"]}
+      ]
+    },
+    "filterValue": {
+      "type": ["string", "number", "integer", "boolean"]
+    },
+    "filters": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/definitions/filterValue"}
+    },
+    "mappingSeries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filters"],
+      "properties": {
+        "filters": {"$ref": "#/definitions/filters"},
+        "technologies": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string"}
+        },
+        "turbine_classes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "observedMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "filters": {"$ref": "#/definitions/filters"},
+        "turbine_classes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string"}
+        },
+        "series": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/definitions/mappingSeries"}
+        }
+      },
+      "oneOf": [
+        {"required": ["filters"]},
+        {"required": ["series"]}
+      ]
+    },
+    "metricMappings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost"],
+      "properties": {
+        "capcost": {"$ref": "#/definitions/observedMapping"}
+      }
+    },
+    "reedsMappings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "upv": {"$ref": "#/definitions/metricMappings"},
+        "wind-ons": {"$ref": "#/definitions/metricMappings"},
+        "wind-ofs": {"$ref": "#/definitions/metricMappings"},
+        "gas": {"$ref": "#/definitions/metricMappings"},
+        "biopower": {"$ref": "#/definitions/metricMappings"}
+      }
+    },
+    "historyMode": {
+      "enum": ["real", "manual", "broadcast"]
+    },
+    "historyModeWithoutReal": {
+      "enum": ["manual", "broadcast"]
+    },
+    "historyModeByTurbineClass": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per turbine class. Use when an observed series describes only some classes; each class selecting real must match the mapping's turbine_classes. Only fixed offers real: NREL's Figure 31 CapEx series is fixed-bottom, and no observed floating cost history exists.",
+      "properties": {
+        "fixed": {"$ref": "#/definitions/historyMode"},
+        "floating": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyModeOrByTurbineClass": {
+      "oneOf": [
+        {"$ref": "#/definitions/historyMode"},
+        {"$ref": "#/definitions/historyModeByTurbineClass"}
+      ]
+    },
+    "historyModeByGasPlant": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per gas plant configuration. EIA reports only 'combined cycle' and 'combustion turbine', so just Gas-CC and Gas-CT offer real; the H-Frame and aeroderivative variants have no observation and must generate their own history.",
+      "properties": {
+        "Gas-CC": {"$ref": "#/definitions/historyMode"},
+        "Gas-CT": {"$ref": "#/definitions/historyMode"},
+        "Gas-CC_H_1x1": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "Gas-CC_H_2x1": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "Gas-CT_aero": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyModeOrByGasPlant": {
+      "oneOf": [
+        {"$ref": "#/definitions/historyMode"},
+        {"$ref": "#/definitions/historyModeByGasPlant"}
+      ]
+    },
+    "historyObservedCapcostWithCf": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom", "cf_improvement"],
+      "properties": {
+        "capcost": {"$ref": "#/definitions/historyMode"},
+        "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "cf_improvement": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyObservedCapcostWithCfAndRsc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capcost",
+        "fom",
+        "vom",
+        "cf_improvement",
+        "rsc_mult"
+      ],
+      "properties": {
+        "capcost": {"$ref": "#/definitions/historyModeOrByTurbineClass"},
+        "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "cf_improvement": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "rsc_mult": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyObservedCapcost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom", "heatrate"],
+      "properties": {
+        "capcost": {"$ref": "#/definitions/historyModeOrByGasPlant"},
+        "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "heatrate": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyBattery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capcost",
+        "capcost_energy",
+        "fom",
+        "fom_energy",
+        "vom",
+        "rte"
+      ],
+      "properties": {
+        "capcost": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "capcost_energy": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "fom_energy": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "rte": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyCosts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom"],
+      "properties": {
+        "capcost": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "vom": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyCostsWithHeatrate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom", "heatrate"],
+      "properties": {
+        "capcost": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "heatrate": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "futureTreatments": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["smooth_projection_curve"],
+      "properties": {
+        "smooth_projection_curve": {"type": "boolean"}
+      }
+    },
+    "technologyConfigBase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "historical_data",
+        "fill_atbstartyear2atbyear_with_real",
+        "future_smoothing_treatments"
+      ],
+      "properties": {
+        "historical_data": {"type": "object"},
+        "fill_atbstartyear2atbyear_with_real": {"type": "boolean"},
+        "future_smoothing_treatments": {"$ref": "#/definitions/futureTreatments"}
+      }
+    },
+    "technologyObservedCapcost": {
+      "allOf": [
+        {"$ref": "#/definitions/technologyConfigBase"},
+        {
+          "properties": {
+            "historical_data": {"$ref": "#/definitions/historyObservedCapcost"}
+          }
+        }
+      ]
+    },
+    "technologyObservedCapcostWithCf": {
+      "allOf": [
+        {"$ref": "#/definitions/technologyConfigBase"},
+        {
+          "properties": {
+            "historical_data": {"$ref": "#/definitions/historyObservedCapcostWithCf"}
+          }
+        }
+      ]
+    },
+    "technologyObservedCapcostWithCfAndRsc": {
+      "allOf": [
+        {"$ref": "#/definitions/technologyConfigBase"},
+        {
+          "properties": {
+            "historical_data": {"$ref": "#/definitions/historyObservedCapcostWithCfAndRsc"}
+          }
+        }
+      ]
+    },
+    "technologyBattery": {
+      "allOf": [
+        {"$ref": "#/definitions/technologyConfigBase"},
+        {
+          "properties": {
+            "historical_data": {"$ref": "#/definitions/historyBattery"}
+          }
+        }
+      ]
+    },
+    "technologyCosts": {
+      "allOf": [
+        {"$ref": "#/definitions/technologyConfigBase"},
+        {
+          "properties": {
+            "historical_data": {"$ref": "#/definitions/historyCosts"}
+          }
+        }
+      ]
+    },
+    "technologyCostsWithHeatrate": {
+      "allOf": [
+        {"$ref": "#/definitions/technologyConfigBase"},
+        {
+          "properties": {
+            "historical_data": {"$ref": "#/definitions/historyCostsWithHeatrate"}
+          }
+        }
+      ]
+    },
+    "technologyName": {
+      "enum": [
+        "upv",
+        "wind-ons",
+        "wind-ofs",
+        "battery",
+        "csp",
+        "coal",
+        "coal-ccs",
+        "gas",
+        "gas-ccs",
+        "fuelcell",
+        "nuclear",
+        "nuclear-smr",
+        "biopower"
+      ]
+    },
+    "smoothing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "method",
+        "columns",
+        "slope_change_threshold",
+        "max_kink_years",
+        "major_step_relative_threshold",
+        "minimum_adjustment_relative_threshold",
+        "technologies"
+      ],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "method": {"enum": ["selective", "linear_bridge"]},
+        "columns": {
+          "oneOf": [
+            {"const": "all"},
+            {"const": "capital_costs"},
+            {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "capcost",
+                  "capcost_energy",
+                  "fom",
+                  "fom_energy",
+                  "vom",
+                  "cf_improvement"
+                ]
+              }
+            }
+          ]
+        },
+        "anchor_year": {"type": "integer", "minimum": 1900},
+        "target_year": {"type": "integer", "minimum": 1900},
+        "slope_change_threshold": {"type": "number", "exclusiveMinimum": 0},
+        "max_kink_years": {"type": "integer", "minimum": 1},
+        "major_step_relative_threshold": {"type": "number", "exclusiveMinimum": 0},
+        "minimum_adjustment_relative_threshold": {"type": "number", "minimum": 0},
+        "future_smoothing_treatments": {"$ref": "#/definitions/futureTreatments"},
+        "technologies": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "upv": {"$ref": "#/definitions/technologyObservedCapcostWithCf"},
+            "wind-ons": {"$ref": "#/definitions/technologyObservedCapcostWithCf"},
+            "wind-ofs": {"$ref": "#/definitions/technologyObservedCapcostWithCfAndRsc"},
+            "battery": {"$ref": "#/definitions/technologyBattery"},
+            "csp": {"$ref": "#/definitions/technologyCosts"},
+            "coal": {"$ref": "#/definitions/technologyCostsWithHeatrate"},
+            "coal-ccs": {"$ref": "#/definitions/technologyCostsWithHeatrate"},
+            "gas": {"$ref": "#/definitions/technologyObservedCapcost"},
+            "gas-ccs": {"$ref": "#/definitions/technologyCostsWithHeatrate"},
+            "fuelcell": {"$ref": "#/definitions/technologyCostsWithHeatrate"},
+            "nuclear": {"$ref": "#/definitions/technologyCostsWithHeatrate"},
+            "nuclear-smr": {"$ref": "#/definitions/technologyCostsWithHeatrate"},
+            "biopower": {"$ref": "#/definitions/technologyObservedCapcost"}
+          }
+        }
+      }
+    }
+  }
+}

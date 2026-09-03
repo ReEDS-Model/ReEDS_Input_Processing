@@ -1,0 +1,11 @@
+tech,Scenario,i,t,capcost,fom,vom,heatrate
+coal,Moderate,Coal-IGCC,2033,5349.3,160.4,15.79,8.308
+coal,Moderate,Coal-IGCC,2034,5328.1,159.8,15.74,8.308
+coal,Moderate,Coal-new,2033,2991.2,81.7,8.83,8.205
+coal,Moderate,Coal-new,2034,2973.7,81.2,8.79,8.182
+coal-ccs,Advanced,coal-CCS_mod,2033,4399.4,116.3,13.23,9.588
+coal-ccs,Advanced,coal-CCS_mod,2034,4323.3,114.5,12.99,9.476
+coal-ccs,Conservative,coal-CCS_mod,2033,4723.8,123.6,15.49,10.938
+coal-ccs,Conservative,coal-CCS_mod,2034,4674.7,122.4,15.44,10.938
+coal-ccs,Moderate,coal-CCS_mod,2033,4561.6,119.9,14.36,10.319
+coal-ccs,Moderate,coal-CCS_mod,2034,4499.0,118.5,14.22,10.263
