@@ -34,7 +34,6 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
     coal_retirement_upd = pd.read_csv(os.path.join('inputs','coal_retirements',coal_plant_retirement))
     coal_retirement_upd = coal_retirement_upd.rename(columns={'Plant Name':'T_PNM', 'Generator ID':'T_UID', 'Plant Code':'T_PID'})
     coal_retirement_upd = coal_retirement_upd[['T_PNM', 'T_UID', 'T_PID', 'Retirement Year', 'MATS Exemptions']]
-    coal_retirement_upd['Retirement Year']  = coal_retirement_upd['Retirement Year'].fillna(9999)
     
     # Update retirement dates to reflect new MATS exception
     # (source: https://www.epa.gov/system/files/documents/2025-04/regulatory-relief-for-certain-stationary-annex-1.pdf)
@@ -49,11 +48,10 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
     nems = nems.merge(coal_retirement_upd, on=['T_PNM', 'T_UID', 'T_PID'], how='left')
     nems['Retirement Year']  = nems['Retirement Year'].fillna(9999)
 
-    for i in list(range(len(nems))):
-        if (nems['Retirement Year'][i] != nems['T_RYR'][i]) and ('coal' in nems['tech'][i]):            
-            nems.loc[i,'T_RYR'] = nems.loc[i,'Retirement Year']
-
-    nems = nems.drop(['Retirement Year'], axis=1)
+    updated = nems['tech'].str.contains('coal', na=False) & nems['Retirement Year'].notna()
+    nems.loc[updated,'T_RYR'] = nems.loc[updated,'Retirement Year']
+    
+    nems = nems.drop(['Retirement Year','MATS Exemptions'], axis=1)
     
     nems['T_RYR'].fillna(9999,inplace=True)
     nems['T_RYR'] = nems['T_RYR'].replace(' ',9999)
@@ -176,7 +174,7 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
     nems_cleaned = pd.concat([nems_cleaned, df_temp], axis=0)
     nems_cleaned = nems_cleaned.reset_index(drop=True)
 
-    ### Edgewater unit 5: Convert coal unis to gas-cc in 2028:
+    ### Edgewater unit 5: Convert coal unit to gas-cc in 2028:
     df_temp = nems_cleaned[(nems_cleaned['T_PNM'].str.contains('Edgewater')) &
                            (nems_cleaned['T_UID'].str.contains('5')) &
                            (nems_cleaned['EFDcd']=='CSC')].copy()

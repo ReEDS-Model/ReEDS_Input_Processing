@@ -103,7 +103,7 @@ def cleanAEOData(dir, current_year, gdbinputname):
     aeo_data.loc[aeo_data['reeds_tech'].notna(), 'tech'] = aeo_data['reeds_tech']
 
     # Specify coal units with or without scrubbers
-    # Coal units that came online prior to 1069 are without scrubbers
+    # Coal units that came online prior to 1969 are without scrubbers
     coaluns = (aeo_data['tech'].str.contains("coal", na=False)) & (aeo_data['T_SYR']<=1969)
     # Coal units that came online after 1969 have installed scrubbers
     coalscrs = (aeo_data['tech'].str.contains("coal", na=False)) & (aeo_data['T_SYR']>1969)
