@@ -401,9 +401,14 @@
     "technologyConfigBase": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["historical_data", "future_smoothing_treatments"],
+      "required": [
+        "historical_data",
+        "fill_historical",
+        "future_smoothing_treatments"
+      ],
       "properties": {
         "historical_data": {"type": "object"},
+        "fill_historical": {"type": "boolean"},
         "future_smoothing_treatments": {"$ref": "#/definitions/futureTreatments"}
       }
     },

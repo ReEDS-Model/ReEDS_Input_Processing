@@ -640,8 +640,11 @@ def _apply_real_historical_costs(frame, tech, settings, deflator):
             "applier. Define one and add it to REAL_HISTORY_APPLIERS."
         )
     projection_start_year = int(smoothing.get('projection_start_year', 2022))
-    historical_mask = frame['t'] < projection_start_year
-    required_years = set(frame.loc[historical_mask, 't'].astype(int).unique())
+    before_projection = frame['t'] < projection_start_year
+    required_years = set(frame.loc[before_projection, 't'].astype(int).unique())
+    historical_mask = before_projection
+    if technology_config['fill_historical']:
+        historical_mask = frame['t'] <= int(settings['atbyear'])
     result = frame
     for metric in real_metrics:
         mapping = technology_mappings.get(metric)
@@ -1291,6 +1294,14 @@ def _technology_smoothing_config(tech, settings):
             )
         future_treatments.update(overrides)
     config['future_smoothing_treatments'] = future_treatments
+
+    fill_historical = config.get('fill_historical', False)
+    if not isinstance(fill_historical, bool):
+        raise TypeError(
+            f"processing.smooth_cost_curves.technologies.{tech}."
+            "fill_historical must be true or false."
+        )
+    config['fill_historical'] = fill_historical
 
     config['historical_data'] = _validate_historical_data_config(
         tech,

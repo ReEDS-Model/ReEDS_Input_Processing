@@ -367,6 +367,8 @@ def smoothing_provenance(settings: dict, generated_path: Path) -> dict:
     return {
         "technology": technology,
         "projection_start_year": boundary,
+        "fill_historical": bool(technology_settings.get("fill_historical", False)),
+        "atb_year": int(settings["atbyear"]),
         "historical_data": historical_data,
         "observed_series": observed_series,
         "history_class_column": (
@@ -433,6 +435,22 @@ def is_observed_history_point(
     return False
 
 
+def is_filled_history_point(
+    final_group: pd.DataFrame,
+    metric: str,
+    year: int,
+    provenance: dict,
+) -> bool:
+    """Return whether a projection year was filled from observed history."""
+    if not provenance.get("fill_historical"):
+        return False
+    if not provenance["projection_start_year"] <= year <= provenance["atb_year"]:
+        return False
+    if resolve_historical_mode(metric, final_group, provenance) != "real":
+        return False
+    return is_observed_history_point(final_group, metric, year, provenance)
+
+
 def is_real_history_target(
     final_group: pd.DataFrame,
     metric: str,
@@ -483,7 +501,9 @@ def provenance_categories(
     historical_mode = resolve_historical_mode(metric, final_group, provenance)
     final_categories = []
     for year, was_changed in zip(years, changed):
-        if year < boundary:
+        if is_filled_history_point(final_group, metric, int(year), provenance):
+            final_categories.append("Observed history (real)")
+        elif year < boundary:
             if historical_mode == "manual":
                 final_categories.append("Manual history")
             elif historical_mode == "broadcast":
@@ -526,7 +546,9 @@ def input_point_categories(
     historical_mode = resolve_historical_mode(metric, final_group, provenance)
     categories = []
     for year in years:
-        if year >= boundary:
+        if is_filled_history_point(final_group, metric, int(year), provenance):
+            categories.append("Observed history (real)")
+        elif year >= boundary:
             categories.append("ATB projection (raw)")
         elif historical_mode == "manual":
             categories.append("Manual history")
