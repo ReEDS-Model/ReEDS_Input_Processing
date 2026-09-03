@@ -111,10 +111,10 @@ independently to every metric. By default, metrics with reviewed observations
 use `real`, while all others use `broadcast`. Capacity-factor multipliers remain
 included automatically for technologies that use them.
 
-| Historical mode | Effect before `projection_start_year` |
+| Historical mode | Effect before each series' first ATB year |
 | --- | --- |
 | `real` | Use only the reviewed observed-series mapping for that metric. Preserve reported values, linearly interpolate internal missing years, and use the nearest observation for years outside the reported range. An unmapped metric or row variant raises an error. |
-| `manual` | Preserve the versioned rows in `manual_input/historical/` exactly. |
+| `manual` | Preserve the versioned rows in `manual_input/historical/` exactly. Those rows come from the ReEDS repository, are of mixed origin, and are maintained by hand there year by year rather than derived from any ATB download. |
 | `broadcast` | Use the first ATB projection value for every historical year. This generated history does not retain any manual historical values. |
 
 The switches under `future_smoothing_treatments` apply from

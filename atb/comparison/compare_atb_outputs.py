@@ -16,7 +16,11 @@ ATB_DIR = Path(__file__).resolve().parents[1]
 SCRIPT_DIR = ATB_DIR / "scripts"
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from atb_config import DEFAULT_CONFIG_PATH, load_processing_settings
+from atb_config import (
+    DEFAULT_CONFIG_PATH,
+    load_processing_settings,
+    raw_file_path,
+)
 
 
 DEFAULT_PLOT_DIR = Path(__file__).resolve().parent / "plots"
@@ -299,6 +303,61 @@ def output_technology(filename: str, settings: dict) -> str:
     return matches[0]
 
 
+_ATB_START_CACHE: dict = {}
+
+
+def atb_start_year(
+    settings: dict, technology: str, default: int, series_label=None
+) -> int:
+    """Return the first year ATB publishes one technology.
+
+    ATB starts some technologies later than the release year, and a series is
+    historical until its own data begins.
+    """
+    if not _ATB_START_CACHE:
+        flat = raw_file_path(settings["config"], "flat_file")
+        if not flat.is_file():
+            _ATB_START_CACHE["_missing"] = True
+        else:
+            raw = pd.read_csv(
+                flat,
+                usecols=[
+                    "technology",
+                    "display_name",
+                    "core_metric_parameter",
+                    "core_metric_variable",
+                ],
+                low_memory=False,
+            )
+            # financial parameters span every year even where the cost and
+            # performance metrics start later, so only the mapped metrics
+            # decide when a series' ATB data begins
+            raw = raw.loc[
+                raw["core_metric_parameter"].isin(settings["param_names"])
+            ]
+            for tech, tech_settings in settings["techs"].items():
+                names = tech_settings["DisplayName"]
+                labels = names if isinstance(names, dict) else {names: None}
+                rows = raw.loc[
+                    (raw["technology"] == tech_settings["Technology"])
+                    & (raw["display_name"].isin(list(labels)))
+                ]
+                if rows.empty:
+                    continue
+                starts = {None: int(rows["core_metric_variable"].min())}
+                for display_name, label in labels.items():
+                    if label is None:
+                        continue
+                    series = rows.loc[rows["display_name"] == display_name]
+                    if not series.empty:
+                        starts[label] = int(series["core_metric_variable"].min())
+                _ATB_START_CACHE[tech] = starts
+    starts = _ATB_START_CACHE.get(technology)
+    if not isinstance(starts, dict):
+        return default
+    return starts.get(series_label, starts.get(None, default))
+
+
 def smoothing_provenance(settings: dict, generated_path: Path) -> dict:
     """Describe the source/treatment rules for one smoothing comparison."""
     technology = output_technology(generated_path.name, settings)
@@ -322,7 +381,10 @@ def smoothing_provenance(settings: dict, generated_path: Path) -> dict:
     )
     observed = pd.read_csv(source_path) if source_path.is_file() else pd.DataFrame()
     observed_series = {}
-    boundary = int(smoothing.get("projection_start_year", 2022))
+    boundary = atb_start_year(
+        settings, technology, int(smoothing.get("projection_start_year", 2022))
+    )
+    default_boundary = int(smoothing.get("projection_start_year", 2022))
     for metric, mapping in mappings.items():
         entries = mapping.get("series") or [mapping]
         inherited = {
@@ -369,6 +431,8 @@ def smoothing_provenance(settings: dict, generated_path: Path) -> dict:
         "history_class_column": (
             settings["techs"].get(technology, {}).get("history_class_column")
         ),
+        "settings": settings,
+        "default_boundary": default_boundary,
     }
 
 
@@ -448,6 +512,22 @@ def is_real_history_target(
     return False
 
 
+def series_boundary(final_group: pd.DataFrame, provenance: dict) -> int:
+    """Return the first ATB year for the series being plotted."""
+    label = None
+    class_column = provenance["history_class_column"]
+    if class_column and class_column in final_group.columns:
+        values = set(final_group[class_column].dropna().unique())
+        if len(values) == 1:
+            label = values.pop()
+    return atb_start_year(
+        provenance["settings"],
+        provenance["technology"],
+        provenance["default_boundary"],
+        label,
+    )
+
+
 def provenance_categories(
     final_group: pd.DataFrame,
     baseline_group: pd.DataFrame | None,
@@ -476,7 +556,7 @@ def provenance_categories(
         atol=1e-9,
         equal_nan=True,
     )
-    boundary = provenance["projection_start_year"]
+    boundary = series_boundary(final_group, provenance)
     historical_mode = resolve_historical_mode(metric, final_group, provenance)
     final_categories = []
     for year, was_changed in zip(years, changed):
@@ -519,7 +599,7 @@ def input_point_categories(
 ) -> list[str | None]:
     """Label input points; derived history and broadcast history have no dot."""
     years = pd.to_numeric(final_group["t"], errors="raise").astype(int)
-    boundary = provenance["projection_start_year"]
+    boundary = series_boundary(final_group, provenance)
     historical_mode = resolve_historical_mode(metric, final_group, provenance)
     categories = []
     for year in years:
@@ -1006,8 +1086,6 @@ def main() -> None:
     baseline_dir = args.unsmoothed_dir.resolve() if args.unsmoothed_dir else None
     if args.generated_dir:
         generated_dir = args.generated_dir.resolve()
-    elif baseline_dir is not None:
-        generated_dir = baseline_dir
     else:
         generated_dir = Path(settings['output_dir']).resolve()
     reeds_dir = (
@@ -1053,11 +1131,7 @@ def main() -> None:
         reeds_dir,
         plot_dir,
         atb_year,
-        solid_label=(
-            "Before smoothing (generated)"
-            if baseline_dir is not None
-            else "Generated"
-        ),
+        solid_label="Generated",
         dashed_label="ReEDS",
     )
     print(f"\nWrote overview and {plotted} file-level plots to {plot_dir}")
