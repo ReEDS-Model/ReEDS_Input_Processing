@@ -70,6 +70,6 @@ def fix_upgrades(nems):
             'and adjust data clean up process in a_data_cleaning.py if needed. Exiting...')
             sys.exit()
 
-    nems_final = pd.concat([non_upgrades,upgrades])
+    nems_final = pd.concat([non_upgrades,upgrades],ignore_index=True)
         
     return nems_final

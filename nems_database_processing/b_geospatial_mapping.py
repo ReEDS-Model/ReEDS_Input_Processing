@@ -54,7 +54,7 @@ if (len(data_raw_no_lon_lat) > 0):
         adjusted_missing_unit = pd.read_csv(os.path.join('inputs','user_adjusted_units_missing_lon_lats.csv'))
         data_raw_w_long_lat = data_raw[(data_raw['T_LONG'].notna()) & (data_raw['T_LAT'].notna()) & 
                                        (data_raw['T_LONG']!=0) & (data_raw['T_LAT']!=0)]
-        data_raw = pd.concat([data_raw_w_long_lat, adjusted_missing_unit])
+        data_raw = pd.concat([data_raw_w_long_lat, adjusted_missing_unit],ignore_index=True)
         print('Finish matching user-defined lon/lats to units without them')
         # Check again if all units have long/lats
         data_raw_no_lon_lat = data_raw[(data_raw['T_LONG'].isna()) | (data_raw['T_LAT'].isna()) |
@@ -109,7 +109,7 @@ if len(nems_county_unmatched[nems_county_unmatched['FIPS'].isna()]) > 0:
     sys.exit()
 
 ## Concating matched and unmatched nems files:
-nems_county_final = pd.concat([nems_county_merged_matched,nems_county_unmatched])
+nems_county_final = pd.concat([nems_county_merged_matched,nems_county_unmatched],ignore_index=True)
 
 ## Some Manual fixes of FIPS for a few units to avoid infeasibility in county-run
 # Move all units from p01077 to p01033 

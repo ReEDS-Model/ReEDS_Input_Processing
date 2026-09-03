@@ -147,7 +147,7 @@ def cleanAEOData(dir, current_year, gdbinputname):
     aeo_data_mult_g = aeo_data_mult_g.groupby(['T_PID','T_UID','TVIN'],as_index=False).agg(agg_cols)
 
     aeo_data_mult_g['TCOUNT'] = 1
-    aeo_data_final = pd.concat([aeo_data_single,aeo_data_mult_g])
+    aeo_data_final = pd.concat([aeo_data_single,aeo_data_mult_g],ignore_index=True)
     return aeo_data_final, aeo_cols
   
 def cleanEIA860MData(dir,ver_mon,ver_year,current_year,storage_duration,status):
@@ -468,7 +468,7 @@ def cleanMergedAEOEIA860(aeo_orig, nems_eia860, storage_duration):
     nems_eia_upgrades[['T_SYR','T_RYR']] = nems_eia_upgrades[['T_SYR_aeo','T_RYR_aeo']]
     nems_eia_upgrades = nems_eia_upgrades.drop(columns=['T_SYR_aeo','T_RYR_aeo'])
 
-    nems_eia860 = pd.concat([nems_eia_non_upgrades, nems_eia_upgrades])
+    nems_eia860 = pd.concat([nems_eia_non_upgrades, nems_eia_upgrades],ignore_index=True)
 
     # Rounding
     rounding_cols = ['TC_NP', 'TC_WIN','TC_SUM','T_VOM','T_FOM',

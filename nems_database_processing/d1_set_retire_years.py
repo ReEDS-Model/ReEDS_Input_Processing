@@ -18,11 +18,11 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
 # Technology naming convention
 # =============================================================================
 
-    nems['tech'].replace('csp','csp-ns',inplace=True)
-    nems['tech'].replace('hyded','hydED',inplace=True)
-    nems['tech'].replace('hydend','hydEND',inplace=True)
-    nems['tech'].replace('hydnpnd','hydNPND',inplace=True)
-    nems['tech'].replace('hydnd','hydND',inplace=True)
+    nems['tech'] = nems['tech'].replace('csp','csp-ns',inplace=True)
+    nems['tech'] = nems['tech'].replace('hyded','hydED',inplace=True)
+    nems['tech'] = nems['tech'].replace('hydend','hydEND',inplace=True)
+    nems['tech'] = nems['tech'].replace('hydnpnd','hydNPND',inplace=True)
+    nems['tech'] = nems['tech'].replace('hydnd','hydND',inplace=True)
     
     nems.loc[(nems['tech'] == 'pv'), 'tech'] = 'upv'
     
