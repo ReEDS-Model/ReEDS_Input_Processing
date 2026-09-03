@@ -845,11 +845,14 @@ def merge_historical_atb_data(
         combined.extend([history_for_output, current])
 
         boundary = _projection_boundary_rows(current, idcols)[tech_settings['cols']]
-        boundary = boundary.copy().round(
-            tech_settings.get('decimals', settings['decimals'])
-        )
+        boundary = boundary.copy()
         boundary_costcols = _cost_columns(boundary)
         boundary[boundary_costcols] = boundary[boundary_costcols] / adjustment
+        # round after the dollar-year conversion, so the stored row keeps the
+        # same precision as the rest of the file
+        boundary = boundary.round(
+            tech_settings.get('decimals', settings['decimals'])
+        )
         updated_history = pd.concat(
             [history_stored, boundary], ignore_index=True
         ).drop_duplicates(subset=[*idcols, 't'], keep='last')
