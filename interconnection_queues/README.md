@@ -12,7 +12,21 @@ This repo includes scripts and inputs to preprocess interconnection queues that 
 ![interconnection queue inputs](interconnection_queue_inputs.png)
 
 # Input files and params to run process_interconnection_queues.py
-All the input files to run the scripts are located in `inputs` folder, including original queue data from LBNL (most recently `lbnl_ix_queue_data_file_thru2024.xlsx`) and county2zone file (read from ReEDS repo) to match ReEDS counties to appropriate bas.
+All the input files to run the scripts are located in `inputs` folder, including original queue data from LBNL (most recently `LBNL_Ix_Queue_Data_File_thru2025.xlsx`), the supplemental resource-type file from LBNL (`queues_other_forNLR_2025.xlsx`, see below) and the county-to-state file (read from the ReEDS repo at `inputs/zones/county_state.csv`) to match ReEDS counties to appropriate bas. Point the script at your ReEDS checkout with the `REEDS_PATH` environment variable.
+
+Note: starting with the 2025 data vintage, LBNL renamed several columns (`IA_status_*` &rarr; `IA_phase_*`, `type1`/`mw1` &rarr; `type_1`/`mw_1`) and folded the less-common resource types into the aggregated `Other`/`Other Storage` categories.
+
+## Supplemental resource types (`queues_other_forNLR_2025.xlsx`)
+Because `Pumped Storage` is folded into `Other Storage` and `Biofuel`/`Biomass` into `Other` in the public 2025 file, the `pumped-hydro` and `biomass` tech groups would otherwise disappear from the output. LBNL sent us a supplement listing the detailed resource type for every *active* request in those aggregated categories (biofuel, biomass, pumped storage, compressed air, hydrogen, wave and waste heat).
+
+`process_interconnection_queues.py` merges it back in before anything else happens:
+- Requests are matched on `q_id` + `entity`, since a `q_id` is only unique within an interconnecting entity
+- For hybrid / co-located requests the supplement reports its own `type1`/`type2`/`type3`, but *not* in the same order as the public file's `type_1`/`type_2`/`type_3`. Each detailed type is therefore matched to the aggregated category it was folded into (`Pumped Storage`/`Compressed Air` &rarr; `Other Storage`; `Biofuel`/`Biomass`/`Waste Heat`/`Wave` &rarr; `Other`) rather than by position
+- Capacities always come from the public file; the supplement is only used to relabel the resource type
+- `compressed air`, `waste heat` and `wave` have no matching ReEDS tech group, so they are still dropped
+- The script prints how many requests it relabeled and lists any supplement record with no matching request in the public file (5 records for the 2025 vintage, 3 of which are 0 MW)
+
+To use a new vintage of the supplement, update `filename_other` at the top of the script; set it to `None` for vintages that don't need it.
 
 # Output
 - Located in the `outputs` folder
