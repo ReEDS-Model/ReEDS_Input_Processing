@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Fri Jun 23 17:13:14 2023
 
@@ -45,8 +44,8 @@ def merge_psh_dbs(gendb,hydro_prjtype,ornl_hydro_unit_ver):
     #%% PROCEDURE
 
     # IMPORT DATA FILES
-    db1 = pd.read_excel(os.path.join('inputs','ORNL_EHA',hydro_prjtype))
-    db2 = pd.read_excel(os.path.join('inputs','ORNL_EHA',ornl_hydro_unit_ver),
+    db1 = pd.read_excel(os.path.join('inputs','ornl_eha',hydro_prjtype))
+    db2 = pd.read_excel(os.path.join('inputs','ornl_eha',ornl_hydro_unit_ver),
                         sheet_name='Operational')
     # gendb = pd.read_csv(os.path.join(reedsdir,'inputs','capacitydata',
     #                                  'ReEDS_generator_database_final_EIA-NEMS.csv'),
@@ -84,12 +83,11 @@ def merge_psh_dbs(gendb,hydro_prjtype,ornl_hydro_unit_ver):
 
     for col in ['T_UID','T_PID','PrjType','tech']:
         dfmerge.insert(0,col,dfmerge.pop(col))
-    dfmerge.insert(dfmerge.columns.get_loc('State'),'MW',dfmerge.pop('MW'))
     dfmerge.drop(['T_PID_x','T_PID_y'], axis=1,inplace=True)
 
 
-    dfsmall = dfmerge[['tech','PrjType','T_PID','T_UID','CH_OpYear','T_PNM','County',
-                       'State','MW','Lat','Lon']].copy()
+    dfsmall = dfmerge[['tech','PrjType','T_PID','T_UID','CH_OpYear',
+                       'T_PNM','MW','Lat','Lon']].copy()
 
     #%%
 
@@ -145,9 +143,9 @@ def merge_psh_dbs(gendb,hydro_prjtype,ornl_hydro_unit_ver):
     check.rename(columns={'tech':'new_tech'},inplace=True)
     check.insert(0,'PrjType',check.pop('PrjType'))
     check.insert(0,'old_tech',check.pop('old_tech'))
-    check.to_csv(os.path.join('outputs','updated_generators.csv'),     
+    check.to_csv(os.path.join('outputs','intermediate_outputs','updated_generators.csv'),     
                 header=True,index=False)
-    notingendb.to_csv(os.path.join('outputs','unaccounted_generators.csv'),
+    notingendb.to_csv(os.path.join('outputs','intermediate_outputs','unaccounted_generators.csv'),
                     header=True,index=False)
     #gendb.to_csv(os.path.join('outputs','updated_gendb.csv'), header=True,index=False)
     return gendb

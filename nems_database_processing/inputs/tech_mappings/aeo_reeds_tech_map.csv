@@ -1,0 +1,36 @@
+EFDcd,reeds_tech,Description
+ACC,gas-cc,Advanced Combined Cycle
+ACS,gas-cc-ccs,Adv. Combined Cyc w/Sequestration
+ACT,gas-ct,Advanced Turbine
+ANC,nuclear,Advanced Nuclear
+BMS,biopower,Wood/Biomass
+CAS,coal-ccs,New Adv. Coal with Sequestration
+CAV,coal-igcc,New Advanced Coal
+CCG,gas-cc,Gas Combined Cycle
+CCO,gas-cc,Oil Combined Cycle
+CCX,gas-cc,Oil/Gas Combined Cycle
+CNC,coal-new,New Coal Steam
+CNU,nuclear,Conventional Nuclear
+COU,coalolduns,Coal Steam pre-1965
+CSC,coaloldscr,Coal Steam with Scrubber
+CSU,coalolduns,Coal Steam post-1965
+CTN,o-g-s,Coal to Gas Retrofit
+CTG,gas-ct,Gas Turbine
+CTO,o-g-s,Oil Turbine
+CTX,gas-ct,Oil/Gas Turbine
+DGB,na,Distributed Generation-Base
+DGP,na,Distributed Generation-Peak
+DST,battery_li,Battery Storage
+FCG,o-g-s,Fuel Cell
+GTH,geothermal,Geothermal
+HYC,hydro,Conventional Hydroelectric
+HYR,pumped-hydro,Reversible Hydroelectric
+MSW,lfill-gas,Municipal Solid Waste
+PVT,pvb,PV+Battery Hybrid
+SPV,pv,Solar Photovoltaic
+STG,o-g-s,Gas Steam
+STH,csp-ns,Solar Thermal
+STO,o-g-s,Oil Steam
+STX,o-g-s,Oil/Gas Steam
+WFS,wind-ofs,Offshore Wind
+WND,wind-ons,Land-based Wind
