@@ -15,9 +15,10 @@ at FIPS level by technology (for the 2025 data vintage, t_1 = 2028 and t_2 = 203
 - values between t_1 and t_2 are interpolated from the t_1 and t_2 values
 - t_1-1 values are interpolated from 0 and t_1 values (half of t_1 values)
 
-Note: starting with the 2025 data vintage, LBNL folded the "Pumped Storage" and "Biofuel" resource
-types into "Other Storage" and "Other", so the pumped-hydro and biomass tech groups no longer appear
-in the output.
+Note: starting with the 2025 data vintage, LBNL folded the less-common resource types (e.g.
+"Pumped Storage" and "Biofuel") into the aggregated "Other Storage" and "Other" categories. LBNL
+sent us the detailed types for the active requests in a supplemental file, which is merged back
+into the public data here so that the pumped-hydro and biomass tech groups can still be built.
 '''
 
 dir = os.getcwd()
@@ -25,6 +26,9 @@ dir = os.getcwd()
 ##################### INPUTS ######################
 # Most updated version of interconnection queue
 filename = 'LBNL_Ix_Queue_Data_File_thru2025.xlsx'
+# Supplement from LBNL with the detailed resource types behind the aggregated "Other"/"Other
+# Storage" categories (2025 vintage onward); set to None for vintages that don't need it
+filename_other = 'queues_other_forNLR_2025.xlsx'
 version = 2026              # release year
 t_1 = 2028                  # first year to calculate queue
 t_2 = 2031                  # last year to calculate queue
@@ -41,6 +45,61 @@ year_range_version_1 = list(range(version_1_t_1-1, version_1_t_2+1))
 year_range_str_version_1 = [str(x) for x in year_range_version_1]
 ###################################################
 
+# Resource types that LBNL folded into aggregated categories starting with the 2025 data vintage,
+# mapped to the aggregated category each one was folded into. Only the types that map onto a ReEDS
+# tech group are listed; the supplement also names compressed air, waste heat and wave (no ReEDS
+# tech group, so they stay aggregated and are dropped later) and battery, solar and hydrogen (which
+# the public file already reports as-is).
+folded2aggregated = {
+    'pumped storage': 'Other Storage',
+    'biofuel': 'Other',
+    'biomass': 'Other',
+}
+
+def add_detailed_types(queue_data, filename_other, type_cols):
+    """Relabel the aggregated LBNL resource types using the detailed types from LBNL's supplement.
+
+    Hybrid (co-located) requests name their detailed types in a different order than the public
+    file's type columns, so each is matched to the aggregated category it was folded into rather
+    than by position. A request with the same aggregated category in two type columns is skipped,
+    since there is no way to tell which slot the detailed type belongs to. Capacities always come
+    from the public file.
+    """
+    other = pd.read_excel(os.path.join(dir,'inputs',filename_other))
+    detailed_by_request = {}
+    for row in other.itertuples(index=False):
+        # Requests with a single resource type leave type1-3 blank and only name it in type_raw
+        types = [t.strip() for t in (row.type1, row.type2, row.type3) if isinstance(t, str)]
+        types = types or [str(row.type_raw).strip()]
+        detailed = {folded2aggregated[t.lower()]: t for t in types if t.lower() in folded2aggregated}
+        if detailed:
+            detailed_by_request[(str(row.q_id).strip(), str(row.entity).strip())] = detailed
+
+    # A q_id is only unique within an interconnecting entity, so match on the pair
+    request = list(zip(queue_data['q_id'].astype(str).str.strip(),
+                       queue_data['entity'].astype(str).str.strip()))
+    aggregated = queue_data[type_cols].apply(lambda c: c.astype(str).str.strip())
+    relabeled_requests = set()
+    for col in type_cols:
+        # Number of type columns sharing this row's category; >1 means the slot is ambiguous
+        shared = aggregated.eq(aggregated[col], axis=0).sum(axis=1)
+        relabeled = pd.Series(
+            [detailed_by_request.get(q, {}).get(t) if n == 1 else None
+             for q, t, n in zip(request, aggregated[col], shared)],
+            index=queue_data.index)
+        relabeled_requests.update(q for q, t in zip(request, relabeled) if t is not None)
+        queue_data[col] = relabeled.fillna(queue_data[col])
+
+    print('Relabeled ' + str(len(relabeled_requests)) + ' of the ' + str(len(detailed_by_request))
+          + ' requests in ' + filename_other + ' that report an aggregated resource type')
+    # Requests LBNL dropped from the public file (or that are no longer active) have no capacity or
+    # location here, so they cannot contribute to the queue limits
+    missing = [q for q in detailed_by_request if q not in relabeled_requests]
+    if missing:
+        print('  No matching request in ' + filename + ' for: '
+              + ', '.join(q_id + ' (' + entity + ')' for q_id, entity in missing))
+    return queue_data
+
 # Number of technology type (as specified in the queue data file)
 type_no = 3
 if version < 2025:
@@ -50,6 +109,10 @@ else:
     # In version 2025, the first row is empty, so remove it
     queue_data.columns = queue_data.iloc[0]
     queue_data = queue_data[1:]
+
+if filename_other is not None and version >= 2026:
+    queue_data = add_detailed_types(
+        queue_data, filename_other, ['type_'+str(item+1) for item in range(type_no)])
 
 county2zone = pd.read_csv(os.path.join(reeds_path,'inputs','zones','county_state.csv'))
 county2zone['FIPS'] = 'p' + county2zone['FIPS'].astype(str).str.zfill(5)
