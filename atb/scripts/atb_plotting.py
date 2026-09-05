@@ -71,8 +71,8 @@ def main():
         atb_inputs = atb_inputs or 'local'
         (inputs_path, atb_path, figures_path) = read_path(atb_inputs, atb_version)
     else:
-        inputs_path = str(ATB_DIR / 'inputs')
         atb_path = str(raw_file_path(config, 'flat_file'))
+        inputs_path = os.path.dirname(atb_path)
         figures_path = str(resolve_atb_path(config['plotting']['output_directory']))
         os.makedirs(inputs_path, exist_ok=True)
         os.makedirs(figures_path, exist_ok=True)
@@ -84,7 +84,7 @@ def main():
             dfplot.to_csv(os.path.join(inputs_path, "ATB_"+str(atb_version)+"_cleaned.csv"))
 
         # Define plot attributes:
-        (traces, colors, tracelabels, legendtitle, plottitle) = plot_attributes(inputs_path, atb_version)
+        (traces, colors, tracelabels, legendtitle, plottitle) = plot_attributes(ATB_DIR / 'plot_style', atb_version)
 
         # Plot ATB:
         plot_atb(figures_path, atb_version, technologies, dfplot, traces, colors, legendtitle, plottitle,
@@ -264,6 +264,10 @@ def plot_atb(figures_path, atb_version, technologies, dfplot, traces, colors, le
 
     for technology in technologies:
         df = {}
+        # Some ATB metrics omit technologies (for example geothermal VOM).
+        if technology not in dfplot.index:
+            ax[coords[technology]].set_visible(False)
+            continue
         #scenarios = ['Moderate'] if technology == 'Nuclear' else ['Moderate', 'Advanced', 'Conservative']
         scenarios = ['Moderate', 'Advanced', 'Conservative']
         for scenario in scenarios:

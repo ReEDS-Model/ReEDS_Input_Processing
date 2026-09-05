@@ -310,6 +310,8 @@ This reads the same local flat file used in Step 2 and saves the configured
 figures to `figures/`. It does not scrape data or plot the formatted files from
 `output/`.
 
+Trace selections, colors, and legend labels are stored in `plot_style/`.
+
 ## Run the configured pipeline
 
 To run the enabled stages in order, set the switches under `workflow:` in
