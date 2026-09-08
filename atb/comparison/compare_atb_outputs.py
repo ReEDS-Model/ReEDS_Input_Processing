@@ -56,6 +56,7 @@ METRIC_LABELS = {
 PROVENANCE_COLORS = {
     "Manual history": "#0072B2",
     "Observed history (real)": "#009E73",
+    "Scaled real history": "#A6761D",
     "Filled real history": "#D55E00",
     "Broadcast history": "#CC79A7",
     "ATB projection (raw)": "#6E6E6E",
@@ -473,6 +474,12 @@ def resolve_historical_mode(
     return modes.pop()
 
 
+def is_scaled_csp_history(final_group: pd.DataFrame, metric: str, provenance: dict) -> bool:
+    """Only csp2 uses the project reference directly; other types are scaled."""
+    return (provenance['technology'] == 'csp' and metric == 'capcost'
+            and 'type' in final_group and final_group['type'].ne('csp2').all())
+
+
 def is_observed_history_point(
     final_group: pd.DataFrame,
     metric: str,
@@ -480,6 +487,8 @@ def is_observed_history_point(
     provenance: dict,
 ) -> bool:
     """Return whether one plotted point was populated from observed history."""
+    if is_scaled_csp_history(final_group, metric, provenance):
+        return False
     for series in provenance["observed_series"].get(metric, []):
         if year not in series["years"]:
             continue
@@ -571,6 +580,12 @@ def provenance_categories(
                         f"{provenance['technology']}.{metric} selects real "
                         "history, but this plotted series has no real mapping."
                     )
+                if is_scaled_csp_history(final_group, metric, provenance) and any(
+                    int(year) in series['years']
+                    for series in provenance['observed_series'].get(metric, [])
+                ):
+                    final_categories.append('Scaled real history')
+                    continue
                 final_categories.append(
                     "Observed history (real)"
                     if is_observed_history_point(

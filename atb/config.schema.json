@@ -258,12 +258,23 @@
         "capcost": {"$ref": "#/definitions/observedMapping"}
       }
     },
+    "metricMappingsWithCf": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost"],
+      "properties": {
+        "capcost": {"$ref": "#/definitions/observedMapping"},
+        "fom": {"$ref": "#/definitions/observedMapping"},
+        "cf_improvement": {"$ref": "#/definitions/observedMapping"}
+      }
+    },
     "reedsMappings": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "upv": {"$ref": "#/definitions/metricMappings"},
-        "wind-ons": {"$ref": "#/definitions/metricMappings"},
+        "csp": {"$ref": "#/definitions/metricMappings"},
+        "upv": {"$ref": "#/definitions/metricMappingsWithCf"},
+        "wind-ons": {"$ref": "#/definitions/metricMappingsWithCf"},
         "wind-ofs": {"$ref": "#/definitions/metricMappings"},
         "gas": {"$ref": "#/definitions/metricMappings"},
         "biopower": {"$ref": "#/definitions/metricMappings"}
@@ -316,9 +327,9 @@
       "required": ["capcost", "fom", "vom", "cf_improvement"],
       "properties": {
         "capcost": {"$ref": "#/definitions/historyMode"},
-        "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "fom": {"$ref": "#/definitions/historyMode"},
         "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "cf_improvement": {"$ref": "#/definitions/historyModeWithoutReal"}
+        "cf_improvement": {"$ref": "#/definitions/historyMode"}
       }
     },
     "historyObservedCapcostWithCfAndRsc": {
@@ -368,6 +379,16 @@
         "fom_energy": {"$ref": "#/definitions/historyModeWithoutReal"},
         "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
         "rte": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyCsp": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom"],
+      "properties": {
+        "capcost": {"$ref": "#/definitions/historyMode"},
+        "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "vom": {"$ref": "#/definitions/historyModeWithoutReal"}
       }
     },
     "historyCosts": {
@@ -444,6 +465,16 @@
         {
           "properties": {
             "historical_data": {"$ref": "#/definitions/historyBattery"}
+          }
+        }
+      ]
+    },
+    "technologyCsp": {
+      "allOf": [
+        {"$ref": "#/definitions/technologyConfigBase"},
+        {
+          "properties": {
+            "historical_data": {"$ref": "#/definitions/historyCsp"}
           }
         }
       ]
@@ -539,7 +570,7 @@
             "wind-ons": {"$ref": "#/definitions/technologyObservedCapcostWithCf"},
             "wind-ofs": {"$ref": "#/definitions/technologyObservedCapcostWithCfAndRsc"},
             "battery": {"$ref": "#/definitions/technologyBattery"},
-            "csp": {"$ref": "#/definitions/technologyCosts"},
+            "csp": {"$ref": "#/definitions/technologyCsp"},
             "coal": {"$ref": "#/definitions/technologyCostsWithHeatrate"},
             "coal-ccs": {"$ref": "#/definitions/technologyCostsWithHeatrate"},
             "gas": {"$ref": "#/definitions/technologyObservedCapcost"},

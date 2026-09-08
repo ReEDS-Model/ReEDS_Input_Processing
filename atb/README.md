@@ -65,7 +65,9 @@ original files under `scraped_input/historical_costs/` and creates
 `historical_capital_costs.csv` plus a URL/checksum manifest there. These data
 enter ReEDS inputs only through an explicit mapping in `config.yaml`. The
 current mappings replace pre-projection UPV and land-based-wind `capcost` with
-LBNL national series; their FOM, VOM, and capacity-factor history remain manual. See
+LBNL national series. Their capacity-factor history also defaults to `real` using
+observed vintage CF normalized to the ATB reference. Their FOM also uses reported
+O&M by default; VOM remains zero. See
 [`scraped_input/README.md`](scraped_input/README.md) for the retained unit,
 capacity-basis, geography, and dollar-year distinctions.
 
@@ -162,6 +164,42 @@ sub-technology on unintended history. The schema offers `real` only where an
 observation exists, so a typo is caught in the editor.
 Capacity-factor multipliers are included automatically when the technology
 output contains `cf_improvement` (utility PV and the two wind technologies).
+PV and onshore wind offer `real`, `manual`, and `broadcast` for this metric,
+defaulting to `real`. Offshore wind retains `manual` / `broadcast`: its raw
+workbook has no comparable observed CF series.
+
+Real CF history uses PV's capacity-weighted cumulative CF by project vintage
+(2010–2023) and wind's generation-weighted 2024 CF by COD (2006–2023 individual
+years). These fractions are divided by the same raw ATB CF reference used for
+projections (`cfbase`, currently 2035 Moderate); they are never dollar-deflated.
+The observations include resource, equipment, aging, and operating effects,
+not just technology improvement. National averages can differ from the ATB
+resource-class reference and produce a boundary change. Rebuild an older
+normalized CSV with `python scripts/scrape_historical_costs.py --no-download`
+before formatting with `cf_improvement: real` or `fom: real`.
+
+PV FOM uses the reported annual mean $/kW-AC-year (2011–2024); 2010 takes the
+first observation. Wind FOM averages project O&M by COD for projects reporting
+2024 O&M (1999–2023); missing 2013 is interpolated. These are observed operating
+costs, not new-build estimates: wind includes aging and PV reflects the operating
+fleet. PV excludes taxes, insurance, royalties and some overhead. The costs
+are carried entirely in FOM, with VOM zero, rather than counting the same cost
+again using the workbook's $/MWh presentation.
+
+CSP `capcost: real` uses the 110-MW 2015 tower in the solar workbook's `CSP CapEx`
+sheet as a `csp2` proxy. Capacity, technology, and COD identify Crescent Dunes,
+whose 10-hour storage matches the base configuration; the workbook does not
+specify solar multiple. Costs are converted from $/W-AC to $/kW-AC and deflated
+from 2024 dollars. The same `csp_cost_ratios_<year>.csv` used for projections
+scales capital cost to `csp1`, `csp3`, and `csp4`. This explicitly permits one
+observed year: 2010–2014 and 2016–2021 use the 2015 reference, not an observed
+annual trend. Plots distinguish scaled configurations and filled years. CSP
+FOM and VOM remain manual, and ATB projections are unchanged.
+
+Other raw observations are not direct replacements: EIA battery CapEx lacks
+the power/energy split, and fuel-cell CapEx has only one year without a reviewed
+single-project proxy treatment. They do not enable `real` defaults.
+
 `real` applies to every technology with an observed series that measures the
 same quantity as its ReEDS column: UPV, land-based wind, offshore wind, gas,
 and biopower. Metrics without a reviewed observed mapping use broadcast history,
@@ -174,8 +212,8 @@ all carry one row per year, so the two halves of the work are separated in
 `scripts/generate_atb_files.py`:
 
 - `_observed_values_by_year` is shared. It filters the normalized observed
-  series, requires a stated `dollar_year`, and deflates to the ReEDS dollar
-  year.
+  series, requires a stated `dollar_year` for monetary metrics, and deflates
+  those to the ReEDS dollar year. CF fractions bypass currency conversion.
 - an entry in `REAL_HISTORY_APPLIERS`, keyed by technology, decides which rows
   that annual value is allowed to address. A technology selecting a `real`
   metric without an entry raises `NameError`.
@@ -189,6 +227,7 @@ letting one value silently overwrite several distinct series.
 | --- | --- | --- |
 | `apply_real_history_single_series` | `upv`, `wind-ons`, `biopower` | One row per scenario-year; assigns directly. |
 | `apply_real_history_by_class` | `wind-ofs`, `gas` | One row per sub-technology, named by `history_class_column`. Each series describes exactly one sub-technology; any other must select its own mode in `historical_data`, otherwise the run raises instead of mixing manual history. |
+| `apply_real_history_csp` | `csp` | Assigns the project-based reference to `csp2` and scales capital cost to the other configurations using the projection ratios. |
 
 Why a given technology targets the rows it does is recorded beside its mapping
 in `config.yaml`, where that choice is made.

@@ -1,7 +1,8 @@
-"""Download and normalize observed generator capital-cost source data."""
+"""Download and normalize observed generator capital costs, O&M, and CF."""
 
 import argparse
 import hashlib
+import re
 from pathlib import Path
 
 import openpyxl
@@ -83,9 +84,9 @@ EIA_TABLES = (
 )
 
 
-def _base_row(source_id, source, filename, sheet):
+def _base_row(source_id, source, filename, sheet, metric="capital_cost"):
     return {
-        "metric": "capital_cost",
+        "metric": metric,
         "source_id": source_id,
         "source_file": filename,
         "source_sheet": sheet,
@@ -130,6 +131,196 @@ def extract_land_based_wind(path, source):
             )
             rows.append(row)
     workbook.close()
+    return rows
+
+
+def extract_capacity_factors(path, source, source_id):
+    """Extract reported CF by build vintage, retaining fractions and provenance.
+
+    Wind is the generation-weighted 2024 CF by COD, not the adjacent annual
+    fleet series. PV is cumulative capacity-weighted CF by project vintage.
+    These observations include resource, age, and operating-condition effects.
+    The formatter converts fractions to its ATB-reference multipliers.
+    """
+    if source_id == "land_based_wind":
+        sheet_name = "Capacity Factor in 2024 by COD"
+        technology, basis = "wind-ons", "nameplate"
+        year_col, value_col, count_col = 0, 3, 1
+        statistic = "generation_weighted_mean"
+        header_text = "Generation-"
+        notes = (
+            "Calendar-year 2024 CF by commercial operation date; includes "
+            "repowered projects with their new COD. Grouped pre-2006 vintages "
+            "are excluded. Includes resource, aging, and operating effects."
+        )
+    elif source_id == "utility_pv":
+        sheet_name = "CF by Project Vintage"
+        technology, basis = "upv", "AC"
+        year_col, value_col, count_col = 2, 4, 1
+        statistic = "capacity_weighted_cumulative"
+        header_text = "Capacity-Weighted Cumulative Capacity Factor"
+        notes = (
+            "Cumulative observed CF through 2024 by project vintage; AC basis. "
+            "Includes resource, mounting, ILR, aging, and operating effects."
+        )
+    else:
+        raise ValueError(f"No reviewed CF extraction for {source_id}")
+
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    rows = []
+    try:
+        sheet = workbook[sheet_name]
+        header = _find_header_row(sheet, header_text)
+        for values in sheet.iter_rows(
+            min_row=header + 1, max_col=5, values_only=True
+        ):
+            year, value = values[year_col], values[value_col]
+            if not isinstance(year, (int, float)) or not 1900 <= year <= 2100:
+                continue
+            # PV's next table has years in column A and CF fractions in C.
+            # Its 2024 vintage row has no full-year CF observation yet.
+            if value is None:
+                continue
+            if not isinstance(value, (int, float)) or not 0 < value <= 1:
+                raise ValueError(f"Invalid CF for {year} in {sheet_name}: {value}")
+            row = _base_row(source_id, source, Path(path).name, sheet_name,
+                            "capacity_factor")
+            row.update(
+                technology=technology,
+                technology_detail="Observed projects by vintage",
+                year=int(year), value=float(value), unit="fraction",
+                capacity_basis=basis, statistic=statistic,
+                geography="United States", sample_count=values[count_col],
+                notes=notes,
+            )
+            rows.append(row)
+    finally:
+        workbook.close()
+    if not rows or len({row['year'] for row in rows}) != len(rows):
+        raise ValueError(f"Missing or duplicate CF vintages in {sheet_name}")
+    return rows
+
+
+def extract_land_based_wind_om(path, source):
+    """Average reported project O&M by COD for projects with 2024 O&M data."""
+    sheet_name = "O&M Over Time"
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    by_year = {}
+    try:
+        sheet = workbook[sheet_name]
+        header = _find_header_row(sheet, "Operation")
+        labels = next(sheet.iter_rows(min_row=header, max_row=header,
+                                      max_col=3, values_only=True))
+        if labels[1] != "with 2024" or labels[2] != "with no 2024":
+            raise ValueError(f"Unexpected project sample columns in {sheet_name}")
+        for year, value in sheet.iter_rows(min_row=header + 2, max_col=2,
+                                           values_only=True):
+            if not isinstance(year, (int, float)) or not isinstance(value, (int, float)):
+                continue
+            if not 1900 <= year <= 2024 or not 0 <= value < float('inf'):
+                raise ValueError(f"Invalid wind O&M observation: {year}, {value}")
+            by_year.setdefault(int(year), []).append(float(value))
+    finally:
+        workbook.close()
+    if not by_year:
+        raise ValueError(f"No O&M observations found in {sheet_name}")
+    rows = []
+    for year, values in sorted(by_year.items()):
+        row = _base_row("land_based_wind", source, Path(path).name, sheet_name,
+                        "fixed_om")
+        row.update(
+            technology="wind-ons", technology_detail="Land-based wind projects",
+            year=year, value=sum(values) / len(values), unit="USD/kW-yr",
+            capacity_basis="nameplate", statistic="mean", geography="United States",
+            dollar_year=2024, price_basis="real", sample_count=len(values),
+            notes=(
+                "Unweighted mean by COD of project-average O&M over available "
+                "2000-2024 operating years, for projects reporting 2024 O&M. "
+                "Assumes 2024 dollars; this sheet does not state a dollar year. Includes aging effects; "
+                "not a new-build cost. Assigned wholly to FOM; VOM stays zero."
+            ),
+        )
+        rows.append(row)
+    return rows
+
+
+def extract_utility_pv_om(path, source):
+    """Extract reported annual mean O&M in $/kW-AC-year, not its $/MWh equivalent."""
+    sheet_name = "O&M Cost Time Trend"
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    rows = []
+    try:
+        sheet = workbook[sheet_name]
+        header = _find_header_row(sheet, "Project Count")
+        labels = next(sheet.iter_rows(min_row=header, max_row=header,
+                                      max_col=8, values_only=True))
+        unit = re.fullmatch(r"\$(\d{4})/kW_AC-yr\s+Mean", str(labels[7]))
+        if unit is None:
+            raise ValueError(f"Unexpected PV O&M mean column: {labels[7]!r}")
+        dollar_year = int(unit.group(1))
+        for values in sheet.iter_rows(min_row=header + 1, max_col=8, values_only=True):
+            year, count, mean = values[0], values[1], values[7]
+            if not isinstance(year, (int, float)):
+                continue
+            if not isinstance(mean, (int, float)) or not 0 <= mean < float('inf'):
+                raise ValueError(f"Invalid PV O&M observation: {year}, {mean}")
+            row = _base_row("utility_pv", source, Path(path).name, sheet_name, "fixed_om")
+            row.update(
+                technology="upv", technology_detail="Utility-scale PV projects",
+                year=int(year), value=float(mean), unit="USD/kW-yr",
+                capacity_basis="AC", statistic="mean", geography="United States",
+                dollar_year=dollar_year, price_basis="real", sample_count=count,
+                notes=(
+                    "Reported annual mean O&M from FERC and project owners. "
+                    "Operating-fleet costs, not new-build costs by vintage. "
+                    "Excludes taxes, insurance, royalties and some overhead. "
+                    "Assigned wholly to FOM; the $/MWh column is the same cost, "
+                    "not a separate VOM observation."
+                ),
+            )
+            rows.append(row)
+    finally:
+        workbook.close()
+    if not rows or len({row['year'] for row in rows}) != len(rows):
+        raise ValueError(f"Missing or duplicate O&M years in {sheet_name}")
+    return rows
+
+
+def extract_csp_reference(path, source):
+    """Extract the 110-MW, 2015 tower as the 10-hour CSP reference proxy."""
+    sheet_name = "CSP CapEx"
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    rows = []
+    try:
+        for technology, capacity, year, value in workbook[sheet_name].iter_rows(
+            max_col=4, values_only=True
+        ):
+            # Match Crescent Dunes by type, capacity, and COD. Other towers
+            # and troughs do not provide a comparable storage configuration.
+            if (technology, capacity, year) != ("Tower", 110, 2015):
+                continue
+            if not isinstance(value, (int, float)) or not 0 < value < float('inf'):
+                raise ValueError(f"Invalid CSP reference cost: {value}")
+            row = _base_row("utility_pv", source, Path(path).name, sheet_name)
+            row.update(
+                technology="csp", technology_detail="Crescent Dunes",
+                year=2015, value=float(value) * 1000, unit="USD/kW",
+                capacity_basis="AC", statistic="project", geography="United States",
+                dollar_year=2024, price_basis="real", sample_count=1,
+                notes=(
+                    "110-MW 2015 tower matched to Crescent Dunes; $/W-AC converted "
+                    "to $/kW-AC. Project identity and 10-hour storage: "
+                    "https://solarpaces.nlr.gov/project/crescent-dunes-solar-energy-project . "
+                    "Used as a csp2 proxy; solar multiple is not given in this "
+                    "workbook. Other years are endpoint-filled and other ReEDS "
+                    "configurations are derived using the CSP cost ratios."
+                ),
+            )
+            rows.append(row)
+    finally:
+        workbook.close()
+    if len(rows) != 1:
+        raise ValueError(f"Expected one 110-MW 2015 tower in {sheet_name}; found {len(rows)}")
     return rows
 
 
@@ -350,28 +541,33 @@ def scrape(config, selected="all", force=False, no_download=False):
             )
             if source_id == "land_based_wind":
                 rows.extend(extract_land_based_wind(path, source))
+                rows.extend(extract_capacity_factors(path, source, source_id))
+                rows.extend(extract_land_based_wind_om(path, source))
             elif source_id == "utility_pv":
                 rows.extend(extract_utility_pv(path, source))
+                rows.extend(extract_capacity_factors(path, source, source_id))
+                rows.extend(extract_utility_pv_om(path, source))
+                rows.extend(extract_csp_reference(path, source))
             elif source_id == "offshore_wind":
                 rows.extend(extract_offshore_wind(path, source))
             else:
                 rows.extend(extract_eia(path, source, year, data_url))
 
     normalized = pd.DataFrame(rows, columns=COLUMNS).sort_values(
-        ["technology", "source_id", "capacity_basis", "geography", "year"]
+        ["technology", "metric", "source_id", "capacity_basis", "geography", "year"]
     )
     normalized_path = output_dir / settings["normalized_filename"]
     manifest_path = output_dir / settings["manifest_filename"]
     normalized.to_csv(normalized_path, index=False)
     pd.DataFrame(manifest).to_csv(manifest_path, index=False)
-    print(f"\nNormalized {len(normalized):,} capital-cost observations:")
+    print(f"\nNormalized {len(normalized):,} observations:")
     print(f"  {normalized_path}")
     print(f"Recorded {len(manifest):,} source files and checksums:")
     print(f"  {manifest_path}")
     if not normalized.empty:
-        summary = normalized.groupby(["source_id", "technology"])["year"].agg(
-            ["min", "max", "count"]
-        )
+        summary = normalized.groupby(
+            ["source_id", "technology", "metric"]
+        )["year"].agg(["min", "max", "count"])
         print("\nCoverage")
         print(summary.to_string())
 
@@ -380,7 +576,7 @@ def main():
     parser = argparse.ArgumentParser(
         description=(
             "Download official observed generator-cost workbooks and normalize "
-            "their capital-cost series."
+            "their capital-cost, O&M, and capacity-factor series."
         )
     )
     parser.add_argument("--config", help="Path to config.yaml (default: ../config.yaml).")

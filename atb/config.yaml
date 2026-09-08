@@ -42,7 +42,36 @@ historical_cost_sources:
   # the corresponding manual value when that metric selects `real`. Every
   # historical metric declares its own mode below.
   reeds_mappings:
+    csp:
+      # 2015 10-hour tower proxy; fill other years and scale using CSP cost ratios.
+      capcost:
+        filters:
+          source_id: utility_pv
+          technology: csp
+          technology_detail: Crescent Dunes
+          metric: capital_cost
+          unit: USD/kW
+          capacity_basis: AC
+          statistic: project
+          geography: United States
     upv:
+      # Reported O&M is assigned to FOM only; VOM remains zero.
+      fom:
+        filters:
+          source_id: utility_pv
+          metric: fixed_om
+          unit: USD/kW-yr
+          capacity_basis: AC
+          statistic: mean
+          geography: United States
+      cf_improvement:
+        filters:
+          source_id: utility_pv
+          metric: capacity_factor
+          unit: fraction
+          capacity_basis: AC
+          statistic: capacity_weighted_cumulative
+          geography: United States
       capcost:
         filters:
           source_id: utility_pv
@@ -107,6 +136,22 @@ historical_cost_sources:
           statistic: capacity_weighted_mean
           geography: Europe and United States
     wind-ons:
+      fom:
+        filters:
+          source_id: land_based_wind
+          metric: fixed_om
+          unit: USD/kW-yr
+          capacity_basis: nameplate
+          statistic: mean
+          geography: United States
+      cf_improvement:
+        filters:
+          source_id: land_based_wind
+          metric: capacity_factor
+          unit: fraction
+          capacity_basis: nameplate
+          statistic: generation_weighted_mean
+          geography: United States
       capcost:
         filters:
           source_id: land_based_wind
@@ -194,17 +239,17 @@ processing:
       upv:
         historical_data:
           capcost: real  # options: real / manual / broadcast
-          fom: manual  # options: manual / broadcast
+          fom: real  # options: real / manual / broadcast
           vom: manual  # options: manual / broadcast
-          cf_improvement: manual  # options: manual / broadcast
+          cf_improvement: real  # options: real / manual / broadcast
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       wind-ons:
         historical_data:
           capcost: real  # options: real / manual / broadcast
-          fom: manual  # options: manual / broadcast
+          fom: real  # options: real / manual / broadcast
           vom: manual  # options: manual / broadcast
-          cf_improvement: manual  # options: manual / broadcast
+          cf_improvement: real  # options: real / manual / broadcast
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       wind-ofs:
@@ -232,7 +277,7 @@ processing:
           smooth_projection_curve: true  # options: true / false
       csp:
         historical_data:
-          capcost: manual  # options: manual / broadcast
+          capcost: real  # options: real / manual / broadcast
           fom: manual  # options: manual / broadcast
           vom: manual  # options: manual / broadcast
         future_smoothing_treatments:

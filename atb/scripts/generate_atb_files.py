@@ -367,6 +367,15 @@ def _observed_values_by_year(tech, mapping, settings, deflator):
             f"Observed historical mapping for {tech} has duplicate years: "
             f"{duplicate_years}"
         )
+    if mapping.get('output_column') == 'cf_improvement':
+        if not (observed['metric'].eq('capacity_factor').all()
+                and observed['unit'].eq('fraction').all()):
+            raise ValueError(f"{tech} CF history must contain capacity_factor fractions.")
+        values = pd.to_numeric(observed['value'], errors='raise')
+        if not (np.isfinite(values) & values.gt(0) & values.le(1)).all():
+            raise ValueError(f"{tech} observed capacity factors must be in (0, 1].")
+        # Dimensionless observations have no dollar year and are never deflated.
+        return dict(zip(observed['year'].astype(int), values.astype(float)))
     if observed['dollar_year'].isna().any():
         raise ValueError(
             f"Observed historical mapping for {tech} requires a dollar_year."
@@ -390,7 +399,7 @@ def _observed_values_by_year(tech, mapping, settings, deflator):
 
 
 def _complete_observed_years(
-    values, required_years, tech, label=None, report=True
+    values, required_years, tech, label=None, report=True, allow_single_observation=False
 ):
     """Fill a real-history series without falling back to manual history.
 
@@ -401,7 +410,8 @@ def _complete_observed_years(
     if not values or not required_years:
         return values
     observed_years = np.asarray(sorted(values), dtype=float)
-    if len(observed_years) < 2 and not required_years.issubset(values):
+    if (len(observed_years) < 2 and not required_years.issubset(values)
+            and not allow_single_observation):
         raise ValueError(
             f"Observed historical mapping for {label or tech} needs at least "
             "two observations to fill missing years."
@@ -577,11 +587,48 @@ def apply_real_history_by_class(
     return result, sorted(replaced)
 
 
+def load_csp_cost_ratios(settings):
+    """Read the shared historical/projection CSP configuration multipliers."""
+    path = os.path.join(ATBDIR, 'manual_input',
+                        f"csp_cost_ratios_{settings['atbyear']}.csv")
+    ratios = pd.read_csv(path)
+    if (ratios.empty or ratios['type'].isna().any() or ratios['type'].duplicated().any()
+            or not (np.isfinite(ratios['ratio']) & ratios['ratio'].gt(0)).all()):
+        raise ValueError(f"Invalid CSP configuration ratios in {path}")
+    base = ratios.loc[ratios['base_tech'].eq(1)]
+    if len(base) != 1 or base.iloc[0]['type'] != 'csp2' or base.iloc[0]['ratio'] != 1:
+        raise ValueError("CSP reference must be csp2 with a unit cost ratio.")
+    if base.iloc[0]['duration'] != 10:
+        raise ValueError("The CSP historical reference requires 10-hour storage.")
+    return ratios
+
+
+def apply_real_history_csp(
+    frame, tech, mapping, resolved, historical_mask, historical_data, class_column
+):
+    """Scale the observed csp2 capital-cost proxy to each modeled configuration."""
+    series, values = _only_series(resolved, tech, 'CSP configuration ratios')
+    ratios = series['_configuration_ratios']
+    present = set(frame['type'].unique())
+    if present != set(ratios):
+        raise ValueError(f"CSP history types {sorted(present)} do not match ratios {sorted(ratios)}")
+    result = frame
+    replaced = set()
+    for target, ratio in ratios.items():
+        scaled = {year: value * ratio for year, value in values.items()}
+        result, years = _assign_series_to_target(
+            result, tech, mapping, scaled, historical_mask, 'type', target
+        )
+        replaced.update(years)
+    return result, sorted(replaced)
+
+
 # Each applier owns which rows its series may address, since that depends on
 # the technology's row shape. Every metric selecting `real` requires an entry.
 # Each receives the metric's historical_data modes so it can tell a row left
 # unclaimed by accident from one that explicitly generates its own history.
 REAL_HISTORY_APPLIERS = {
+    'csp': apply_real_history_csp,
     'biopower': apply_real_history_single_series,
     'upv': apply_real_history_single_series,
     'wind-ons': apply_real_history_single_series,
@@ -609,6 +656,14 @@ def _resolve_observed_series(
     for entry in entries:
         merged = {**inherited, **entry}
         values = _observed_values_by_year(tech, merged, settings, deflator)
+        csp_reference = tech == 'csp' and mapping.get('output_column') == 'capcost'
+        if tech == 'csp':
+            if not csp_reference or len(entries) != 1:
+                raise ValueError("CSP real history supports one capital-cost reference only.")
+            if not all(np.isfinite(value) and value > 0 for value in values.values()):
+                raise ValueError("CSP reference costs must be finite and positive.")
+            ratios = load_csp_cost_ratios(settings)
+            merged['_configuration_ratios'] = ratios.set_index('type')['ratio'].to_dict()
         targets = merged.get('technologies') or merged.get('turbine_classes')
         label = f"{tech} {', '.join(targets)}" if targets else tech
         values = _complete_observed_years(
@@ -617,6 +672,7 @@ def _resolve_observed_series(
             tech,
             label,
             report=report_fill,
+            allow_single_observation=csp_reference,
         )
         resolved.append((merged, values))
     return resolved
@@ -662,6 +718,14 @@ def _apply_real_historical_costs(frame, tech, settings, deflator):
             deflator,
             required_years,
         )
+        if metric == 'cf_improvement':
+            base = settings.get('cf_normalization_bases', {}).get(tech)
+            if base is None or not np.isfinite(base) or base <= 0:
+                raise ValueError(f"{tech} real CF history requires its raw ATB CF reference.")
+            resolved = [
+                (series, {year: value / base for year, value in values.items()})
+                for series, values in resolved
+            ]
         result, replaced_years = applier(
             result,
             tech,
@@ -673,10 +737,12 @@ def _apply_real_historical_costs(frame, tech, settings, deflator):
         )
         if replaced_years:
             current_dollar_year = int(settings['dollaryear'])
+            units = ('ATB-reference multiplier' if metric == 'cf_improvement'
+                     else f'{current_dollar_year}$')
             print(
                 f"Applied real historical {metric} for {tech}: "
                 f"{replaced_years[0]}-{replaced_years[-1]} "
-                f"({current_dollar_year}$)"
+                f"({units})"
             )
     return result
 
@@ -900,7 +966,13 @@ def normalize_cf(tech, settings, df):
         if len(cf_base) > 1:
             raise ValueError("Error: more than one value found for cf_improvement without specifying which columns to keep.")
         else:
-            df['cf_improvement'] = df['cf_improvement'] / cf_base['cf_improvement'].values[0]
+            if cf_base.empty:
+                raise ValueError(f"No ATB CF normalization reference found for {tech}.")
+            base = float(cf_base['cf_improvement'].iloc[0])
+            if not np.isfinite(base) or base <= 0:
+                raise ValueError(f"Invalid ATB CF normalization reference for {tech}: {base}")
+            settings.setdefault('cf_normalization_bases', {})[tech] = base
+            df['cf_improvement'] = df['cf_improvement'] / base
 
     # check that base level is properly normalized to 1
     assert (df.loc[cf_base.index, 'cf_improvement'] == 1).all(), "Check cf_improvement normalization."
@@ -1641,9 +1713,7 @@ def add_csp_techs(tech, settings, df, techcol='i'):
         Column name identifying the technology label in `df` (default 'i').
     """
     # load cost ratios for csp techs
-    csp_ratios = pd.read_csv(
-        os.path.join(ATBDIR, "manual_input", f"csp_cost_ratios_{settings['atbyear']}.csv")
-    ).dropna(subset=['type', 'ratio', 'base_tech'])
+    csp_ratios = load_csp_cost_ratios(settings)
     print("updating csp tech costs using the following ratios:")
     print(csp_ratios[['type','ratio']])
 

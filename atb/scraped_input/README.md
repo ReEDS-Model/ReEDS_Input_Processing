@@ -13,10 +13,30 @@ workflow. None of the source files is generated from another.
 The optional `historical_costs/` subdirectory contains original research
 workbooks from LBNL, NLR, and EIA together with two generated raw-data aids:
 
-- `historical_capital_costs.csv`: long-form observed capital costs with units,
+- `historical_capital_costs.csv`: long-form capital cost, O&M, and CF observations with units,
   capacity basis, statistic, geography, dollar year, and source provenance.
 - `source_manifest.csv`: upstream URLs, local filenames, byte counts, and
   SHA-256 checksums for every downloaded workbook.
+
+The LBNL workbooks also supply `metric: capacity_factor`, `unit: fraction` rows:
+wind uses `Capacity Factor in 2024 by COD` (generation-weighted CF, 2006–2023
+individual COD years); PV uses `CF by Project Vintage` (capacity-weighted
+cumulative CF through 2024, 2010–2023 vintages). Dollar year and price basis are
+blank for these dimensionless observations. The formatter normalizes them to
+its raw ATB CF reference before applying `cf_improvement: real`.
+
+`fixed_om` rows come from PV's `O&M Cost Time Trend` (annual mean, AC basis)
+and wind's `O&M Over Time` (mean by COD among projects reporting 2024 O&M).
+Both use 2024 USD/kW-year and map to FOM only; wind's dollar year is assumed
+because its sheet does not state one. Wind values average available
+operating years within each project; PV values describe the operating fleet.
+The $/MWh presentation is not a separate variable O&M observation.
+
+CSP extraction selects only the 110-MW tower with a 2015 COD in `CSP CapEx`,
+matched to [Crescent Dunes](https://solarpaces.nlr.gov/project/crescent-dunes-solar-energy-project).
+Its 10-hour storage is used as the `csp2` proxy. The CSV retains the single
+observed cost in 2024 USD/kW-AC; endpoint filling and configuration-ratio scaling
+happen in the formatter. Other CSP projects are not pooled into this reference.
 
 Download and extract them separately from the ATB inputs:
 
