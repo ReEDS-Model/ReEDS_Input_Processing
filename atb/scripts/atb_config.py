@@ -54,6 +54,16 @@ def load_processing_settings(config_path=None):
         settings = yaml.safe_load(stream)
 
     processing = config["processing"]
+    processing.setdefault('smooth_cost_curves', {}).setdefault(
+        'projection_start_year', int(config['atb']['year']) - 2)
+    cases = processing.get('atb_case_overrides', {})
+    unknown = set(cases) - set(settings['techs'])
+    if unknown:
+        raise ValueError(f'Unknown ATB case override technologies: {sorted(unknown)}')
+    for tech, rules in settings['techs'].items():
+        case = cases.get(tech, processing.get('atb_case'))
+        if case is not None:
+            rules['subset_rows']['Case'] = case
     history = config["historical_data"]
     settings.update(
         {
@@ -68,9 +78,6 @@ def load_processing_settings(config_path=None):
             "workbook_path": str(raw_file_path(config, "workbook")),
             "history_dir": str(resolve_atb_path(history["directory"])),
             "history_dollar_year": int(history["dollar_year"]),
-            "seed_missing_history": bool(
-                history.get("seed_missing_from_reeds", False)
-            ),
             "config": config,
         }
     )

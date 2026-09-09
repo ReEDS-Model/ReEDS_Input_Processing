@@ -1,7 +1,7 @@
 """
 This script processes and produces ATB costs input files for ReEDS.
 Workflow choices are defined in ../config.yaml; technology-specific formatting
-rules are defined in settings.yaml. This formatter reads local raw inputs only.
+rules are defined in settings.yaml. Inputs are local ATB projections and prepared history.
 The script runs in the standard ReEDS environment (reeds2).
 """
 
@@ -74,7 +74,7 @@ def load_atb_flat_file(settings, args, techs_to_run):
     if not os.path.isfile(filepath):
         raise FileNotFoundError(
             f"Raw ATB flat file not found: {filepath}\n"
-            "Run 'python scrape_atb_inputs.py' before formatting ReEDS inputs."
+            "Run 'python future_atb_scraper.py' before formatting ReEDS inputs."
         )
     print(f"Loading raw ATB flat file: {filepath}")
     atb_data_in = pd.read_csv(filepath, low_memory=False)
@@ -200,13 +200,6 @@ def check_columns(df, col_list, setting, tech):
             f"Please update your 'settings.yaml' for {tech}."
             )
 
-def _history_file_path(tech, scenario, settings):
-    """Return the stable, year-independent history path for one scenario."""
-    return os.path.join(
-        settings['history_dir'],
-        f"{tech}_ATB_historical_{str(scenario).lower()}.csv",
-    )
-
 
 def _cost_columns(df):
     """Return every monetary output column, including battery energy costs."""
@@ -282,318 +275,6 @@ def _normalize_reeds_history(frame, tech, settings):
     return frame
 
 
-def _seed_history_from_reeds(
-    tech, scenario, current, history_path, settings, dollaryear, deflator
-):
-    """Create a local historical baseline from the current ReEDS ATB file."""
-    reeds_key, reeds_path = get_atb_file_path(
-        tech, settings['atbyear'], scenario, settings
-    )
-    if not os.path.isfile(reeds_path):
-        moderate_key, moderate_path = get_atb_file_path(
-            tech, settings['atbyear'], 'moderate', settings
-        )
-        if os.path.isfile(moderate_path):
-            print(
-                f"...no {str(scenario).lower()} ReEDS history for {tech}; "
-                "using moderate history"
-            )
-            reeds_key, reeds_path = moderate_key, moderate_path
-        else:
-            raise FileNotFoundError(
-                f"Historical baseline is missing: {history_path}\n"
-                f"Could not seed it because neither the matching nor moderate "
-                f"ReEDS file exists: {reeds_path}"
-            )
-
-    history = _normalize_reeds_history(pd.read_csv(reeds_path), tech, settings)
-    idcols = [
-        col for col in settings['techs'][tech]['indexcols']
-        if col not in ['Scenario', 't']
-    ]
-    history = _select_pre_projection_history(history, current, idcols)
-
-    source_dollar_year = int(dollaryear[reeds_key])
-    history_dollar_year = settings['history_dollar_year']
-    adjustment = (
-        deflator[source_dollar_year] / deflator[history_dollar_year]
-    )
-    costcols = _cost_columns(history)
-    history[costcols] = history[costcols] * adjustment
-    history = history.sort_values(settings['techs'][tech]['cols']).reset_index(drop=True)
-    os.makedirs(settings['history_dir'], exist_ok=True)
-    history.to_csv(history_path, index=False, lineterminator=CSV_LINE_TERMINATOR)
-    print(
-        f"...seeded {os.path.basename(history_path)} from "
-        f"{os.path.basename(reeds_path)}"
-    )
-    return history
-
-
-def _observed_history_source_path(settings):
-    """Return the configured normalized observed-history CSV path."""
-    source_settings = settings['config'].get('historical_cost_sources', {})
-    return os.path.join(
-        ATBDIR,
-        source_settings['directory'],
-        source_settings['normalized_filename'],
-    )
-
-
-def _observed_values_by_year(tech, mapping, settings, deflator):
-    """Read, filter, and deflate one observed series into {year: value}."""
-    source_path = _observed_history_source_path(settings)
-    if not os.path.isfile(source_path):
-        raise FileNotFoundError(
-            f"Observed historical-cost file is missing: {source_path}. "
-            "Run scripts/scrape_historical_costs.py first."
-        )
-    observed = pd.read_csv(source_path)
-    for column, value in mapping.get('filters', {}).items():
-        if column not in observed.columns:
-            raise KeyError(
-                f"Observed historical-cost file is missing filter column {column}."
-            )
-        observed = observed.loc[observed[column] == value]
-    if observed.empty:
-        raise KeyError(
-            f"No observed historical rows match the configured mapping for {tech}."
-        )
-    if observed['year'].duplicated().any():
-        duplicate_years = sorted(
-            observed.loc[observed['year'].duplicated(False), 'year'].unique()
-        )
-        raise ValueError(
-            f"Observed historical mapping for {tech} has duplicate years: "
-            f"{duplicate_years}"
-        )
-    if mapping.get('output_column') == 'cf_improvement':
-        if not (observed['metric'].eq('capacity_factor').all()
-                and observed['unit'].eq('fraction').all()):
-            raise ValueError(f"{tech} CF history must contain capacity_factor fractions.")
-        values = pd.to_numeric(observed['value'], errors='raise')
-        if not (np.isfinite(values) & values.gt(0) & values.le(1)).all():
-            raise ValueError(f"{tech} observed capacity factors must be in (0, 1].")
-        # Dimensionless observations have no dollar year and are never deflated.
-        return dict(zip(observed['year'].astype(int), values.astype(float)))
-    if mapping.get('output_column') == 'storage_duration':
-        values = pd.to_numeric(observed['value'], errors='raise')
-        if not (observed['metric'].eq('storage_duration').all()
-                and observed['unit'].eq('hours').all()
-                and (np.isfinite(values) & values.gt(0)).all()):
-            raise ValueError("Battery duration history must contain finite positive hours.")
-        return dict(zip(observed['year'].astype(int), values.astype(float)))
-    if observed['dollar_year'].isna().any():
-        raise ValueError(
-            f"Observed historical mapping for {tech} requires a dollar_year."
-        )
-
-    current_dollar_year = int(settings['dollaryear'])
-    converted_values = {}
-    for row in observed.itertuples(index=False):
-        source_dollar_year = int(row.dollar_year)
-        if source_dollar_year not in deflator.index:
-            raise KeyError(
-                f"Deflator table has no value for observed dollar year "
-                f"{source_dollar_year}."
-            )
-        converted_values[int(row.year)] = (
-            float(row.value)
-            * float(deflator[source_dollar_year])
-            / float(deflator[current_dollar_year])
-        )
-    return converted_values
-
-
-def _complete_observed_years(
-    values, required_years, tech, label=None, report=True, allow_single_observation=False
-):
-    """Fill a real-history series without falling back to manual history.
-
-    Missing years between observations are linearly interpolated. Years before
-    the first or after the last observation use the nearest observed endpoint,
-    because linear interpolation requires an observation on each side.
-    """
-    if not values or not required_years:
-        return values
-    observed_years = np.asarray(sorted(values), dtype=float)
-    if (len(observed_years) < 2 and not required_years.issubset(values)
-            and not allow_single_observation):
-        raise ValueError(
-            f"Observed historical mapping for {label or tech} needs at least "
-            "two observations to fill missing years."
-        )
-    observed_values = np.asarray(
-        [values[int(year)] for year in observed_years], dtype=float
-    )
-    missing_years = sorted(required_years - set(values))
-    if not missing_years:
-        return values
-
-    completed = dict(values)
-    completed.update({
-        year: float(np.interp(year, observed_years, observed_values))
-        for year in missing_years
-    })
-    if report:
-        internal = [
-            year for year in missing_years
-            if observed_years[0] < year < observed_years[-1]
-        ]
-        endpoints = sorted(set(missing_years) - set(internal))
-        if internal:
-            print(
-                f"  {label or tech}: linearly interpolated missing real-history "
-                f"years {internal}"
-            )
-        if endpoints:
-            print(
-                f"  {label or tech}: filled endpoint real-history years "
-                f"{endpoints} from the nearest observation"
-            )
-    return completed
-
-
-def _assign_observed_values(frame, mask, output_column, values):
-    """Write the observed series into the masked rows and report the span."""
-    result = frame.copy()
-    result.loc[mask, output_column] = result.loc[mask, 't'].map(values)
-    return result, sorted(result.loc[mask, 't'].astype(int).unique())
-
-
-def _year_key(frame):
-    """Columns identifying one value slot per year.
-
-    Frames stack every ATB scenario, and historical years are identical across
-    them, so repetition across `Scenario` is expected and anything else is not.
-    """
-    return [column for column in ('Scenario', 't') if column in frame.columns]
-
-
-def _assert_one_row_per_year(frame, mask, tech, applier_name):
-    """Fail loudly when one observed value would address several rows."""
-    candidates = frame.loc[mask]
-    duplicated = candidates.duplicated(subset=_year_key(frame), keep=False)
-    if duplicated.any():
-        crowded_years = sorted(
-            candidates.loc[duplicated, 't'].astype(int).unique()
-        )
-        raise ValueError(
-            f"{tech} uses the {applier_name} observed-history applier, but "
-            f"more than one row shares a scenario and year in {crowded_years}. "
-            f"One observed value cannot address them all. Define a "
-            f"technology-specific applier for {tech} and register it in "
-            f"REAL_HISTORY_APPLIERS."
-        )
-
-
-def _only_series(resolved, tech, applier_name):
-    """Unpack a mapping that must resolve to exactly one observed series."""
-    if len(resolved) != 1:
-        raise ValueError(
-            f"{tech} uses the {applier_name} observed-history applier, which "
-            f"takes one series, but its mapping resolved {len(resolved)}. "
-            f"Use an applier that assigns each series to its own rows."
-        )
-    return resolved[0]
-
-
-def _series_target(series, tech):
-    """Return the one sub-technology a mapping series describes.
-
-    A series measures one thing, so it names one sub-technology. Sharing a
-    series across several made unrelated rows carry identical history and hid
-    the fact that no observation existed for the others.
-    """
-    targets = series.get('turbine_classes') or series.get('technologies') or []
-    if len(targets) != 1:
-        raise ValueError(
-            f"{tech} observed-history mapping series names {targets or 'nothing'}. "
-            "Each series describes exactly one sub-technology; give the others "
-            "their own series or their own mode in historical_data."
-        )
-    return targets[0]
-
-
-def _assign_series_to_target(
-    frame, tech, mapping, values, historical_mask, key_column, target
-):
-    """Assign one observed series to the rows of one sub-technology."""
-    if key_column not in frame.columns:
-        raise KeyError(
-            f"{tech} observed-history applier expects a {key_column!r} column "
-            "identifying the sub-technology."
-        )
-    present = set(frame[key_column].unique())
-    if target not in present:
-        raise ValueError(
-            f"{tech} observed-history mapping targets {target!r}, which is "
-            f"absent from the frame. Present: {sorted(present)}."
-        )
-    mask = (
-        historical_mask
-        & frame['t'].isin(values)
-        & (frame[key_column] == target)
-    )
-    _assert_one_row_per_year(frame, mask, tech, key_column)
-    return _assign_observed_values(
-        frame, mask, mapping['output_column'], values
-    )
-
-
-def apply_real_history_single_series(
-    frame, tech, mapping, resolved, historical_mask, historical_data, class_column
-):
-    """Applier for technologies carrying one row per scenario-year.
-
-    upv and wind-ons each select a single ATB DisplayName. The guard catches a
-    technology that splits a year into several series being routed here.
-    """
-    _series, values = _only_series(resolved, tech, 'single-series')
-    mask = historical_mask & frame['t'].isin(values)
-    _assert_one_row_per_year(frame, mask, tech, 'single-series')
-    return _assign_observed_values(frame, mask, mapping['output_column'], values)
-
-
-def apply_real_history_by_class(
-    frame, tech, mapping, resolved, historical_mask, historical_data, class_column
-):
-    """Applier for technologies carrying one row per sub-technology.
-
-    Offshore wind splits by turbine class and gas by plant configuration; both
-    assign each series to the one sub-technology it measures. A sub-technology
-    no series describes must select its own mode in historical_data, so none
-    falls back to manual values by accident.
-    """
-    if not class_column:
-        raise KeyError(
-            f"{tech} uses the per-class observed-history applier but declares "
-            "no history_class_column in settings.yaml."
-        )
-    present = (
-        set(frame[class_column].unique()) if class_column in frame.columns else set()
-    )
-    result = frame
-    replaced = set()
-    targeted = set()
-    for series, values in resolved:
-        target = _series_target(series, tech)
-        result, years = _assign_series_to_target(
-            result, tech, mapping, values, historical_mask, class_column, target
-        )
-        replaced.update(years)
-        targeted.add(target)
-    metric = mapping['output_column']
-    configured = set(_metric_modes(historical_data, metric)) - {None}
-    untouched = sorted(present - targeted - configured)
-    if untouched:
-        raise KeyError(
-            f"{tech}.{metric} selects real history, but {untouched} have no "
-            "observed series. Give each one its own mode in historical_data."
-        )
-    return result, sorted(replaced)
-
-
 def load_csp_cost_ratios(settings):
     """Read the shared historical/projection CSP configuration multipliers."""
     path = os.path.join(ATBDIR, 'manual_input',
@@ -608,299 +289,6 @@ def load_csp_cost_ratios(settings):
     if base.iloc[0]['duration'] != 10:
         raise ValueError("The CSP historical reference requires 10-hour storage.")
     return ratios
-
-
-def apply_real_history_csp(
-    frame, tech, mapping, resolved, historical_mask, historical_data, class_column
-):
-    """Scale the observed csp2 capital-cost proxy to each modeled configuration."""
-    series, values = _only_series(resolved, tech, 'CSP configuration ratios')
-    ratios = series['_configuration_ratios']
-    present = set(frame['type'].unique())
-    if present != set(ratios):
-        raise ValueError(f"CSP history types {sorted(present)} do not match ratios {sorted(ratios)}")
-    result = frame
-    replaced = set()
-    for target, ratio in ratios.items():
-        scaled = {year: value * ratio for year, value in values.items()}
-        result, years = _assign_series_to_target(
-            result, tech, mapping, scaled, historical_mask, 'type', target
-        )
-        replaced.update(years)
-    return result, sorted(replaced)
-
-
-# Each applier owns which rows its series may address, since that depends on
-# the technology's row shape. Every metric selecting `real` requires an entry.
-# Each receives the metric's historical_data modes so it can tell a row left
-# unclaimed by accident from one that explicitly generates its own history.
-REAL_HISTORY_APPLIERS = {
-    'battery': apply_real_history_single_series,
-    'csp': apply_real_history_csp,
-    'biopower': apply_real_history_single_series,
-    'upv': apply_real_history_single_series,
-    'wind-ons': apply_real_history_single_series,
-    'wind-ofs': apply_real_history_by_class,
-    'gas': apply_real_history_by_class,
-}
-
-
-def _split_battery_history(total_costs, settings, deflator):
-    """Scale ATB reference components to observed totals at cohort durations."""
-    from battery_workbook import extract_battery_costs
-
-    split = settings['config']['historical_cost_sources']['battery_cost_split']
-    durations = _observed_values_by_year(
-        'battery', {'filters': split['duration_filters'], 'output_column': 'storage_duration'},
-        settings, deflator,
-    )
-    missing = sorted(set(total_costs) - set(durations))
-    if missing:
-        raise ValueError(f"Battery cost years lack observed cohort duration: {missing}")
-    reference = extract_battery_costs(settings['workbook_path'])
-    reference = reference.loc[reference['Scenario'].eq(split['reference_scenario'])]
-    year = int(split['reference_year'])
-    if year not in reference or reference['cost'].duplicated().any():
-        raise ValueError(f"Missing or ambiguous ATB battery split reference for {year}")
-    components = reference.set_index('cost')[year]
-    power, energy = float(components['capcost']), float(components['capcost_energy'])
-    if not all(np.isfinite(value) and value > 0 for value in (power, energy)):
-        raise ValueError("ATB battery reference components must be finite and positive.")
-    result = {'capcost': {}, 'capcost_energy': {}}
-    for year, total in total_costs.items():
-        if not np.isfinite(total) or total <= 0:
-            raise ValueError(f"Invalid battery total cost for {year}: {total}")
-        scale = total / (power + durations[year] * energy)
-        result['capcost'][year] = scale * power
-        result['capcost_energy'][year] = scale * energy
-    return result
-
-
-def _resolve_observed_series(
-    tech,
-    mapping,
-    settings,
-    deflator,
-    required_years,
-    report_fill=True,
-):
-    """Resolve a mapping into [(series_config, {year: value}), ...].
-
-    A mapping describes one series directly or several under `series`. Entries
-    inherit the mapping's other keys, so shared settings are written once.
-    """
-    entries = mapping.get('series') or [mapping]
-    inherited = {key: value for key, value in mapping.items() if key != 'series'}
-    resolved = []
-    for entry in entries:
-        merged = {**inherited, **entry}
-        values = _observed_values_by_year(tech, merged, settings, deflator)
-        if tech == 'battery':
-            metric = mapping.get('output_column')
-            if metric not in ('capcost', 'capcost_energy') or len(entries) != 1:
-                raise ValueError("Battery real history requires one total-cost series for both components.")
-            values = _split_battery_history(values, settings, deflator)[metric]
-        csp_reference = tech == 'csp' and mapping.get('output_column') == 'capcost'
-        if tech == 'csp':
-            if not csp_reference or len(entries) != 1:
-                raise ValueError("CSP real history supports one capital-cost reference only.")
-            if not all(np.isfinite(value) and value > 0 for value in values.values()):
-                raise ValueError("CSP reference costs must be finite and positive.")
-            ratios = load_csp_cost_ratios(settings)
-            merged['_configuration_ratios'] = ratios.set_index('type')['ratio'].to_dict()
-        targets = merged.get('technologies') or merged.get('turbine_classes')
-        label = f"{tech} {', '.join(targets)}" if targets else tech
-        values = _complete_observed_years(
-            values,
-            required_years,
-            tech,
-            label,
-            report=report_fill,
-            allow_single_observation=csp_reference,
-        )
-        resolved.append((merged, values))
-    return resolved
-
-
-def _apply_real_historical_costs(frame, tech, settings, deflator):
-    """Replace mapped pre-projection metrics with normalized observed values."""
-    technology_config = _technology_smoothing_config(tech, settings)
-    if technology_config is None:
-        return frame
-    real_metrics = _real_historical_metrics(technology_config)
-    if not real_metrics:
-        return frame
-    smoothing = settings['config']['processing']['smooth_cost_curves']
-    source_settings = settings['config'].get('historical_cost_sources', {})
-    technology_mappings = source_settings.get('reeds_mappings', {}).get(tech, {})
-    applier = REAL_HISTORY_APPLIERS.get(tech)
-    if applier is None:
-        raise NameError(
-            f"{tech} selects a real historical metric but has no observed-history "
-            "applier. Define one and add it to REAL_HISTORY_APPLIERS."
-        )
-    projection_start_year = int(smoothing.get('projection_start_year', 2022))
-    historical_mask = frame['t'] < projection_start_year
-    required_years = set(frame.loc[historical_mask, 't'].astype(int).unique())
-    result = frame
-    for metric in real_metrics:
-        mapping = technology_mappings.get(metric)
-        if mapping is None:
-            raise ValueError(
-                f"{tech}.{metric} selects historical_data: real but has no "
-                "reviewed mapping under historical_cost_sources.reeds_mappings."
-            )
-        if metric not in result.columns:
-            raise KeyError(
-                f"Observed-history metric {metric!r} is absent for {tech}."
-            )
-        metric_mapping = {**mapping, 'output_column': metric}
-        resolved = _resolve_observed_series(
-            tech,
-            metric_mapping,
-            settings,
-            deflator,
-            required_years,
-        )
-        if metric == 'cf_improvement':
-            base = settings.get('cf_normalization_bases', {}).get(tech)
-            if base is None or not np.isfinite(base) or base <= 0:
-                raise ValueError(f"{tech} real CF history requires its raw ATB CF reference.")
-            resolved = [
-                (series, {year: value / base for year, value in values.items()})
-                for series, values in resolved
-            ]
-        result, replaced_years = applier(
-            result,
-            tech,
-            metric_mapping,
-            resolved,
-            historical_mask,
-            technology_config['historical_data'],
-            settings['techs'][tech].get('history_class_column'),
-        )
-        if replaced_years:
-            current_dollar_year = int(settings['dollaryear'])
-            units = ('ATB-reference multiplier' if metric == 'cf_improvement'
-                     else f'{current_dollar_year}$')
-            print(
-                f"Applied real historical {metric} for {tech}: "
-                f"{replaced_years[0]}-{replaced_years[-1]} "
-                f"({units})"
-            )
-    return result
-
-
-def validate_real_historical_data(settings, techs, deflator):
-    """Fail early when a selected ``real`` technology lacks observed data.
-
-    The normal per-technology checks still run while values are applied. This
-    preflight check gathers configuration and source-data problems before any
-    technology output is processed, and gives the user one recovery command.
-    """
-    smoothing = settings['config']['processing'].get('smooth_cost_curves', {})
-    if not smoothing.get('enabled', False):
-        return
-    real_metrics = []
-    for tech in techs:
-        technology_config = _technology_smoothing_config(tech, settings)
-        if technology_config is not None:
-            real_metrics.extend(
-                (tech, metric)
-                for metric in _real_historical_metrics(technology_config)
-            )
-    if not real_metrics:
-        return
-    real_labels = [f"{tech}.{metric}" for tech, metric in real_metrics]
-
-    source_settings = settings['config'].get('historical_cost_sources', {})
-    missing_source_settings = [
-        key for key in ('directory', 'normalized_filename')
-        if not source_settings.get(key)
-    ]
-    if missing_source_settings:
-        raise ValueError(
-            "Historical data validation failed for technologies configured "
-            f"with historical_data: real: {real_labels}. Missing settings under "
-            f"historical_cost_sources: {missing_source_settings}."
-        )
-
-    source_path = _observed_history_source_path(settings)
-    if not os.path.isfile(source_path):
-        raise FileNotFoundError(
-            "Historical data validation failed for technologies configured "
-            f"with historical_data: real: {real_labels}.\n"
-            f"The normalized historical-cost file does not exist: {source_path}\n"
-            "Run 'python scripts/scrape_historical_costs.py' from the atb "
-            "directory, then run the formatter again."
-        )
-
-    mappings = source_settings.get('reeds_mappings', {})
-    if not isinstance(mappings, dict):
-        raise TypeError("historical_cost_sources.reeds_mappings must be a mapping.")
-    projection_start_year = int(smoothing.get('projection_start_year', 2022))
-    required_years = set(range(
-        int(settings['reeds_start_year']), projection_start_year
-    ))
-    missing_choices = []
-    failures = []
-    for tech, metric in real_metrics:
-        mapping = mappings.get(tech, {}).get(metric)
-        if mapping is None:
-            missing_choices.append(
-                f"{tech}.{metric}: no mapping under "
-                "historical_cost_sources.reeds_mappings"
-            )
-            continue
-        if REAL_HISTORY_APPLIERS.get(tech) is None:
-            missing_choices.append(
-                f"{tech}.{metric}: no observed-history applier in "
-                "REAL_HISTORY_APPLIERS"
-            )
-            continue
-        if metric not in settings['techs'][tech]['cols']:
-            missing_choices.append(
-                f"{tech}.{metric}: metric is not in its ReEDS schema"
-            )
-            continue
-        try:
-            _resolve_observed_series(
-                tech,
-                {**mapping, 'output_column': metric},
-                settings,
-                deflator,
-                required_years,
-                report_fill=False,
-            )
-        except KeyError as error:
-            missing_choices.append(f"{tech}.{metric}: {error}")
-        except (FileNotFoundError, TypeError, ValueError) as error:
-            failures.append(f"{tech}.{metric}: {error}")
-
-    if missing_choices:
-        details = "\n".join(f"  - {failure}" for failure in missing_choices)
-        raise KeyError(
-            "A selected real historical metric is unavailable:\n"
-            f"{details}\n"
-            "Choose an available option in config.yaml or add and review the "
-            "required source mapping."
-        )
-    if failures:
-        details = "\n".join(f"  - {failure}" for failure in failures)
-        raise ValueError(
-            "Historical data validation failed for one or more technologies "
-            "configured with historical_data: real:\n"
-            f"{details}\n"
-            "The combined historical CSV may be missing a source. Run "
-            "'python scripts/scrape_historical_costs.py --no-download' from "
-            "the atb directory to rebuild it from all local source files, or "
-            "review the mappings in config.yaml."
-        )
-
-    print(
-        "Validated observed historical data for metrics configured as real: "
-        f"{real_labels}"
-    )
 
 
 def merge_historical_atb_data(
@@ -925,20 +313,8 @@ def merge_historical_atb_data(
 
     for scenario in tech_data['Scenario'].unique():
         current = tech_data.loc[tech_data['Scenario'] == scenario].copy()
-        history_path = _history_file_path(tech, scenario, settings)
-        if os.path.isfile(history_path):
-            history_stored = _normalize_reeds_history(
-                pd.read_csv(history_path), tech, settings
-            )
-        elif settings['seed_missing_history']:
-            history_stored = _seed_history_from_reeds(
-                tech, scenario, current, history_path, settings, dollaryear, deflator
-            )
-        else:
-            raise FileNotFoundError(
-                f"Historical baseline is missing: {history_path}. "
-                "Enable historical_data.seed_missing_from_reeds or add the file."
-            )
+        from historical_data import manual_history
+        history_stored = manual_history(settings, tech, scenario, deflator)
 
         history_stored_for_output = history_stored
         smoothing = _technology_smoothing_config(tech, settings)
@@ -989,9 +365,8 @@ def merge_historical_atb_data(
     )
     output = output.reset_index(drop=True)
     settings.setdefault('atb_series_start', {})[tech] = series_starts
-    output = _apply_real_historical_costs(output, tech, settings, deflator)
-    from historical_atb import apply_archive_history
-    output = apply_archive_history(output, tech, settings, deflator)
+    from historical_data import apply_history
+    output = apply_history(output, tech, settings, deflator)
     _validate_year_continuity(output, tech, settings)
     return output
 
@@ -1258,42 +633,6 @@ def _historical_mode_for_metric(historical_data, metric, class_value=None):
         ) from error
 
 
-def _real_historical_classes(historical_data, metric):
-    """Return the sub-technology classes one metric reads from observations."""
-    return sorted(
-        class_value
-        for class_value, mode in _metric_modes(historical_data, metric).items()
-        if mode == 'real' and class_value is not None
-    )
-
-
-def _real_historical_metrics(technology_config):
-    """Return explicitly configured observed metrics for one technology.
-
-    A metric split by sub-technology class qualifies when any class selects
-    `real`; its applier then assigns observations to only those classes.
-    """
-    historical_data = technology_config['historical_data']
-    return sorted(
-        metric
-        for metric in historical_data
-        if 'real' in _metric_modes(historical_data, metric).values()
-    )
-
-
-def _mapping_target_classes(mapping):
-    """Return the sub-technologies a reviewed mapping claims, one per series."""
-    entries = mapping.get('series') or [mapping]
-    inherited = {key: value for key, value in mapping.items() if key != 'series'}
-    targets = set()
-    for entry in entries:
-        merged = {**inherited, **entry}
-        targets.update(
-            merged.get('turbine_classes') or merged.get('technologies') or []
-        )
-    return targets
-
-
 def _validate_historical_data_config(tech, historical_data, settings):
     """Validate one technology's explicit metric-level history choices."""
     label = (
@@ -1309,12 +648,6 @@ def _validate_historical_data_config(tech, historical_data, settings):
         if not all(historical_data.get(metric) == 'real'
                    for metric in ('capcost', 'capcost_energy')):
             raise ValueError("Battery capcost and capcost_energy must select real together.")
-        sources = settings['config'].get('historical_cost_sources', {})
-        mappings = sources.get('reeds_mappings', {}).get('battery', {})
-        if not mappings.get('capcost') or mappings.get('capcost') != mappings.get('capcost_energy'):
-            raise ValueError("Battery components must map to the same observed total-cost series.")
-        if not sources.get('battery_cost_split'):
-            raise ValueError("Battery real history requires historical_cost_sources.battery_cost_split.")
     valid_metrics = set(settings['techs'][tech]['cols']) - NON_HISTORY_COLUMNS
     unknown = sorted(set(historical_data) - valid_metrics)
     if unknown:
@@ -1344,39 +677,6 @@ def _validate_historical_data_config(tech, historical_data, settings):
             f"Unavailable historical metric modes in {label}; choose from "
             f"{list(HISTORICAL_DATA_MODES)}: {invalid}"
         )
-    mappings = (
-        settings['config']
-        .get('historical_cost_sources', {})
-        .get('reeds_mappings', {})
-        .get(tech, {})
-    )
-    real_metrics = sorted(
-        metric for metric in historical_data
-        if 'real' in _metric_modes(historical_data, metric).values()
-    )
-    unavailable_real = [
-        metric for metric in real_metrics if metric not in mappings
-    ]
-    if unavailable_real:
-        raise KeyError(
-            f"Observed history is unavailable for metrics in {label}: "
-            f"{unavailable_real}"
-        )
-    # A class-split metric states twice which rows observations describe: here
-    # and in the mapping that selects them. Disagreement would silently leave
-    # one class on the wrong history, so require the two to name the same set.
-    for metric in real_metrics:
-        real_classes = set(_real_historical_classes(historical_data, metric))
-        if not real_classes:
-            continue
-        targeted = _mapping_target_classes(mappings[metric])
-        if targeted != real_classes:
-            raise ValueError(
-                f"{label}.{metric} selects real history for classes "
-                f"{sorted(real_classes)}, but its mapping under "
-                f"historical_cost_sources.reeds_mappings.{tech}.{metric} "
-                f"targets {sorted(targeted)}. Make the two agree."
-            )
     return dict(historical_data)
 
 
@@ -1444,6 +744,11 @@ def _technology_smoothing_config(tech, settings):
             )
         future_treatments.update(overrides)
     config['future_smoothing_treatments'] = future_treatments
+
+    overlap = config.get('fill_atbstartyear2atbyear_with_real', False)
+    if not isinstance(overlap, bool):
+        raise TypeError('fill_atbstartyear2atbyear_with_real must be true or false.')
+    config['fill_atbstartyear2atbyear_with_real'] = overlap
 
     config['historical_data'] = _validate_historical_data_config(
         tech,
@@ -1733,28 +1038,14 @@ def format_continuous_battery(tech, settings, df):
     df: pd.DataFrame
         Input dataframe with columns that will be replaced by the battery cost fields (the function drops ['capcost', 'fom'] before merging)
     """
-    # Battery power/energy capital costs are extracted from the raw workbook
-    # downloaded by scrape_atb_inputs.py. The formatter itself never downloads
-    # raw data. A manual CSV remains available for pre-release ATB years.
-    atbyear = settings['atbyear']
     from battery_workbook import extract_battery_costs
     workbook = settings['workbook_path']
-    if os.path.isfile(workbook):
-        battery_costs = extract_battery_costs(workbook)
-        # round to 2 decimals to match the historical battery_costs_<year>.csv
-        yearcols = [c for c in battery_costs.columns if c not in ('cost', 'Scenario')]
-        battery_costs[yearcols] = battery_costs[yearcols].round(2)
-        battery_costs.columns = [str(c) for c in battery_costs.columns]
-    else:
-        fallback = os.path.join(ATBDIR, 'manual_input', f"battery_costs_{atbyear}.csv")
-        print(f"Raw ATB workbook not found for {atbyear}; using manual fallback {fallback}")
-        if not os.path.isfile(fallback):
-            raise FileNotFoundError(
-                f"Neither raw workbook nor manual battery fallback exists.\n"
-                f"Expected workbook: {workbook}\nExpected fallback: {fallback}\n"
-                "Run 'python scrape_atb_inputs.py --only workbook'."
-            )
-        battery_costs = pd.read_csv(fallback)
+    if not os.path.isfile(workbook):
+        raise FileNotFoundError(f'Missing {workbook}; run scripts/future_atb_scraper.py.')
+    battery_costs = extract_battery_costs(workbook)
+    yearcols = [c for c in battery_costs.columns if c not in ('cost', 'Scenario')]
+    battery_costs[yearcols] = battery_costs[yearcols].round(2)
+    battery_costs.columns = [str(c) for c in battery_costs.columns]
     # reshape and format
     battery_costs = pd.melt(battery_costs, id_vars=['cost','Scenario'], var_name='t')
     battery_costs = battery_costs.pivot(index=['Scenario', 't'], columns='cost', values='value').reset_index().rename_axis(None, axis=1)
@@ -2036,6 +1327,8 @@ def process_tech_file(atb_data, tech, settings, filenames, dollaryear, deflator,
     # so it can bridge the history/current-ATB boundary without changing the
     # versioned historical source files. It is disabled by default.
     tech_data_out = smooth_cost_curve(tech, settings, tech_data_out)
+    from historical_data import apply_real_overlap
+    tech_data_out = apply_real_overlap(tech_data_out, tech, settings, deflator)
 
     smoothing = settings['config']['processing'].get('smooth_cost_curves', {})
     baseline_directory = settings.get('unsmoothed_output_dir')
@@ -2345,15 +1638,9 @@ def main(args):
     deflator = pd.read_csv(os.path.join(settings['reedspath'], 'inputs', 'financials', 'deflator.csv'), 
                            index_col='*Dollar.Year').squeeze()
     if not args.skip_costs:
-        if smoothing.get('enabled') and any(
-            'atb' in _metric_modes(config.get('historical_data', {}), metric).values()
-            for tech, config in smoothing.get('technologies', {}).items()
-            if tech in techs_to_run
-            for metric in config.get('historical_data', {})
-        ):
-            from scrape_historical_atb import refresh_current_archive
-            refresh_current_archive(settings['config'])
-        validate_real_historical_data(settings, techs_to_run, deflator)
+        from historical_data import load_history
+        for kind in ('real', 'atb', 'manual'):
+            load_history(settings, kind)
     # load ATB flat file
     atb_data = load_atb_flat_file(settings, args, techs_to_run)
 

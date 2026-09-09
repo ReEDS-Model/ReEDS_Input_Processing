@@ -11,6 +11,7 @@
     "raw_data",
     "historical_cost_sources",
     "processing",
+    "reeds_source",
     "historical_data",
     "plotting"
   ],
@@ -19,13 +20,11 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "scrape_raw_data",
         "format_reeds_inputs",
         "make_plots",
         "make_comparison_plots"
       ],
       "properties": {
-        "scrape_raw_data": {"type": "boolean"},
         "format_reeds_inputs": {"type": "boolean"},
         "make_plots": {"type": "boolean"},
         "make_comparison_plots": {"type": "boolean"}
@@ -103,7 +102,13 @@
           "properties": {
             "reference_year": {"type": "integer", "minimum": 1900},
             "reference_scenario": {"enum": ["Moderate", "Advanced", "Conservative"]},
-            "duration_filters": {"$ref": "#/definitions/filters"}
+            "duration_filters": {"$ref": "#/definitions/filters"},
+            "preferred_cost_filters": {"$ref": "#/definitions/filters"},
+            "preferred_duration_filters": {"$ref": "#/definitions/filters"}
+          },
+          "dependencies": {
+            "preferred_cost_filters": ["preferred_duration_filters"],
+            "preferred_duration_filters": ["preferred_cost_filters"]
           }
         },
         "sources": {
@@ -128,6 +133,12 @@
       ],
       "properties": {
         "reeds_repo": {"type": "string", "minLength": 1},
+        "atb_case": {"type": "string", "minLength": 1},
+        "atb_case_overrides": {
+          "type": "object",
+          "propertyNames": {"$ref": "#/definitions/technologyName"},
+          "additionalProperties": {"type": "string", "minLength": 1}
+        },
         "output_directory": {"type": "string", "minLength": 1},
         "copy_to_reeds": {"type": "boolean"},
         "technologies": {
@@ -150,14 +161,52 @@
         "smooth_cost_curves": {"$ref": "#/definitions/smoothing"}
       }
     },
+    "reeds_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repo", "ref", "cache_directory"],
+      "properties": {
+        "repo": {"type": "string", "pattern": "^[^/]+/[^/]+$"},
+        "ref": {"type": "string", "minLength": 7},
+        "cache_directory": {"type": "string", "minLength": 1}
+      }
+    },
     "historical_data": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["directory", "dollar_year", "seed_missing_from_reeds"],
+      "required": [
+        "directory",
+        "real_filename",
+        "atb_filename",
+        "manual_filename",
+        "dollar_year",
+        "reference_atb_year"
+      ],
       "properties": {
-        "directory": {"type": "string", "minLength": 1},
-        "dollar_year": {"type": "integer", "minimum": 1900},
-        "seed_missing_from_reeds": {"type": "boolean"}
+        "directory": {
+          "type": "string",
+          "minLength": 1
+        },
+        "real_filename": {
+          "type": "string",
+          "minLength": 1
+        },
+        "atb_filename": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manual_filename": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dollar_year": {
+          "type": "integer",
+          "minimum": 1900
+        },
+        "reference_atb_year": {
+          "type": "integer",
+          "minimum": 2015
+        }
       }
     },
     "plotting": {
@@ -165,7 +214,6 @@
       "additionalProperties": false,
       "required": [
         "metrics",
-        "case",
         "crp_years",
         "figure_format",
         "output_directory",
@@ -181,7 +229,6 @@
             "enum": ["CAPEX", "OCC", "Fixed O&M", "Variable O&M"]
           }
         },
-        "case": {"enum": ["Market", "R&D"]},
         "crp_years": {"type": "integer", "minimum": 1},
         "figure_format": {"enum": ["png", "pdf", "svg"]},
         "output_directory": {"type": "string", "minLength": 1},
@@ -437,7 +484,7 @@
         "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
         "fom_energy": {"$ref": "#/definitions/historyModeWithoutReal"},
         "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "rte": {"enum": ["manual", "broadcast"]}
+        "rte": {"$ref": "#/definitions/historyModeWithoutReal"}
       }
     },
     "historyCsp": {
@@ -485,6 +532,7 @@
       "required": ["historical_data", "future_smoothing_treatments"],
       "properties": {
         "historical_data": {"type": "object"},
+        "fill_atbstartyear2atbyear_with_real": {"type": "boolean"},
         "future_smoothing_treatments": {"$ref": "#/definitions/futureTreatments"}
       }
     },
@@ -582,7 +630,6 @@
         "enabled",
         "method",
         "columns",
-        "projection_start_year",
         "slope_change_threshold",
         "max_kink_years",
         "major_step_relative_threshold",
@@ -591,6 +638,7 @@
       ],
       "properties": {
         "enabled": {"type": "boolean"},
+        "fill_atbstartyear2atbyear_with_real": {"type": "boolean"},
         "method": {"enum": ["selective", "linear_bridge"]},
         "columns": {
           "oneOf": [

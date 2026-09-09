@@ -1,497 +1,92 @@
-# ATB input pipeline
+# ATB inputs for ReEDS
 
-This directory turns raw NLR Annual Technology Baseline (ATB) data into ReEDS
-input files and plots. The workflow has three explicit stages:
-
-1. download and inspect raw data;
-2. format the local raw data for ReEDS;
-3. plot metrics from the same local raw data.
-
-## Configure the run
-
-[`config.yaml`](config.yaml) is the user-facing control file. It shows which
-stages will run, the ATB release and source URLs, local filenames, ReEDS path,
-technologies, processing choices, and plotting choices.
-
-Review that file first, especially:
-
-- `atb.year`, `atb.release_version`, and `atb.dollar_year`;
-- the two `raw_data` URLs and filenames;
-- the optional observed-cost sources under `historical_cost_sources`;
-- `processing.reeds_repo` and selected technologies;
-- `historical_data.directory` and its fixed dollar year;
-- the metrics and technologies under `plotting`.
-
-## Run one step at a time
-
-Run the following commands from the `atb/` directory.
-
-### Step 1: scrape raw inputs
+Run from `atb/` after checking paths and the ATB release in `config.yaml`:
 
 ```bash
-python scripts/scrape_atb_inputs.py
-```
-
-This downloads or reuses both independent raw inputs:
-
-- `scraped_input/atb_<year>_flat_file.csv`;
-- `scraped_input/atb_<year>_workbook.xlsx`.
-
-It then displays a summary of the flat file and the workbook sheets. Existing
-files are reused unless `--force` is supplied:
-
-```bash
-python scripts/scrape_atb_inputs.py --force
-```
-
-Neither raw file is committed, so this step is required after a fresh clone.
-See [`scraped_input/README.md`](scraped_input/README.md) for why, and how the
-pinned URLs keep a run reproducible without storing the data in Git.
-
-Downloads normally verify HTTPS certificates. If certificate verification
-fails because the active conda environment does not trust an NLR network
-inspection certificate, `raw_data.allow_insecure_ssl_fallback: true` permits a
-clearly labeled `verify=False` retry. Set it to `false` to prohibit that retry.
-
-### Optional: scrape observed historical capital costs
-
-```bash
-python scripts/scrape_historical_costs.py
-```
-
-This separate utility downloads the configured LBNL land-wind and utility-PV,
-NLR offshore-wind, and annual EIA generator-cost workbooks. It preserves the
-original files under `scraped_input/historical_costs/` and creates
-`historical_capital_costs.csv` plus a URL/checksum manifest there. These data
-enter ReEDS inputs only through an explicit mapping in `config.yaml`. The
-current mappings replace pre-projection UPV and land-based-wind `capcost` with
-LBNL national series. Their capacity-factor history also defaults to `real` using
-observed vintage CF normalized to the ATB reference. Their FOM also uses reported
-O&M by default; VOM remains zero. See
-[`scraped_input/README.md`](scraped_input/README.md) for the retained unit,
-capacity-basis, geography, and dollar-year distinctions.
-
-### Step 2: format ReEDS inputs
-
-```bash
-python scripts/generate_atb_files.py
-```
-
-This reads the local raw files plus the versioned history under
-`manual_input/historical/`, then writes ReEDS-formatted CSVs to `output/`. It
-does **not** download raw data. If a required raw file is missing, run Step 1
-first.
-
-Before processing any cost files, the formatter checks every selected
-technology metric configured as `real`. It stops with a single actionable error
-if the normalized historical-cost CSV, a reviewed metric mapping, or matching
-source rows are missing.
-
-A missing history file can be initialized from the matching file in
-`processing.reeds_repo` by temporarily setting
-`historical_data.seed_missing_from_reeds: true`. Current scraped ATB rows
-replace history from the first available projection year onward. Manual history
-is not updated by formatting. Each current release contributes its base-year
-estimates to `scraped_input/historical_atb/` for subsequent annual updates.
-
-Whether this step generates cost files and financial files, which technologies
-it processes, and whether it copies results into ReEDS are all controlled under
-`processing:` in `config.yaml`.
-
-### Selective smoothing logic
-
-The optional `processing.smooth_cost_curves` block removes short-lived dips,
-bumps, and rounded stair steps without replacing each ATB trajectory with one
-fully smoothed curve. Each technology has metric-level historical choices and
-independent future switches under `smooth_cost_curves.technologies`:
-
-The default `columns: all` applies future monetary smoothing to every monetary
-metric (`capcost*`, `fom*`, `vom`), since a rounding artifact is no more real in
-O&M than in capital cost. `capital_costs` narrows it to `capcost*`. Heat rate is
-not monetary and is never included by `all`. Historical source choices apply
-independently to every metric. By default, metrics with reviewed observations
-use `real`; other cost and performance metrics use `atb`. ReEDS-specific
-efficiency and resource multipliers retain their configured assumptions. Capacity-factor multipliers remain
-included automatically for technologies that use them.
-
-| Historical mode | Effect before each series' first ATB year |
-| --- | --- |
-| `real` | Use only the reviewed observed-series mapping for that metric. Preserve reported values, linearly interpolate internal missing years, and use the nearest observation for years outside the reported range. An unmapped metric or row variant raises an error. |
-| `atb` | Use each archived release's base-year estimate, converted to the output dollar year. Interpolate internal gaps and extend the nearest estimate at endpoints. An entirely absent series uses `historical_atb.missing_series` (`broadcast` by default). |
-| `manual` | Preserve the versioned rows in `manual_input/historical/` exactly. Those rows come from the ReEDS repository, are of mixed origin, and are maintained by hand there year by year rather than derived from any ATB download. |
-| `broadcast` | Use the first ATB projection value for every historical year. This generated history does not retain any manual historical values. |
-
-The switches under `future_smoothing_treatments` apply from
-`projection_start_year` onward. ATB's published direction is never overridden:
-a cost the source projects to rise, such as the 2023 solar and wind increases,
-is passed through unchanged.
-
-| Future smoothing treatment | Effect |
-| --- | --- |
-| `smooth_projection_curve` | Bridge compact clusters of slope changes. Major transitions, single ATB milestones, and flat stretches remain explicit. |
-
-Every technology listed under `smooth_cost_curves.technologies` is processed.
-Every modeled metric has an explicit `historical_data` entry. For example,
-biopower uses `capcost: real`, while fixed O&M, variable O&M, and heat rate each
-explicitly select `atb`.
-
-A metric may instead give one mode per sub-technology, for a technology whose
-observed series describes only some of its rows. Two do. Offshore wind CapEx is
-a fixed-bottom series, so only that class reads it; EIA reports gas plants only
-as "combined cycle" or "combustion turbine", so the H-Frame and aeroderivative
-variants have no observation at all.
-
-```yaml
-wind-ofs:
-  historical_data:
-    capcost:
-      fixed: real
-      floating: atb
-
-gas:
-  historical_data:
-    capcost:
-      Gas-CC: real
-      Gas-CC_H_1x1: atb
-      Gas-CC_H_2x1: atb
-      Gas-CT: real
-      Gas-CT_aero: atb
-```
-
-The split form requires the technology to name its sub-technology column
-through `history_class_column` in `scripts/settings.yaml` (`turbine` for
-offshore wind, `i` for gas), and the entries selecting `real` must match the
-mapping's targets exactly; a disagreement raises rather than leaving one
-sub-technology on unintended history. The schema offers `real` only where an
-observation exists, so a typo is caught in the editor.
-Capacity-factor multipliers are included automatically when the technology
-output contains `cf_improvement` (utility PV and the two wind technologies).
-PV and onshore wind default to `real` for this metric and also offer `atb`,
-`manual`, and `broadcast`. Offshore wind defaults to `atb`; archived CF fractions
-use the same current ATB reference as projections, separately by turbine class.
-
-Real CF history uses PV's capacity-weighted cumulative CF by project vintage
-(2010–2023) and wind's generation-weighted 2024 CF by COD (2006–2023 individual
-years). These fractions are divided by the same raw ATB CF reference used for
-projections (`cfbase`, currently 2035 Moderate); they are never dollar-deflated.
-The observations include resource, equipment, aging, and operating effects,
-not just technology improvement. National averages can differ from the ATB
-resource-class reference and produce a boundary change. Rebuild an older
-normalized CSV with `python scripts/scrape_historical_costs.py --no-download`
-before formatting with `cf_improvement: real` or `fom: real`.
-
-PV FOM uses the reported annual mean $/kW-AC-year (2011–2024); 2010 takes the
-first observation. Wind FOM averages project O&M by COD for projects reporting
-2024 O&M (1999–2023); missing 2013 is interpolated. These are observed operating
-costs, not new-build estimates: wind includes aging and PV reflects the operating
-fleet. PV excludes taxes, insurance, royalties and some overhead. The costs
-are carried entirely in FOM, with VOM zero, rather than counting the same cost
-again using the workbook's $/MWh presentation.
-
-CSP `capcost: real` uses the 110-MW 2015 tower in the solar workbook's `CSP CapEx`
-sheet as a `csp2` proxy. Capacity, technology, and COD identify Crescent Dunes,
-whose 10-hour storage matches the base configuration; the workbook does not
-specify solar multiple. Costs are converted from $/W-AC to $/kW-AC and deflated
-from 2024 dollars. The same `csp_cost_ratios_<year>.csv` used for projections
-scales capital cost to `csp1`, `csp3`, and `csp4`. This explicitly permits one
-observed year: 2010–2014 and 2016–2021 use the 2015 reference, not an observed
-annual trend. Plots distinguish scaled configurations and filled years. CSP
-FOM and VOM remain manual, and ATB projections are unchanged.
-
-Battery `capcost` and `capcost_energy` default to `real` together. The observed
-EIA total installed cost is split using the 2022 Moderate ATB components and
-annual EIA-860 installation-cohort durations. For total cost C ($/kW), duration
-h (hours), and reference components P ($/kW) and E ($/kWh), the scale is
-`s = C / (P + h * E)`. The resulting components are `s * P` and `s * E`.
-Costs are deflated before splitting; the two components reconstruct C at h.
-Both component modes must select `real` together and use the same total series.
-
-Duration is total nameplate MWh divided by MW among battery generators installed
-in each year. The annual inventory supplies 2016–2024; the 2016 inventory also
-supplies the 2015 cohort because the 2015 edition lacks storage energy capacity.
-Inventory cohorts are proxies for the confidential cost-reporting sample, and
-include all battery chemistries. Source notes report valid-data coverage.
-The split assumes a fixed ATB component proportion; it is not an observed
-component breakdown. Plots label it "Split real history". Years 2010–2014 use
-the 2015 components; 2022 onward remains the ATB projection. Battery FOM, VOM,
-and efficiency retain their configured modes. Missing duration observations
-raise an error rather than silently assuming a duration.
-
-Fuel-cell CapEx still has only one year without a reviewed single-project
-proxy treatment and does not enable a `real` default.
-
-`real` applies to every technology with an observed series that measures the
-same quantity as its ReEDS column: UPV, land-based wind, offshore wind, gas,
-and biopower. Other cost and performance metrics use archived ATB estimates
-where mapped, with an explicit fallback for missing series.
-
-### Archived ATB history
-
-`atb` means an estimate from the ATB published two years after the modeled year:
-2015 ATB supplies 2013, 2016 supplies 2014, and 2017 supplies 2015. Only the
-base-year value is retained; a vintage's later projections are not history.
-The Moderate scenario supplies a common history for all output scenarios.
-CSV extraction selects Market, then Exp, then R&D per technology, excluding
-tax-credit cases; this supports the revised 2025 case names.
-Costs use each release's dollar year and the ReEDS deflator. CF uses the current
-projection's normalization reference, not a different reference for each vintage.
-
-The scrape stage downloads the configured vintages and archives the current
-raw CSV and workbook under `scraped_input/historical_atb/`. Subsequent releases
-retain earlier archived vintages through `source_manifest.csv`. Changing the
-current ATB year and raw inputs adds that release's year-minus-two estimates;
-manual historical files are no longer appended to. Formatting also refreshes
-the current archive from changed local inputs, without downloading. New history
-year slots are generated in memory as projection boundaries advance. An absent
-ATB series uses the configured fallback; manual fallback extends its nearest
-manual template if the new year has no manual row. Explicit `manual` metrics
-still require supplied rows. Rebuild locally with:
-
-```bash
-python scripts/scrape_historical_atb.py --no-download
-```
-
-The first release is 2015 (base 2013), so earlier years use the earliest matched
-estimate. Internal missing years are linearly interpolated. The public 2020
-workbook currently identifies itself as 2019; it is excluded. The verified 2020
-CSV supplies O&M/CF, but has no OCC or heat-rate field, leaving those gaps filled.
-Older financed CAPEX is never substituted for overnight cost.
-
-Mappings preserve equipment definitions: older 90% CCS does not become 95% CCS,
-and an unspecified H-frame layout does not become both 1-on-1 and 2-on-1.
-Fuel cells and unmatched gas variants therefore use the configured missing-series
-fallback until comparable base-year estimates exist. Resource-class mappings
-for wind and PV begin in 2021; older TRGs and city proxies are not treated as the
-current classes. CSP uses the archived 10-hour reference and the same configuration
-ratios as projections for all monetary metrics. Battery component costs come
-from each archived workbook; FOM components use the existing ReEDS 2.5% convention.
-
-Plots distinguish archived estimates, filled ATB years, and manual/broadcast
-fallbacks. These estimates are not observed project costs (`real`).
-
-### Per-technology observed-history appliers
-
-A `real` mapping supplies one national value per year, but technologies do not
-all carry one row per year, so the two halves of the work are separated in
-`scripts/generate_atb_files.py`:
-
-- `_observed_values_by_year` is shared. It filters the normalized observed
-  series, requires a stated `dollar_year` for monetary metrics, and deflates
-  those to the ReEDS dollar year. CF fractions bypass currency conversion.
-- an entry in `REAL_HISTORY_APPLIERS`, keyed by technology, decides which rows
-  that annual value is allowed to address. A technology selecting a `real`
-  metric without an entry raises `NameError`.
-
-Frames at this stage stack all ATB scenarios together, and history is identical
-across them, so repetition across `Scenario` is expected. Repetition on any
-other dimension is not, and `_assert_one_row_per_year` raises rather than
-letting one value silently overwrite several distinct series.
-
-| Applier | Used by | Behavior |
-| --- | --- | --- |
-| `apply_real_history_single_series` | `upv`, `wind-ons`, `biopower` | One row per scenario-year; assigns directly. |
-| `apply_real_history_by_class` | `wind-ofs`, `gas` | One row per sub-technology, named by `history_class_column`. Each series describes exactly one sub-technology; any other must select its own mode in `historical_data`, otherwise the run raises instead of mixing manual history. |
-| `apply_real_history_csp` | `csp` | Assigns the project-based reference to `csp2` and scales capital cost to the other configurations using the projection ratios. |
-
-Why a given technology targets the rows it does is recorded beside its mapping
-in `config.yaml`, where that choice is made.
-
-Add a technology by writing an applier that owns its row-shape assumption and
-registering it, rather than generalizing an existing one.
-
-### Mapping options
-
-Mappings are nested as `technology -> metric`. Each metric entry accepts:
-
-| Key | Default | Effect |
-| --- | --- | --- |
-| `filters` | required without `series` | Column/value pairs selecting exactly one row per year from the normalized CSV. |
-| `turbine_classes` | required for offshore wind | Offshore only: the one turbine class receiving the observed series. Any other class must select its own mode under `historical_data`. |
-| `series` | — | A list of sub-series, each with its own `filters` and `technologies`, for technologies whose rows need different observed series. Entries inherit the mapping's other keys. |
-
-A series measures one thing, so it names exactly one sub-technology. Sharing a
-series across several made unrelated rows carry identical history and hid the
-fact that no observation existed for the others.
-
-Rows that all take the same series use `filters` directly; rows needing
-different series use `series`, as `gas` does:
-
-```yaml
-gas:
-  capcost:
-    series:
-      - technologies: [Gas-CC, Gas-CC_H_1x1, Gas-CC_H_2x1]
-        filters: {technology_detail: Natural gas combined cycle, ...}
-      - technologies: [Gas-CT, Gas-CT_aero]
-        filters: {technology_detail: Natural gas combustion turbine, ...}
-```
-
-Missing years never fall back to the manual file when `real` is selected.
-Internal gaps are linearly interpolated between the surrounding observations.
-For years outside the observed range, where interpolation is impossible, the
-nearest observed endpoint is used. The smoothing-comparison plot colors these
-derived years separately from directly reported observations.
-
-The current defaults in `config.yaml` are:
-
-| Setting | Default | Meaning |
-| --- | ---: | --- |
-| `projection_start_year` | `2022` | Years before this are historical; this year and later are the current projection |
-| `slope_change_threshold` | `0.4` | Detect a normalized slope change of 40% or more |
-| `max_kink_years` | `4` | Maximum span of a compact slope-change cluster |
-| `major_step_relative_threshold` | `0.1` | Preserve year-to-year changes of 10% or more |
-| `minimum_adjustment_relative_threshold` | `0.005` | Keep the original ATB value when a proposed future smoothing adjustment is smaller than 0.5% |
-
-For example, this preserves manually supplied UPV history and passes the ATB
-projection through untouched:
-
-```yaml
-technologies:
-  upv:
-    historical_data:
-      capcost: manual
-      fom: manual
-      vom: manual
-      cf_improvement: manual
-    future_smoothing_treatments:
-      smooth_projection_curve: false
-```
-
-The older flat-history/anchor-to-target behavior remains available as
-`method: linear_bridge`.
-
-### Configuration editor support
-
-`config.yaml` declares `config.schema.json` on its first line. Editors with YAML
-language-server support use that schema for completion lists, hover descriptions,
-required-field checks, and invalid-option warnings. Use the editor's completion
-command (typically `Ctrl+Space`) to choose valid history modes and other options.
-
-Historical choices are technology-by-metric. The schema offers `real` only for
-metrics with a reviewed observed mapping; other cost and performance metrics
-offer `atb`, `manual`, and `broadcast`. Offshore wind CapEx additionally accepts a per-turbine-class
-mapping of modes. Runtime validation remains authoritative when the workflow
-runs.
-
-### File names and column schemas expected by ReEDS
-
-Generated files must match what ReEDS expects exactly, because ReEDS resolves
-these inputs by file name and, for some technologies, reads their columns by
-position rather than by name. Two settings in
-[`scripts/settings.yaml`](scripts/settings.yaml) handle the cases where the
-internal representation and the ReEDS representation differ:
-
-- `reeds_name` — the file prefix ReEDS uses when it differs from the internal
-  technology key. Onshore and offshore wind are `wind-ons`/`wind-ofs`
-  internally but `ons-wind`/`ofs-wind` in ReEDS, so their outputs are written
-  as `ons-wind_ATB_<year>_<scenario>.csv` and `ofs-wind_ATB_<year>_<scenario>.csv`.
-  The output file name doubles as the `Scenario` key in the ReEDS
-  `dollaryear.csv`, so a mismatch here silently leaves ReEDS reading its
-  previous inputs.
-- `output_cols` — an ordered mapping of internal column name to ReEDS header,
-  applied as the last step before writing. ReEDS reads the two wind files
-  positionally in `reeds/input_processing/plantcostprep.py`, and detects the
-  ATB 2024 offshore format by the presence of a `Turbine` column, so those
-  files must keep the legacy headers and this exact column order:
-  `Turbine, Year, CF_mult, Overnight Cap Cost $/kW, Fixed O&M $/(kW-yr),
-  Var O&M $/MWh` (plus `rsc_mult` for offshore). Writing the internal names or
-  order instead makes ReEDS assign capital cost to the capacity-factor
-  multiplier without raising an error.
-
-Technologies without these settings are written using the internal column names
-listed under `cols`, which already match their ReEDS files. Everything upstream
-of the write step — history files in `manual_input/historical/`, scenario
-comparisons, transformations — uses the internal names throughout.
-
-### Step 3: plot raw ATB data
-
-```bash
-python scripts/atb_plotting.py
-```
-
-This reads the same local flat file used in Step 2 and saves the configured
-figures to `figures/`. It does not scrape data or plot the formatted files from
-`output/`.
-
-Trace selections, colors, and legend labels are stored in `plot_style/`.
-
-## Run the configured pipeline
-
-To run the enabled stages in order, set the switches under `workflow:` in
-`config.yaml`, then run:
-
-```bash
+python scripts/future_atb_scraper.py
 python scripts/run_pipeline.py
 ```
 
-The runner prints which stages will run before doing any work. A stage can also
-be selected explicitly:
+The downloader caches the configured ATB flat file and workbook. The pipeline
+formats projections, joins prepared history, applies configured smoothing, and
+creates plots. It never downloads data or rewrites historical inputs. Use
+`--only format` to generate CSVs without plots. Outputs go to `output/`;
+`processing.copy_to_reeds` controls copying them into ReEDS.
+
+## Historical inputs
+
+The three versioned tables in [`historical/`](historical/README.md) are sufficient
+for historical processing; users do not need the historical raw downloads.
+Defaults select reviewed real data, then archived ATB estimates, then broadcast
+the first projection value when no archived series matches. Each metric can
+also explicitly select `manual` in `config.yaml`.
+
+To rebuild history from original sources:
 
 ```bash
-python scripts/run_pipeline.py --only scrape
-python scripts/run_pipeline.py --only format
-python scripts/run_pipeline.py --only plot
+python scripts/historical_data_scraper.py
 ```
 
-## Data flow
+Use `--no-download` to rebuild from cached raw files, or `--force` to replace
+cached downloads. Preparation downloads observed sources and historical ATB
+releases, including the configured current release. It writes all three CSVs
+only after extraction and preparation succeed. Review their changes before
+committing them. Manual values always come from the ReEDS **ATB 2024** files.
 
-```text
-config.yaml
-    |
-    +--> scrape_atb_inputs.py
-    |        +--> scraped_input/atb_<year>_flat_file.csv
-    |        +--> scraped_input/atb_<year>_workbook.xlsx
-    |        +--> terminal summaries/previews of both raw files
-    |
-    +--> scrape_historical_costs.py (optional, separate)
-    |        +--> scraped_input/historical_costs/*.xlsx
-    |        +--> historical_capital_costs.csv + source_manifest.csv
-    |
-    +--> generate_atb_files.py
-    |        +--> raw flat file (primary ATB data)
-    |        +--> raw workbook (battery power/energy cost split)
-    |        +--> manual_input/historical/ (versioned ReEDS history)
-    |        +--> manual_input/ (CSP ratios and pre-release fallbacks)
-    |        +--> ReEDS deflator and dollaryear tables
-    |        +--> output/*_ATB_<year>_<scenario>.csv
-    |
-    +--> atb_plotting.py
-             +--> the same raw flat file
-             +--> figures/
+Archived anchors use exactly `historical year = ATB release year - 2`.
+Formatting interpolates missing years, carries the first anchor backward before
+coverage, and interpolates from the last anchor to the first projection year.
+That last rule matters where ATB omits a technology until 2030 (nuclear,
+nuclear-SMR, floating offshore): the curve rises to meet ATB instead of holding
+flat and then stepping. These fills are estimates, not additional annual ATB
+observations.
+ATB history uses Moderate estimates across output scenarios.
+
+`processing.smooth_cost_curves.fill_atbstartyear2atbyear_with_real: true`
+also replaces available ATB points through the release year for metrics selected
+as `real` (2022-2024 for ATB 2024). Only observed or calculated source anchors
+qualify; filled years keep their ATB values. This runs after smoothing and can
+be overridden per technology. Plots label the replacement sources.
+
+During an annual update, update the configured release, URLs, dollar year and
+technology mappings, download future ATB, then rerun historical preparation to
+add the new release's base year. Previous releases are recovered from the
+prepared table's provenance or the cached manifest. Pipeline runs alone never
+add historical data. ATB schema or technology changes still require review.
+
+The default projection start follows `atb.year - 2`; individual series retain
+their actual start year. Financial cases can be changed in config without
+editing `settings.yaml`. To match `yc/25ATB`, use:
+
+```yaml
+processing:
+  atb_case: R&D
+  atb_case_overrides: {upv: Exp, wind-ons: Exp, battery: Exp}
 ```
 
-The flat file and workbook are independent upstream downloads. Neither is
-generated from the other. The formatter and plotter do not download data; they
-only consume the raw files created by the scraper.
+With ATB 2025 configured, the real-data overlap becomes 2023-2025 automatically;
+years without source observations stay ATB. Release URLs, dollar year, and
+year-specific future adjustment files still need the normal annual update.
 
-The normal pipeline validates the formatted pre-smoothing data against the
-configured ReEDS repository when `workflow.make_comparison_plots` is enabled.
-It holds that data in a temporary directory, prints the validation summary to
-the terminal, writes local validation plots under `comparison/plots/`, and
-writes versioned before/after plots under
-`comparison/smoothing_comparison/`. The
-temporary CSVs are deleted when the pipeline exits; no row-level or summary CSV
-reports are created.
+## Data treatment
 
-For ATB 2024, the URLs are intentionally pinned to corrected release v3.
-Changing the release can change technology trajectories; update both source
-URLs together when adopting a newer release.
+- Monetary history is stored in `historical_data.dollar_year` and converted to
+  the output dollar year with the ReEDS deflator. Nonmonetary rows have no
+  dollar year.
+- Real and archived capacity factors remain fractions in the prepared files;
+  formatting divides them by the current ATB reference capacity factor.
+- Battery power and energy costs are estimated from observed total cost and
+  cohort duration while preserving ATB reference component proportions.
+- CSP configuration costs use the same ratio method as projections. Historical
+  reference ratios and the battery split workbook are pinned by
+  `historical_data.reference_atb_year` (2024), independently of future updates.
+- The manual baseline retains complete ReEDS curves for retired designs and
+  broadcast reference values. These are labeled manual, including future
+  reference rows; they are not claimed as measured historical costs.
 
-## Directory layout
-
-| Path | Purpose |
-| --- | --- |
-| `config.yaml` | User-facing workflow configuration |
-| `config.schema.json` | Editor completion lists and validation for `config.yaml` |
-| `scraped_input/` | Visible raw ATB and optional observed-cost downloads (local only; not committed) |
-| `manual_input/` | Versioned history and inputs unavailable in ATB downloads |
-| `scripts/settings.yaml` | Internal per-technology ReEDS formatting rules |
-| `scripts/scrape_atb_inputs.py` | Raw-data download and inspection |
-| `scripts/scrape_historical_costs.py` | Observed capital-cost download, normalization, and manifest |
-| `scripts/generate_atb_files.py` | ReEDS input formatter |
-| `scripts/atb_plotting.py` | Raw ATB plotting |
-| `output/` | Generated ReEDS-formatted CSVs |
-| `figures/` | Generated ATB plots |
-| `comparison/smoothing_comparison/` | Versioned before/after smoothing plots |
-
-See [`scripts/README.md`](scripts/README.md) for the scripts folder structure.
+The scraper pulls ReEDS baseline curves, `dollaryear.csv`, and the financial
+deflator from GitHub at the commit pinned in `reeds_source.ref`, so rebuilding
+history needs no local ReEDS checkout. A local repository is still needed for
+comparison baselines and optional copying. Technology formatting rules are in
+`scripts/settings.yaml`; review year-specific files under `manual_input/`
+when changing the ATB release.

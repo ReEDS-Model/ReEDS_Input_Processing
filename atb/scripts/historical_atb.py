@@ -1,15 +1,11 @@
 """Map archived ATB base-year estimates into ReEDS historical series."""
 
-from pathlib import Path
 import re
 
-import numpy as np
-import pandas as pd
 
 from atb_config import resolve_atb_path
 
 
-MONETARY = {'capcost', 'capcost_energy', 'fom', 'fom_energy', 'vom'}
 PARAMETERS = {
     'OCC': 'capcost', 'Fixed O&M': 'fom', 'Variable O&M': 'vom',
     'Heat Rate': 'heatrate', 'CF': 'cf_improvement',
@@ -36,6 +32,13 @@ def technology_series(technology, detail, vintage):
         if name in ('Coal-95%-CCS', 'Coal-CCS-95%'):
             return 'coal-ccs', 'coal-CCS_mod'
     if group in ('Gas', 'Natural Gas', 'NaturalGas'):
+        # The 2022-2023 H-class assumptions specify 2x1 plants.
+        if 2022 <= vintage <= 2023:
+            if name in ('NG H-Frame CC', 'NG Combined Cycle (H-Frame)'):
+                return 'gas', 'Gas-CC_H_2x1'
+            if name in ('NG H-Frame CC 95% CCS', 'NG Combined Cycle (H-Frame) 95% CCS',
+                        'NG combined cycle 95% CCS (H-frame basis'):
+                return 'gas-ccs', 'Gas-CC_H_2x1-CCS_mod'
         names = {
             'Gas-CC': 'Gas-CC', 'Gas-CC-AvgCF': 'Gas-CC', 'CCAvgCF': 'Gas-CC',
             'Gas-CT': 'Gas-CT', 'Gas-CT-AvgCF': 'Gas-CT', 'CTAvgCF': 'Gas-CT',
@@ -67,20 +70,23 @@ def technology_series(technology, detail, vintage):
             return 'nuclear-smr', 'Nuclear-SMR'
     if group == 'Biopower' and name in ('Dedicated', 'Biopower - Dedicated'):
         return 'biopower', 'biopower'
+    if group == 'Biopower' and name in ('CofireOld', 'CofireNew'):
+        return 'coal', name
     if group in ('Solar - CSP', 'CSP'):
         if name in ('CSP - 10hrs TES - Class 3', 'CSP - 10 hrs TES - Class 3',
                     '10hrs TES - Class 2', 'CSP - Class 2'):
             return 'csp', 'csp2'
         if vintage <= 2020 and name == 'Class3':
             return 'csp', 'csp2'
-    if vintage >= 2021:
+    if vintage >= 2020:
         if group in ('Offshore Wind', 'OffShoreWind'):
-            if name in ('Class 1', 'Class1', 'Offshore Wind - Class 1'):
+            if name in ('Class 1', 'Class1', 'Offshore Wind - Class 1', 'Class 1 - Offshore Fixed'):
                 return 'wind-ofs', 'fixed'
-            if name in ('Class 8', 'Class8', 'Offshore Wind - Class 8'):
+            if name in ('Class 8', 'Class8', 'Offshore Wind - Class 8', 'Class 8 - Offshore Floating'):
                 return 'wind-ofs', 'floating'
         if group in ('Land-Based Wind', 'LandbasedWind') and name in (
-            'Class 4', 'Class4', 'Land-Based Wind - Class 4 - Technology 1',
+            'Class 4', 'Class4', 'Land-Based Wind - Class 4',
+            'Land-Based Wind - Class 4 - Technology 1',
         ):
             return 'wind-ons', '*'
         if group in ('Solar - Utility PV', 'UtilityPV') and name in (
@@ -90,96 +96,8 @@ def technology_series(technology, detail, vintage):
     return None
 
 
-def load_archive(settings):
-    """Load the normalized archive once per formatting run."""
-    if '_historical_atb' not in settings:
-        path = archive_path(settings['config'])
-        if not path.is_file():
-            raise FileNotFoundError(
-                f'ATB historical archive missing: {path}. Run '
-                "'python scripts/scrape_historical_atb.py' first."
-            )
-        data = pd.read_csv(path, keep_default_na=False)
-        keys = ['technology', 'series', 'metric', 'year']
-        if data.duplicated(keys).any():
-            raise ValueError('Duplicate base-year estimates in ATB historical archive.')
-        if not (data['year'] == data['atb_year'] - 2).all():
-            raise ValueError('ATB historical years must equal release year minus two.')
-        settings['_historical_atb'] = data
-    return settings['_historical_atb']
-
 
 def archive_series(settings, tech, series, metric, boundary):
-    data = load_archive(settings)
-    selected = data.loc[
-        data.technology.eq(tech) & data.series.eq(str(series))
-        & data.metric.eq(metric) & data.year.lt(boundary)
-        & data.atb_year.le(settings['atbyear'])
-    ].copy()
-    return selected.sort_values('year')
-
-
-def apply_archive_history(frame, tech, settings, deflator):
-    """Apply archived estimates, with explicit filling and absent-series fallback."""
-    smooth = settings['config']['processing'].get('smooth_cost_curves', {})
-    modes = smooth.get('technologies', {}).get(tech, {}).get('historical_data', {})
-    if not smooth.get('enabled') or not any(
-        'atb' in (mode.values() if isinstance(mode, dict) else [mode])
-        for mode in modes.values()
-    ):
-        return frame
-    options = settings['config']['historical_atb']
-    fallback = options['missing_series']
-    if fallback not in ('manual', 'broadcast', 'error'):
-        raise ValueError('historical_atb.missing_series must be manual, broadcast, or error.')
-    tech_settings = settings['techs'][tech]
-    ids = [c for c in tech_settings['indexcols'] if c not in ('Scenario', 't')]
-    identity = next((c for c in ('i', 'type', 'turbine') if c in ids), None)
-    output = frame.copy()
-    for keys, group in frame.groupby(['Scenario', *ids], dropna=False):
-        keys = keys if isinstance(keys, tuple) else (keys,)
-        label = dict(zip(['Scenario', *ids], keys))
-        boundary = settings['atb_series_start'][tech].get(keys)
-        # Retired designs have no current projection. Their manual history stays usable.
-        boundary = boundary or smooth['projection_start_year']
-        historical = group.index[group.t.lt(boundary)]
-        series = label.get(identity, '*') if tech != 'wind-ons' else '*'
-        for metric, mode in modes.items():
-            if isinstance(mode, dict):
-                mode = mode.get(label.get(tech_settings.get('history_class_column')))
-            if mode != 'atb' or not len(historical):
-                continue
-            source_series = 'csp2' if tech == 'csp' else series
-            data = archive_series(settings, tech, source_series, metric, boundary)
-            if data.empty:
-                if fallback == 'error':
-                    raise ValueError(f'No archived ATB base-year data for {tech}/{series}/{metric}.')
-                if fallback == 'broadcast':
-                    anchor = group.loc[group.t.eq(boundary), metric]
-                    if len(anchor) != 1:
-                        raise ValueError(f'Cannot broadcast absent ATB history for {tech}/{series}/{metric}; use manual fallback.')
-                    output.loc[historical, metric] = float(anchor.iloc[0])
-                print(f'  {tech}/{series}/{metric}: no archived estimate; {fallback} fallback')
-                continue
-            values = data.value.astype(float).to_numpy()
-            if metric in MONETARY:
-                values *= data.dollar_year.map(deflator).to_numpy() / deflator[settings['dollaryear']]
-            if metric == 'cf_improvement':
-                reference = settings['cf_normalization_bases'][tech]
-                reference = reference[series] if isinstance(reference, dict) else reference
-                values /= reference
-            if tech == 'csp' and metric in MONETARY:
-                from generate_atb_files import load_csp_cost_ratios
-                values *= load_csp_cost_ratios(settings).set_index('type').loc[series, 'ratio']
-            if tech == 'wind-ofs' and metric in ('capcost', 'fom'):
-                multipliers = pd.read_csv(resolve_atb_path(
-                    f"manual_input/offshore_cost_multipliers_{settings['atbyear']}.csv"
-                )).set_index('turbine')
-                values *= multipliers.loc[series, metric]
-            if not np.isfinite(values).all() or (values < 0).any():
-                raise ValueError(f'Invalid ATB history for {tech}/{series}/{metric}.')
-            output.loc[historical, metric] = np.interp(
-                group.loc[historical, 't'], data.year, values
-            )
-            print(f'  {tech}/{series}/{metric}: ATB base years {data.year.min()}–{data.year.max()}; missing years interpolate/nearest')
-    return output
+    from historical_data import select_history
+    data = select_history(settings, "atb", tech, series, metric)
+    return data.loc[data.year.lt(boundary) & data.atb_year.le(settings["atbyear"])].sort_values("year")

@@ -20,10 +20,11 @@ from atb_config import (
     DEFAULT_CONFIG_PATH,
     load_processing_settings,
     raw_file_path,
+    resolve_atb_path,
 )
 
 
-DEFAULT_PLOT_DIR = Path(__file__).resolve().parent / "plots"
+DEFAULT_PLOT_DIR = Path(__file__).resolve().parent / "plot_comparison"
 
 FILENAME_PREFIX_MAP = {
     "wind-ons_": "ons-wind_",
@@ -68,6 +69,11 @@ PROVENANCE_COLORS = {
     "ATB projection (smoothed)": "#E69F00",
 }
 
+PROJECTION_CATEGORIES = {
+    "ATB projection (raw)",
+    "ATB projection (smoothed)",
+}
+
 SERIES_LINESTYLES = [
     "-",
     "--",
@@ -78,12 +84,6 @@ SERIES_LINESTYLES = [
     (0, (1, 1)),
     (0, (5, 2, 1, 2)),
 ]
-
-
-def resolve_atb_config_path(value: str | Path) -> Path:
-    """Resolve a configured path relative to the ATB workflow directory."""
-    path = Path(value)
-    return path.resolve() if path.is_absolute() else (ATB_DIR / path).resolve()
 
 
 def reeds_filename(generated_name: str) -> str:
@@ -374,65 +374,26 @@ def smoothing_provenance(settings: dict, generated_path: Path) -> dict:
     historical_data = technology_settings.get(
         "historical_data", {}
     )
-    mappings = (
-        settings["config"]
-        .get("historical_cost_sources", {})
-        .get("reeds_mappings", {})
-        .get(technology, {})
-    )
-    source_settings = settings["config"].get("historical_cost_sources", {})
-    source_path = resolve_atb_config_path(
-        Path(source_settings.get("directory", ""))
-        / source_settings.get("normalized_filename", "")
-    )
-    observed = pd.read_csv(source_path) if source_path.is_file() else pd.DataFrame()
+    from historical_data import load_history
+    observed = load_history(settings, 'real')
+    observed = observed.loc[observed.scope.eq('reeds') & observed.technology.eq(technology)]
     observed_series = {}
-    boundary = atb_start_year(
-        settings, technology, int(smoothing.get("projection_start_year", 2022))
-    )
-    default_boundary = int(smoothing.get("projection_start_year", 2022))
-    for metric, mapping in mappings.items():
-        entries = mapping.get("series") or [mapping]
-        inherited = {
-            key: value for key, value in mapping.items() if key != "series"
-        }
-        metric_series = []
-        for entry in entries:
-            merged = {**inherited, **entry}
-            selected = observed
-            for column, value in merged.get("filters", {}).items():
-                if column not in selected.columns:
-                    selected = selected.iloc[0:0]
-                    break
-                selected = selected.loc[selected[column] == value]
-            years = (
-                set(
-                    pd.to_numeric(selected["year"], errors="coerce")
-                    .dropna()
-                    .astype(int)
-                    .tolist()
-                )
-                if "year" in selected.columns
-                else set()
-            )
-            target_column = None
-            targets = None
-            if merged.get("turbine_classes"):
-                target_column = "turbine"
-                targets = set(merged["turbine_classes"])
-            elif merged.get("technologies"):
-                target_column = "i"
-                targets = set(merged["technologies"])
-            metric_series.append({
-                "years": years,
-                "target_column": target_column,
-                "targets": targets,
-            })
-        observed_series[metric] = metric_series
+    boundary = atb_start_year(settings, technology, int(smoothing.get('projection_start_year', 2022)))
+    default_boundary = int(smoothing.get('projection_start_year', 2022))
+    identity = next((c for c in ('i', 'type', 'turbine')
+                     if c in settings['techs'][technology]['indexcols']), None)
+    for (metric, series), selected in observed.groupby(['metric', 'series']):
+        observed_series.setdefault(metric, []).append({
+            'years': set(selected.loc[selected.source_type.ne('filled'), 'year']),
+            'target_column': identity if series != '*' else None,
+            'targets': {series} if series != '*' else None,
+        })
     return {
         "technology": technology,
         "projection_start_year": boundary,
         "historical_data": historical_data,
+        "fill_atbstartyear2atbyear_with_real": technology_settings.get(
+            'fill_atbstartyear2atbyear_with_real', smoothing.get('fill_atbstartyear2atbyear_with_real', False)),
         "observed_series": observed_series,
         "history_class_column": (
             settings["techs"].get(technology, {}).get("history_class_column")
@@ -575,6 +536,15 @@ def provenance_categories(
     boundary = series_boundary(final_group, provenance)
     historical_mode = resolve_historical_mode(metric, final_group, provenance)
     archived_years = set()
+    real_years = set()
+    if historical_mode == 'real':
+        from historical_data import select_history
+        identity = next((c for c in ('i', 'type', 'turbine') if c in final_group), None)
+        series = str(final_group[identity].iloc[0]) if identity else '*'
+        if provenance['technology'] == 'wind-ons':
+            series = '*'
+        selected = select_history(provenance['settings'], 'real', provenance['technology'], series, metric)
+        real_years = set(selected.loc[selected.source_type.isin(['real', 'calculated']), 'year'])
     if historical_mode == 'atb':
         from historical_atb import archive_series
         tech = provenance['technology']
@@ -582,14 +552,16 @@ def provenance_categories(
         series = str(final_group[identity].iloc[0]) if identity else '*'
         if tech == 'wind-ons':
             series = '*'
-        if tech == 'csp':
-            series = 'csp2'
         archived_years = set(archive_series(
             provenance['settings'], tech, series, metric, boundary
         ).year)
     final_categories = []
     for year, was_changed in zip(years, changed):
-        if year < boundary:
+        real_overlap = (historical_mode == 'real'
+                        and provenance['fill_atbstartyear2atbyear_with_real']
+                        and boundary <= year <= provenance['settings']['atbyear']
+                        and year in real_years)
+        if year < boundary or real_overlap:
             if historical_mode == "manual":
                 final_categories.append("Manual history")
             elif historical_mode == "broadcast":
@@ -644,14 +616,17 @@ def input_point_categories(
     final_group: pd.DataFrame,
     metric: str,
     provenance: dict,
+    final_categories: list[str],
 ) -> list[str | None]:
-    """Label input points; derived history and broadcast history have no dot."""
+    """Show selected source anchors; omit filled and broadcast points."""
     years = pd.to_numeric(final_group["t"], errors="raise").astype(int)
     boundary = series_boundary(final_group, provenance)
     historical_mode = resolve_historical_mode(metric, final_group, provenance)
     categories = []
-    for year in years:
-        if year >= boundary:
+    for year, category in zip(years, final_categories):
+        if category in ('Observed history (real)', 'Split real history', 'Scaled real history'):
+            categories.append(category)
+        elif year >= boundary:
             categories.append("ATB projection (raw)")
         elif historical_mode == "manual":
             categories.append("Manual history")
@@ -671,7 +646,11 @@ def plot_colored_segments(
     categories: list[str],
     linestyle,
 ) -> None:
-    """Plot intervals using the provenance color of their starting point."""
+    """Color each interval by its destination, except the history boundary.
+
+    The interval that leaves the last historical year keeps the historical
+    color, so the step into the first projection year reads as history.
+    """
     if not len(years):
         return
     if len(years) == 1:
@@ -686,7 +665,13 @@ def plot_colored_segments(
         )
         return
 
-    interval_categories = categories[:-1]
+    interval_categories = [
+        source
+        if destination in PROJECTION_CATEGORIES
+        and source not in PROJECTION_CATEGORIES
+        else destination
+        for source, destination in zip(categories[:-1], categories[1:])
+    ]
     run_start = 0
     for position in range(1, len(interval_categories) + 1):
         if (
@@ -776,6 +761,7 @@ def plot_file_with_provenance(
                     final_group,
                     metric,
                     provenance,
+                    final_categories,
                 )
                 baseline_by_year = (
                     baseline_group[["t", metric]]
@@ -789,6 +775,10 @@ def plot_file_with_provenance(
                     pd.Series(point_years).map(baseline_by_year),
                     errors="coerce",
                 ).to_numpy()
+                real_points = np.isin(point_categories, [
+                    'Observed history (real)', 'Split real history', 'Scaled real history',
+                ])
+                point_values[real_points] = values[real_points]
                 for category in PROVENANCE_COLORS:
                     point_mask = np.asarray([
                         item == category for item in point_categories
@@ -1197,9 +1187,9 @@ def main() -> None:
         )
         smoothing_plot_setting = settings['config']['plotting'].get(
             'smoothing_comparison_directory',
-            'comparison/smoothing_comparison',
+            'comparison/plot_component',
         )
-        smoothing_plot_dir = resolve_atb_config_path(smoothing_plot_setting)
+        smoothing_plot_dir = resolve_atb_path(smoothing_plot_setting)
         smoothing_plotted = write_plots(
             None,
             smoothed_files,

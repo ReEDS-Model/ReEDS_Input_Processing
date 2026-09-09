@@ -1,10 +1,6 @@
 # yaml-language-server: $schema=./config.schema.json
-# User-facing configuration for the ATB workflow.
-# Set the workflow switches, review the paths/URLs, then run:
-#   python scripts/run_pipeline.py
 
 workflow:
-  scrape_raw_data: true
   format_reeds_inputs: true
   make_plots: true
   make_comparison_plots: true
@@ -16,10 +12,6 @@ atb:
 
 raw_data:
   directory: scraped_input
-  # Some NLR networks inspect HTTPS with an internal certificate that may not
-  # be installed in the active conda environment. Normal certificate checking
-  # is always attempted first; this permits a warning + verify=False retry only
-  # after that check fails.
   allow_insecure_ssl_fallback: true
   flat_file:
     filename: atb_2024_flat_file.csv
@@ -28,22 +20,14 @@ raw_data:
     filename: atb_2024_workbook.xlsx
     url: https://data.openei.org/files/6006/2024_v3_Workbook.xlsx
 
-# Observed project costs are downloaded and normalized by the separate
-# scripts/scrape_historical_costs.py utility. Only explicitly reviewed entries
-# under reeds_mappings are merged into ReEDS curves; all others remain review
-# inputs.
+# Scraper inputs and reviewed mappings.
 historical_cost_sources:
   directory: scraped_input/historical_costs
   normalized_filename: historical_capital_costs.csv
   manifest_filename: source_manifest.csv
   allow_insecure_ssl_fallback: true
-  # Reviewed mappings from normalized observed series into ReEDS columns.
-  # Values before processing.smooth_cost_curves.projection_start_year replace
-  # the corresponding manual value when that metric selects `real`. Every
-  # historical metric declares its own mode below.
   reeds_mappings:
     battery:
-      # Both components are derived together from the same observed total.
       capcost: &battery_total_cost
         filters:
           source_id: eia_generator_costs
@@ -54,7 +38,6 @@ historical_cost_sources:
           statistic: capacity_weighted_mean
       capcost_energy: *battery_total_cost
     csp:
-      # 2015 10-hour tower proxy; fill other years and scale using CSP cost ratios.
       capcost:
         filters:
           source_id: utility_pv
@@ -66,7 +49,6 @@ historical_cost_sources:
           statistic: project
           geography: United States
     upv:
-      # Reported O&M is assigned to FOM only; VOM remains zero.
       fom:
         filters:
           source_id: utility_pv
@@ -91,11 +73,6 @@ historical_cost_sources:
           capacity_basis: AC
           statistic: capacity_weighted_mean
           geography: United States
-    # EIA reported no biomass installations in 2018, so that internal gap is
-    # linearly interpolated from 2017 and 2019. Years before EIA begins in 2013
-    # use the nearest real observation; no manual values are mixed into `real`.
-    # Annual biomass additions are small and idiosyncratic, so the observed
-    # capacity-weighted mean swings widely (1,889-4,910 $/kW over 2013-2021).
     biopower:
       capcost:
         filters:
@@ -104,12 +81,6 @@ historical_cost_sources:
           unit: USD/kW
           technology_detail: Biomass
           source_table: major_energy_source
-    # EIA reports gas plants only as "combined cycle" or "combustion turbine";
-    # Form EIA-860 has no field for turbine frame class or plant configuration,
-    # so there is no observation for the H-Frame or aeroderivative variants.
-    # Each series therefore describes the one variant it measures, and the
-    # others generate their own history under smooth_cost_curves below. EIA
-    # starts in 2013, so 2010-2012 use the nearest real observation.
     gas:
       capcost:
         series:
@@ -129,12 +100,6 @@ historical_cost_sources:
               unit: USD/kW
               technology_detail: Natural gas combustion turbine
               source_table: natural_gas_technology
-    # Figure 31 reports one capacity-weighted mean over all offshore projects
-    # with no substructure split, but by 2023 only 231 MW of the ~75 GW built
-    # worldwide was floating (report Figure 18), so the series describes
-    # fixed-bottom costs. It is mapped to `fixed` only; `floating` broadcasts
-    # its own first ATB projection value under smooth_cost_curves below.
-    # scraped_input/README.md covers the "Global" and "Asia" alternatives.
     wind-ofs:
       capcost:
         turbine_classes:
@@ -174,6 +139,18 @@ historical_cost_sources:
   battery_cost_split:
     reference_year: 2022
     reference_scenario: Moderate
+    preferred_cost_filters:
+      source_id: utility_pv
+      technology: battery
+      metric: capital_cost
+      unit: USD/kWh
+      statistic: energy_weighted_mean
+    preferred_duration_filters:
+      source_id: utility_pv
+      technology: battery
+      metric: storage_duration
+      unit: hours
+      statistic: capacity_weighted_cohort
     duration_filters:
       source_id: eia860_storage
       technology: battery
@@ -205,8 +182,6 @@ historical_cost_sources:
     offshore_wind:
       enabled: true
       report_year: 2024
-      # Projects after 2023 in this workbook are pipeline/projection data, not
-      # completed historical observations, so the normalized CSV stops at 2023.
       last_historical_year: 2023
       page_url: https://www.nlr.gov/wind/offshore-market-assessment
       data_url: https://www.nlr.gov/docs/fy24osti/90525data.xlsx
@@ -220,11 +195,10 @@ historical_cost_sources:
       archive_data_url: https://www.eia.gov/electricity/generatorcosts/archive/{year}/xls/generator_costs_{year}.xlsx
       filename: eia_generator_costs_{year}.xlsx
 
-# Archived ATB estimates; each release contributes only its base year.
 historical_atb:
   directory: scraped_input/historical_atb
   normalized_filename: historical_atb.csv
-  missing_series: broadcast  # options: manual / broadcast / error
+  missing_series: broadcast
   releases:
     2015:
       - format: workbook
@@ -252,11 +226,10 @@ historical_atb:
         dollar_year: 2017
         url: https://data.nlr.gov/system/files/115/2019-ATB-data.xlsm
     2020:
-      # The published workbook serves 2019 data; use the verified 2020 CSV.
-      - format: flat
-        filename: atb_2020_flat_file.csv
+      - format: workbook
+        filename: atb_2020_workbook.xlsm
         dollar_year: 2018
-        url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2020/ATBe.csv
+        url: https://atb-archive.nlr.gov/electricity/2020/files/2020-ATB-Data.xlsm
     2021:
       - format: workbook
         filename: atb_2021_workbook.xlsm
@@ -278,6 +251,8 @@ historical_atb:
         url: https://data.openei.org/files/5865/2023-ATB-Data_Master_v9.0.xlsx
 
 processing:
+  atb_case: Market
+  atb_case_overrides: {}
   reeds_repo: C:/ReEDS/ReEDS
   output_directory: output
   copy_to_reeds: false
@@ -287,181 +262,156 @@ processing:
   sensitivity_name: null
   reeds_start_year: 2010
   decimals: 6
-  # Optional treatment of the historical/projection boundary and future ATB
-  # trajectory. Each technology explicitly selects a historical mode for every
-  # modeled metric and its future-year smoothing switches.
   smooth_cost_curves:
     enabled: true
     method: selective
-    # "all" smooths every monetary column (capcost*, fom*, vom); rounding
-    # artifacts are no more real in O&M than in capital cost. Historical source
-    # choices below apply to every metric independently of this selector.
-    # Capacity-factor multipliers are still included automatically where used.
-    # Heat rate is not monetary and is never smoothed by "all".
     columns: all
-    # Years before this boundary are historical; this year and later are the
-    # current ATB projection. Change this once here rather than in the code.
-    projection_start_year: 2022
-    # A relative change in adjacent annual slopes at or above this value is a
-    # possible kink. Only clusters of 2+ changes are smoothed.
+    fill_atbstartyear2atbyear_with_real: true
     slope_change_threshold: 0.4
     max_kink_years: 4
-    # Year-to-year transitions of 10% or more are published milestones and are
-    # never smoothed. Runs of equal values are left alone too: a flat stretch
-    # is how ATB states that a cost stops improving.
     major_step_relative_threshold: 0.1
-    # Keep the original ATB value when a proposed future adjustment is smaller
-    # than 0.5%. This prevents visually insignificant smoothing changes.
     minimum_adjustment_relative_threshold: 0.005
-    # historical_data values (editor dropdowns are supplied by the schema):
-    #   real          use observed history; interpolate internal missing years
-    #   atb           use archived ATB base-year estimates; fill missing years
-    #   manual        preserve manual_input/historical exactly
-    #   broadcast     use the first ATB projection value for all history years
-    # Source priority: real, then atb, then broadcast when no archive matches.
-    # Every technology listed below is processed. Capacity-factor multipliers
-    # are included automatically when the technology output contains one.
+    # Default priority: real, then atb, then broadcast if no archive matches.
     technologies:
       upv:
         historical_data:
-          capcost: real  # options: real / atb / manual / broadcast
-          fom: real  # options: real / atb / manual / broadcast
-          vom: atb  # options: atb / manual / broadcast
-          cf_improvement: real  # options: real / atb / manual / broadcast
+          capcost: real
+          fom: real
+          vom: atb
+          cf_improvement: real
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: true
       wind-ons:
         historical_data:
-          capcost: real  # options: real / atb / manual / broadcast
-          fom: real  # options: real / atb / manual / broadcast
-          vom: atb  # options: atb / manual / broadcast
-          cf_improvement: real  # options: real / atb / manual / broadcast
+          capcost: real
+          fom: real
+          vom: atb
+          cf_improvement: real
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: true
       wind-ofs:
         historical_data:
-          # Observed offshore CapEx is a fixed-bottom series, so only that
-          # class reads it. No floating cost history exists to observe.
           capcost:
-            fixed: real  # options: real / atb / manual / broadcast
-            floating: atb  # options: atb / manual / broadcast
-          fom: atb  # options: atb / manual / broadcast
-          vom: atb  # options: atb / manual / broadcast
-          cf_improvement: atb  # options: atb / manual / broadcast
-          rsc_mult: broadcast  # options: manual / broadcast
+            fixed: real
+            floating: atb
+          fom: atb
+          vom: atb
+          cf_improvement: atb
+          rsc_mult: broadcast
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: true
       battery:
         historical_data:
-          capcost: real  # options: real / atb / manual / broadcast (select both together)
-          capcost_energy: real  # options: real / atb / manual / broadcast
-          fom: atb  # options: atb / manual / broadcast
-          fom_energy: atb  # options: atb / manual / broadcast
-          vom: atb  # options: atb / manual / broadcast
-          rte: broadcast  # options: manual / broadcast
+          capcost: real
+          capcost_energy: real
+          fom: atb
+          fom_energy: atb
+          vom: atb
+          rte: atb
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: true
       csp:
         historical_data:
-          capcost: real  # options: real / atb / manual / broadcast
-          fom: atb  # options: atb / manual / broadcast
-          vom: atb  # options: atb / manual / broadcast
+          capcost: real
+          fom: atb
+          vom: atb
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: true
       coal:
         historical_data:
-          capcost: atb  # options: atb / manual / broadcast
-          fom: atb  # options: atb / manual / broadcast
-          vom: atb  # options: atb / manual / broadcast
-          heatrate: atb  # options: atb / manual / broadcast
+          capcost: atb
+          fom: atb
+          vom: atb
+          heatrate: atb
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: true
       coal-ccs:
         historical_data:
-          capcost: atb  # options: atb / manual / broadcast
-          fom: atb  # options: atb / manual / broadcast
-          vom: atb  # options: atb / manual / broadcast
-          heatrate: atb  # options: atb / manual / broadcast
+          capcost: atb
+          fom: atb
+          vom: atb
+          heatrate: atb
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: true
       gas:
         historical_data:
-          # Only the plain combined-cycle and combustion-turbine plants have an
-          # EIA observation. The H-Frame and aeroderivative variants have none,
-          # so they generate their own history instead of borrowing one.
           capcost:
-            Gas-CC: real  # options: real / atb / manual / broadcast
-            Gas-CC_H_1x1: atb  # options: atb / manual / broadcast
-            Gas-CC_H_2x1: atb  # options: atb / manual / broadcast
-            Gas-CT: real  # options: real / atb / manual / broadcast
-            Gas-CT_aero: atb  # options: atb / manual / broadcast
-          fom: atb  # options: atb / manual / broadcast
-          vom: atb  # options: atb / manual / broadcast
-          heatrate: atb  # options: atb / manual / broadcast
+            Gas-CC: real
+            Gas-CC_H_1x1: atb
+            Gas-CC_H_2x1: atb
+            Gas-CT: real
+            Gas-CT_aero: atb
+          fom: atb
+          vom: atb
+          heatrate: atb
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: true
       gas-ccs:
         historical_data:
-          capcost: atb  # options: atb / manual / broadcast
-          fom: atb  # options: atb / manual / broadcast
-          vom: atb  # options: atb / manual / broadcast
-          heatrate: atb  # options: atb / manual / broadcast
+          capcost: atb
+          fom: atb
+          vom: atb
+          heatrate: atb
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: true
       fuelcell:
         historical_data:
-          capcost: atb  # options: atb / manual / broadcast
-          fom: atb  # options: atb / manual / broadcast
-          vom: atb  # options: atb / manual / broadcast
-          heatrate: atb  # options: atb / manual / broadcast
+          capcost: manual
+          fom: manual
+          vom: manual
+          heatrate: manual
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: true
       nuclear:
         historical_data:
-          capcost: atb  # options: atb / manual / broadcast
-          fom: atb  # options: atb / manual / broadcast
-          vom: atb  # options: atb / manual / broadcast
-          heatrate: atb  # options: atb / manual / broadcast
+          capcost: atb
+          fom: atb
+          vom: atb
+          heatrate: atb
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: true
       nuclear-smr:
         historical_data:
-          capcost: atb  # options: atb / manual / broadcast
-          fom: atb  # options: atb / manual / broadcast
-          vom: atb  # options: atb / manual / broadcast
-          heatrate: atb  # options: atb / manual / broadcast
+          capcost: atb
+          fom: atb
+          vom: atb
+          heatrate: atb
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: true
       biopower:
         historical_data:
-          capcost: real  # options: real / atb / manual / broadcast
-          fom: atb  # options: atb / manual / broadcast
-          vom: atb  # options: atb / manual / broadcast
-          heatrate: atb  # options: atb / manual / broadcast
+          capcost: real
+          fom: atb
+          vom: atb
+          heatrate: atb
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: true
 
-# Versioned ReEDS history used before each ATB projection series begins.
-# Set seed_missing_from_reeds to true only when initializing a missing file from
-# processing.reeds_repo. Formatting does not append ATB values here;
-# archived base years are stored under historical_atb.directory.
+# ReEDS repository files fetched by historical_data_scraper.py. Pinning `ref`
+# makes the manual baseline and the deflator reproducible without a local clone.
+reeds_source:
+  repo: ReEDS-Model/ReEDS
+  ref: db6a1ba95836b649176fca50030e82a6b4cf9bb5
+  cache_directory: scraped_input/reeds_source
+
+# Prepared CSVs consumed by the pipeline.
 historical_data:
-  directory: manual_input/historical
+  directory: historical
+  real_filename: real.csv
+  atb_filename: atb.csv
+  manual_filename: manual.csv
   dollar_year: 2022
-  seed_missing_from_reeds: false
+  reference_atb_year: 2024
 
 plotting:
   metrics:
     - CAPEX
     - Fixed O&M
     - Variable O&M
-  case: Market
   crp_years: 20
   figure_format: png
   output_directory: figures
-  # Before/after plots are versioned; their unsmoothed inputs are held only in
-  # a temporary directory while the full pipeline is running.
-  smoothing_comparison_directory: comparison/smoothing_comparison
+  smoothing_comparison_directory: comparison/plot_component
   technologies:
     - Biopower
     - Coal_FE
