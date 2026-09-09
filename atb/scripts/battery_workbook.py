@@ -21,11 +21,14 @@ def extract_battery_costs(xlsx_path):
         workbook_path, read_only=True, data_only=True
     )
     try:
-        if BATTERY_SHEET not in workbook.sheetnames:
+        sheet_name = next((name for name in (
+            BATTERY_SHEET, 'Utility-Scale Battery - Expand'
+        ) if name in workbook.sheetnames), None)
+        if sheet_name is None:
             raise ValueError(
                 f"Sheet {BATTERY_SHEET!r} not found in {workbook_path}."
             )
-        rows = list(workbook[BATTERY_SHEET].iter_rows(values_only=True))
+        rows = list(workbook[sheet_name].iter_rows(values_only=True))
     finally:
         workbook.close()
 

@@ -116,6 +116,9 @@ def scrape(config, selected="all", force=False):
             allow_insecure_ssl_fallback=allow_insecure,
         )
         summarize_workbook(workbook)
+    if selected in ('all', 'historical') and 'historical_atb' in config:
+        from scrape_historical_atb import scrape as scrape_history
+        scrape_history(config, force=force)
 
 
 def main():
@@ -124,7 +127,7 @@ def main():
     )
     parser.add_argument("--config", help="Path to config.yaml (default: ../config.yaml).")
     parser.add_argument(
-        "--only", choices=["all", "flat", "workbook"], default="all",
+        "--only", choices=["all", "flat", "workbook", "historical"], default="all",
         help="Download only one raw input (default: all).",
     )
     parser.add_argument(

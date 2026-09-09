@@ -136,3 +136,19 @@ this directory is ignored except for this README. Reproducibility comes from the
 URLs instead: they are pinned to a specific ATB release in
 [`../config.yaml`](../config.yaml) (ATB 2024 is pinned to corrected release v3),
 so re-running the scraper restores the exact inputs used for a run.
+
+## Archived ATB base years
+
+`historical_atb/` holds original ATB releases, `historical_atb.csv` (mapped
+base-year estimates), and `source_manifest.csv` (URLs, dollar years, SHA-256).
+The main scrape stage refreshes this archive, including the configured current
+release. Earlier current releases remain available on subsequent annual runs.
+Run `python ../scripts/scrape_historical_atb.py --no-download` to rebuild locally.
+
+2015?2019 and 2021?2022 use workbook cells for overnight costs, O&M, heat rate,
+and CF; 2020 and 2023 onward use the flat file where available. Battery components
+use their vintage's workbook. The published 2020 workbook serves 2019 content and
+is excluded. Its CSV has no OCC/heat rate, so the formatter fills those gaps.
+Only release year minus two is extracted. Source cells/CSV rows are retained.
+The archive contains estimates, not observed project costs, and is separate from
+both `historical_costs/` and hand-maintained `manual_input/historical/`.

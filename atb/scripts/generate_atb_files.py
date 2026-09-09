@@ -910,8 +910,8 @@ def merge_historical_atb_data(
 
     The local history is stored in a fixed dollar year. For each active series,
     only rows before the first current scraped year are used. Series no longer
-    published by ATB are retained from history. The first current projection
-    year is appended to the stored history for the next annual update.
+    published by ATB are retained from history. Archived base-year estimates
+    are applied separately; formatting never appends to manual history.
     """
     tech_settings = settings['techs'][tech]
     idcols = [
@@ -940,8 +940,37 @@ def merge_historical_atb_data(
                 "Enable historical_data.seed_missing_from_reeds or add the file."
             )
 
+        history_stored_for_output = history_stored
+        smoothing = _technology_smoothing_config(tech, settings)
+        if smoothing and any(
+            'atb' in _metric_modes(smoothing['historical_data'], metric).values()
+            for metric in smoothing['historical_data']
+        ):
+            # Add output slots as the projection boundary advances, without
+            # writing generated years into the hand-maintained source file.
+            additions = []
+            for _, boundary_row in _projection_boundary_rows(current, idcols).iterrows():
+                matching = history_stored
+                for column in idcols:
+                    matching = matching.loc[matching[column].eq(boundary_row[column])]
+                missing = sorted(set(range(settings['reeds_start_year'], int(boundary_row.t)))
+                                 - set(matching.t))
+                if not missing:
+                    continue
+                if matching.empty:
+                    raise ValueError(f'No manual template for new {tech} series; initialize its historical baseline.')
+                class_value = boundary_row.get(tech_settings.get('history_class_column'))
+                if any(_historical_mode_for_metric(smoothing['historical_data'], metric, class_value) == 'manual'
+                       for metric in smoothing['historical_data'] if metric != 'rsc_mult'):
+                    raise ValueError(f'Missing manual years {missing} for {tech}; supply them or select a generated history mode.')
+                for year in missing:
+                    row = matching.loc[(matching.t - year).abs().idxmin()].copy()
+                    row['t'] = year
+                    additions.append(row)
+            if additions:
+                history_stored_for_output = pd.concat([history_stored, pd.DataFrame(additions)], ignore_index=True)
         history_for_output = _select_pre_projection_history(
-            history_stored, current, idcols
+            history_stored_for_output, current, idcols
         )
         costcols = _cost_columns(history_for_output)
         adjustment = (
@@ -953,21 +982,6 @@ def merge_historical_atb_data(
 
         for _, row in _projection_boundary_rows(current, idcols).iterrows():
             series_starts[(scenario, *(row[column] for column in idcols))] = int(row['t'])
-        boundary = _projection_boundary_rows(current, idcols)[tech_settings['cols']]
-        boundary = boundary.copy().round(
-            tech_settings.get('decimals', settings['decimals'])
-        )
-        boundary_costcols = _cost_columns(boundary)
-        boundary[boundary_costcols] = boundary[boundary_costcols] / adjustment
-        updated_history = pd.concat(
-            [history_stored, boundary], ignore_index=True
-        ).drop_duplicates(subset=[*idcols, 't'], keep='last')
-        updated_history = updated_history.sort_values(
-            tech_settings['cols']
-        ).reset_index(drop=True)
-        updated_history.to_csv(
-            history_path, index=False, lineterminator=CSV_LINE_TERMINATOR
-        )
 
     output = pd.concat(combined, ignore_index=True)
     output = output.drop_duplicates(
@@ -976,6 +990,8 @@ def merge_historical_atb_data(
     output = output.reset_index(drop=True)
     settings.setdefault('atb_series_start', {})[tech] = series_starts
     output = _apply_real_historical_costs(output, tech, settings, deflator)
+    from historical_atb import apply_archive_history
+    output = apply_archive_history(output, tech, settings, deflator)
     _validate_year_continuity(output, tech, settings)
     return output
 
@@ -1003,7 +1019,12 @@ def normalize_cf(tech, settings, df):
             cf_base = cf_base.loc[(cf_base[k] == v)]
     if 'keepcols' in tech_settings['cfbase']:
         cf_base = cf_base[tech_settings['cfbase']['keepcols'] + ['cf_improvement']].rename(columns={"cf_improvement":"cf_base"})
-        df = df.merge(cf_base, on=tech_settings['cfbase']['keepcols'], how='left')
+        keepcols = tech_settings['cfbase']['keepcols']
+        if len(keepcols) == 1:
+            settings.setdefault('cf_normalization_bases', {})[tech] = (
+                cf_base.set_index(keepcols[0])['cf_base'].to_dict()
+            )
+        df = df.merge(cf_base, on=keepcols, how='left')
         df['cf_improvement'] = df['cf_improvement'] / df['cf_base']
         df = df.drop(columns='cf_base')
     else:
@@ -1200,7 +1221,7 @@ def _selective_smooth_cost_values(
 FUTURE_SMOOTHING_TREATMENTS = (
     'smooth_projection_curve',
 )
-HISTORICAL_DATA_MODES = ('real', 'manual', 'broadcast')
+HISTORICAL_DATA_MODES = ('real', 'atb', 'manual', 'broadcast')
 NON_HISTORY_COLUMNS = {'Scenario', 'i', 't', 'turbine', 'type'}
 
 
@@ -2324,6 +2345,14 @@ def main(args):
     deflator = pd.read_csv(os.path.join(settings['reedspath'], 'inputs', 'financials', 'deflator.csv'), 
                            index_col='*Dollar.Year').squeeze()
     if not args.skip_costs:
+        if smoothing.get('enabled') and any(
+            'atb' in _metric_modes(config.get('historical_data', {}), metric).values()
+            for tech, config in smoothing.get('technologies', {}).items()
+            if tech in techs_to_run
+            for metric in config.get('historical_data', {})
+        ):
+            from scrape_historical_atb import refresh_current_archive
+            refresh_current_archive(settings['config'])
         validate_real_historical_data(settings, techs_to_run, deflator)
     # load ATB flat file
     atb_data = load_atb_flat_file(settings, args, techs_to_run)

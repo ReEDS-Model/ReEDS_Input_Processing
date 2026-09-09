@@ -90,9 +90,9 @@ source rows are missing.
 A missing history file can be initialized from the matching file in
 `processing.reeds_repo` by temporarily setting
 `historical_data.seed_missing_from_reeds: true`. Current scraped ATB rows
-replace history from the first available projection year onward. That boundary
-year is then appended to the fixed-dollar history file, ready for the next
-annual ATB release.
+replace history from the first available projection year onward. Manual history
+is not updated by formatting. Each current release contributes its base-year
+estimates to `scraped_input/historical_atb/` for subsequent annual updates.
 
 Whether this step generates cost files and financial files, which technologies
 it processes, and whether it copies results into ReEDS are all controlled under
@@ -110,12 +110,14 @@ metric (`capcost*`, `fom*`, `vom`), since a rounding artifact is no more real in
 O&M than in capital cost. `capital_costs` narrows it to `capcost*`. Heat rate is
 not monetary and is never included by `all`. Historical source choices apply
 independently to every metric. By default, metrics with reviewed observations
-use `real`, while all others use `broadcast`. Capacity-factor multipliers remain
+use `real`; other cost and performance metrics use `atb`. ReEDS-specific
+efficiency and resource multipliers retain their configured assumptions. Capacity-factor multipliers remain
 included automatically for technologies that use them.
 
 | Historical mode | Effect before each series' first ATB year |
 | --- | --- |
 | `real` | Use only the reviewed observed-series mapping for that metric. Preserve reported values, linearly interpolate internal missing years, and use the nearest observation for years outside the reported range. An unmapped metric or row variant raises an error. |
+| `atb` | Use each archived release's base-year estimate, converted to the output dollar year. Interpolate internal gaps and extend the nearest estimate at endpoints. An entirely absent series uses `historical_atb.missing_series` (`broadcast` by default). |
 | `manual` | Preserve the versioned rows in `manual_input/historical/` exactly. Those rows come from the ReEDS repository, are of mixed origin, and are maintained by hand there year by year rather than derived from any ATB download. |
 | `broadcast` | Use the first ATB projection value for every historical year. This generated history does not retain any manual historical values. |
 
@@ -131,7 +133,7 @@ is passed through unchanged.
 Every technology listed under `smooth_cost_curves.technologies` is processed.
 Every modeled metric has an explicit `historical_data` entry. For example,
 biopower uses `capcost: real`, while fixed O&M, variable O&M, and heat rate each
-explicitly select `broadcast`.
+explicitly select `atb`.
 
 A metric may instead give one mode per sub-technology, for a technology whose
 observed series describes only some of its rows. Two do. Offshore wind CapEx is
@@ -144,16 +146,16 @@ wind-ofs:
   historical_data:
     capcost:
       fixed: real
-      floating: broadcast
+      floating: atb
 
 gas:
   historical_data:
     capcost:
       Gas-CC: real
-      Gas-CC_H_1x1: broadcast
-      Gas-CC_H_2x1: broadcast
+      Gas-CC_H_1x1: atb
+      Gas-CC_H_2x1: atb
       Gas-CT: real
-      Gas-CT_aero: broadcast
+      Gas-CT_aero: atb
 ```
 
 The split form requires the technology to name its sub-technology column
@@ -164,9 +166,9 @@ sub-technology on unintended history. The schema offers `real` only where an
 observation exists, so a typo is caught in the editor.
 Capacity-factor multipliers are included automatically when the technology
 output contains `cf_improvement` (utility PV and the two wind technologies).
-PV and onshore wind offer `real`, `manual`, and `broadcast` for this metric,
-defaulting to `real`. Offshore wind retains `manual` / `broadcast`: its raw
-workbook has no comparable observed CF series.
+PV and onshore wind default to `real` for this metric and also offer `atb`,
+`manual`, and `broadcast`. Offshore wind defaults to `atb`; archived CF fractions
+use the same current ATB reference as projections, separately by turbine class.
 
 Real CF history uses PV's capacity-weighted cumulative CF by project vintage
 (2010–2023) and wind's generation-weighted 2024 CF by COD (2006–2023 individual
@@ -220,8 +222,52 @@ proxy treatment and does not enable a `real` default.
 
 `real` applies to every technology with an observed series that measures the
 same quantity as its ReEDS column: UPV, land-based wind, offshore wind, gas,
-and biopower. Metrics without a reviewed observed mapping use broadcast history,
-including heat rate and efficiency.
+and biopower. Other cost and performance metrics use archived ATB estimates
+where mapped, with an explicit fallback for missing series.
+
+### Archived ATB history
+
+`atb` means an estimate from the ATB published two years after the modeled year:
+2015 ATB supplies 2013, 2016 supplies 2014, and 2017 supplies 2015. Only the
+base-year value is retained; a vintage's later projections are not history.
+The Moderate scenario supplies a common history for all output scenarios.
+CSV extraction selects Market, then Exp, then R&D per technology, excluding
+tax-credit cases; this supports the revised 2025 case names.
+Costs use each release's dollar year and the ReEDS deflator. CF uses the current
+projection's normalization reference, not a different reference for each vintage.
+
+The scrape stage downloads the configured vintages and archives the current
+raw CSV and workbook under `scraped_input/historical_atb/`. Subsequent releases
+retain earlier archived vintages through `source_manifest.csv`. Changing the
+current ATB year and raw inputs adds that release's year-minus-two estimates;
+manual historical files are no longer appended to. Formatting also refreshes
+the current archive from changed local inputs, without downloading. New history
+year slots are generated in memory as projection boundaries advance. An absent
+ATB series uses the configured fallback; manual fallback extends its nearest
+manual template if the new year has no manual row. Explicit `manual` metrics
+still require supplied rows. Rebuild locally with:
+
+```bash
+python scripts/scrape_historical_atb.py --no-download
+```
+
+The first release is 2015 (base 2013), so earlier years use the earliest matched
+estimate. Internal missing years are linearly interpolated. The public 2020
+workbook currently identifies itself as 2019; it is excluded. The verified 2020
+CSV supplies O&M/CF, but has no OCC or heat-rate field, leaving those gaps filled.
+Older financed CAPEX is never substituted for overnight cost.
+
+Mappings preserve equipment definitions: older 90% CCS does not become 95% CCS,
+and an unspecified H-frame layout does not become both 1-on-1 and 2-on-1.
+Fuel cells and unmatched gas variants therefore use the configured missing-series
+fallback until comparable base-year estimates exist. Resource-class mappings
+for wind and PV begin in 2021; older TRGs and city proxies are not treated as the
+current classes. CSP uses the archived 10-hour reference and the same configuration
+ratios as projections for all monetary metrics. Battery component costs come
+from each archived workbook; FOM components use the existing ReEDS 2.5% convention.
+
+Plots distinguish archived estimates, filled ATB years, and manual/broadcast
+fallbacks. These estimates are not observed project costs (`real`).
 
 ### Per-technology observed-history appliers
 
@@ -322,8 +368,8 @@ required-field checks, and invalid-option warnings. Use the editor's completion
 command (typically `Ctrl+Space`) to choose valid history modes and other options.
 
 Historical choices are technology-by-metric. The schema offers `real` only for
-metrics with a reviewed observed mapping; other metrics offer `manual` and
-`broadcast`. Offshore wind CapEx additionally accepts a per-turbine-class
+metrics with a reviewed observed mapping; other cost and performance metrics
+offer `atb`, `manual`, and `broadcast`. Offshore wind CapEx additionally accepts a per-turbine-class
 mapping of modes. Runtime validation remains authoritative when the workflow
 runs.
 

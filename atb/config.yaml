@@ -220,6 +220,63 @@ historical_cost_sources:
       archive_data_url: https://www.eia.gov/electricity/generatorcosts/archive/{year}/xls/generator_costs_{year}.xlsx
       filename: eia_generator_costs_{year}.xlsx
 
+# Archived ATB estimates; each release contributes only its base year.
+historical_atb:
+  directory: scraped_input/historical_atb
+  normalized_filename: historical_atb.csv
+  missing_series: broadcast  # options: manual / broadcast / error
+  releases:
+    2015:
+      - format: workbook
+        filename: atb_2015_workbook.xlsm
+        dollar_year: 2013
+        url: https://docs.nlr.gov/docs/fy15osti/64077-DA.xlsm
+    2016:
+      - format: workbook
+        filename: atb_2016_workbook.xlsm
+        dollar_year: 2014
+        url: https://docs.nlr.gov/docs/fy16osti/66944-DA.xlsm
+    2017:
+      - format: workbook
+        filename: atb_2017_workbook.xlsm
+        dollar_year: 2015
+        url: https://data.nlr.gov/system/files/71/2017-ATB-data.xlsm
+    2018:
+      - format: workbook
+        filename: atb_2018_workbook.xlsm
+        dollar_year: 2016
+        url: https://data.nlr.gov/system/files/89/2018-ATB-data-interim-geo.xlsm
+    2019:
+      - format: workbook
+        filename: atb_2019_workbook.xlsm
+        dollar_year: 2017
+        url: https://data.nlr.gov/system/files/115/2019-ATB-data.xlsm
+    2020:
+      # The published workbook serves 2019 data; use the verified 2020 CSV.
+      - format: flat
+        filename: atb_2020_flat_file.csv
+        dollar_year: 2018
+        url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2020/ATBe.csv
+    2021:
+      - format: workbook
+        filename: atb_2021_workbook.xlsm
+        dollar_year: 2019
+        url: https://data.openei.org/files/4129/2021-ATB-Data_Master_new.xlsm
+    2022:
+      - format: workbook
+        filename: atb_2022_workbook.xlsx
+        dollar_year: 2020
+        url: https://data.openei.org/files/5716/2022 v3 Annual Technology Baseline Workbook Mid-year update 2-15-2023.xlsx
+    2023:
+      - format: flat
+        filename: atb_2023_flat_file.csv
+        dollar_year: 2021
+        url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2023/ATBe.csv
+      - format: battery
+        filename: atb_2023_workbook.xlsx
+        dollar_year: 2021
+        url: https://data.openei.org/files/5865/2023-ATB-Data_Master_v9.0.xlsx
+
 processing:
   reeds_repo: C:/ReEDS/ReEDS
   output_directory: output
@@ -258,27 +315,27 @@ processing:
     minimum_adjustment_relative_threshold: 0.005
     # historical_data values (editor dropdowns are supplied by the schema):
     #   real          use observed history; interpolate internal missing years
+    #   atb           use archived ATB base-year estimates; fill missing years
     #   manual        preserve manual_input/historical exactly
     #   broadcast     use the first ATB projection value for all history years
-    # `real` is offered only where a reviewed mapping exists. The defaults use
-    # `real` where reviewed observations exist and `broadcast` everywhere else.
+    # Source priority: real, then atb, then broadcast when no archive matches.
     # Every technology listed below is processed. Capacity-factor multipliers
     # are included automatically when the technology output contains one.
     technologies:
       upv:
         historical_data:
-          capcost: real  # options: real / manual / broadcast
-          fom: real  # options: real / manual / broadcast
-          vom: manual  # options: manual / broadcast
-          cf_improvement: real  # options: real / manual / broadcast
+          capcost: real  # options: real / atb / manual / broadcast
+          fom: real  # options: real / atb / manual / broadcast
+          vom: atb  # options: atb / manual / broadcast
+          cf_improvement: real  # options: real / atb / manual / broadcast
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       wind-ons:
         historical_data:
-          capcost: real  # options: real / manual / broadcast
-          fom: real  # options: real / manual / broadcast
-          vom: manual  # options: manual / broadcast
-          cf_improvement: real  # options: real / manual / broadcast
+          capcost: real  # options: real / atb / manual / broadcast
+          fom: real  # options: real / atb / manual / broadcast
+          vom: atb  # options: atb / manual / broadcast
+          cf_improvement: real  # options: real / atb / manual / broadcast
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       wind-ofs:
@@ -286,45 +343,45 @@ processing:
           # Observed offshore CapEx is a fixed-bottom series, so only that
           # class reads it. No floating cost history exists to observe.
           capcost:
-            fixed: real  # options: real / manual / broadcast
-            floating: manual  # options: manual / broadcast
-          fom: manual  # options: manual / broadcast
-          vom: manual  # options: manual / broadcast
-          cf_improvement: manual  # options: manual / broadcast
-          rsc_mult: manual  # options: manual / broadcast
+            fixed: real  # options: real / atb / manual / broadcast
+            floating: atb  # options: atb / manual / broadcast
+          fom: atb  # options: atb / manual / broadcast
+          vom: atb  # options: atb / manual / broadcast
+          cf_improvement: atb  # options: atb / manual / broadcast
+          rsc_mult: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       battery:
         historical_data:
-          capcost: real  # options: real / manual / broadcast (select both together)
-          capcost_energy: real  # options: real / manual / broadcast
-          fom: broadcast  # options: manual / broadcast
-          fom_energy: broadcast  # options: manual / broadcast
-          vom: broadcast  # options: manual / broadcast
+          capcost: real  # options: real / atb / manual / broadcast (select both together)
+          capcost_energy: real  # options: real / atb / manual / broadcast
+          fom: atb  # options: atb / manual / broadcast
+          fom_energy: atb  # options: atb / manual / broadcast
+          vom: atb  # options: atb / manual / broadcast
           rte: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       csp:
         historical_data:
-          capcost: real  # options: real / manual / broadcast
-          fom: manual  # options: manual / broadcast
-          vom: manual  # options: manual / broadcast
+          capcost: real  # options: real / atb / manual / broadcast
+          fom: atb  # options: atb / manual / broadcast
+          vom: atb  # options: atb / manual / broadcast
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       coal:
         historical_data:
-          capcost: broadcast  # options: manual / broadcast
-          fom: broadcast  # options: manual / broadcast
-          vom: broadcast  # options: manual / broadcast
-          heatrate: broadcast  # options: manual / broadcast
+          capcost: atb  # options: atb / manual / broadcast
+          fom: atb  # options: atb / manual / broadcast
+          vom: atb  # options: atb / manual / broadcast
+          heatrate: atb  # options: atb / manual / broadcast
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       coal-ccs:
         historical_data:
-          capcost: broadcast  # options: manual / broadcast
-          fom: broadcast  # options: manual / broadcast
-          vom: broadcast  # options: manual / broadcast
-          heatrate: broadcast  # options: manual / broadcast
+          capcost: atb  # options: atb / manual / broadcast
+          fom: atb  # options: atb / manual / broadcast
+          vom: atb  # options: atb / manual / broadcast
+          heatrate: atb  # options: atb / manual / broadcast
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       gas:
@@ -333,61 +390,61 @@ processing:
           # EIA observation. The H-Frame and aeroderivative variants have none,
           # so they generate their own history instead of borrowing one.
           capcost:
-            Gas-CC: real  # options: real / manual / broadcast
-            Gas-CC_H_1x1: broadcast  # options: manual / broadcast
-            Gas-CC_H_2x1: broadcast  # options: manual / broadcast
-            Gas-CT: real  # options: real / manual / broadcast
-            Gas-CT_aero: broadcast  # options: manual / broadcast
-          fom: broadcast  # options: manual / broadcast
-          vom: broadcast  # options: manual / broadcast
-          heatrate: broadcast  # options: manual / broadcast
+            Gas-CC: real  # options: real / atb / manual / broadcast
+            Gas-CC_H_1x1: atb  # options: atb / manual / broadcast
+            Gas-CC_H_2x1: atb  # options: atb / manual / broadcast
+            Gas-CT: real  # options: real / atb / manual / broadcast
+            Gas-CT_aero: atb  # options: atb / manual / broadcast
+          fom: atb  # options: atb / manual / broadcast
+          vom: atb  # options: atb / manual / broadcast
+          heatrate: atb  # options: atb / manual / broadcast
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       gas-ccs:
         historical_data:
-          capcost: broadcast  # options: manual / broadcast
-          fom: broadcast  # options: manual / broadcast
-          vom: broadcast  # options: manual / broadcast
-          heatrate: broadcast  # options: manual / broadcast
+          capcost: atb  # options: atb / manual / broadcast
+          fom: atb  # options: atb / manual / broadcast
+          vom: atb  # options: atb / manual / broadcast
+          heatrate: atb  # options: atb / manual / broadcast
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       fuelcell:
         historical_data:
-          capcost: manual  # options: manual / broadcast
-          fom: manual  # options: manual / broadcast
-          vom: manual  # options: manual / broadcast
-          heatrate: manual  # options: manual / broadcast
+          capcost: atb  # options: atb / manual / broadcast
+          fom: atb  # options: atb / manual / broadcast
+          vom: atb  # options: atb / manual / broadcast
+          heatrate: atb  # options: atb / manual / broadcast
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       nuclear:
         historical_data:
-          capcost: manual  # options: manual / broadcast
-          fom: manual  # options: manual / broadcast
-          vom: manual  # options: manual / broadcast
-          heatrate: manual  # options: manual / broadcast
+          capcost: atb  # options: atb / manual / broadcast
+          fom: atb  # options: atb / manual / broadcast
+          vom: atb  # options: atb / manual / broadcast
+          heatrate: atb  # options: atb / manual / broadcast
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       nuclear-smr:
         historical_data:
-          capcost: manual  # options: manual / broadcast
-          fom: manual  # options: manual / broadcast
-          vom: manual  # options: manual / broadcast
-          heatrate: manual  # options: manual / broadcast
+          capcost: atb  # options: atb / manual / broadcast
+          fom: atb  # options: atb / manual / broadcast
+          vom: atb  # options: atb / manual / broadcast
+          heatrate: atb  # options: atb / manual / broadcast
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
       biopower:
         historical_data:
-          capcost: real  # options: real / manual / broadcast
-          fom: broadcast  # options: manual / broadcast
-          vom: broadcast  # options: manual / broadcast
-          heatrate: broadcast  # options: manual / broadcast
+          capcost: real  # options: real / atb / manual / broadcast
+          fom: atb  # options: atb / manual / broadcast
+          vom: atb  # options: atb / manual / broadcast
+          heatrate: atb  # options: atb / manual / broadcast
         future_smoothing_treatments:
           smooth_projection_curve: true  # options: true / false
 
 # Versioned ReEDS history used before each ATB projection series begins.
 # Set seed_missing_from_reeds to true only when initializing a missing file from
-# processing.reeds_repo. Each run appends the first available projection year,
-# so a later ATB release can move that year into history without a gap.
+# processing.reeds_repo. Formatting does not append ATB values here;
+# archived base years are stored under historical_atb.directory.
 historical_data:
   directory: manual_input/historical
   dollar_year: 2022
