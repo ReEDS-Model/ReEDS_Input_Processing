@@ -3,7 +3,7 @@ import sys
 import pandas as pd
 from itertools import product
 import altair as alt
-reeds_path = os.path.expanduser('~/Documents/Github/ReEDS/ReEDS')
+reeds_path = os.environ.get('REEDS_PATH', os.path.expanduser('~/Documents/Github/ReEDS/ReEDS'))
 sys.path.append(reeds_path)
 
 '''
@@ -39,16 +39,14 @@ year_range_str_version_1 = [str(x) for x in year_range_version_1]
 
 # Number of technology type (as specified in the queue data file)
 type_no = 3
-if version < 2025:
-    queue_data = pd.read_excel(os.path.join(dir,'inputs',filename), sheet_name='data')
-else:
-    queue_data = pd.read_excel(os.path.join(dir,'inputs',filename), sheet_name='03. Complete Queue Data')
-    # In version 2025, the first row is empty, so remove it
-    queue_data.columns = queue_data.iloc[0]
-    queue_data = queue_data[1:]
+queue_data = pd.read_excel(os.path.join(dir,'inputs',filename), sheet_name='03. Complete Queue Data')
+# The first row is empty, so remove it
+queue_data.columns = queue_data.iloc[0]
+queue_data = queue_data[1:]
 
-county2zone = pd.read_csv(os.path.join(reeds_path,'inputs','county2zone.csv'))
-county2zone['FIPS'] = 'p' + county2zone['FIPS'].astype(str).str.zfill(5)
+# County-to-FIPS mapping from the ReEDS repo
+county_state = pd.read_csv(os.path.join(reeds_path,'inputs','zones','county_state.csv'))
+county_state['FIPS'] = 'p' + county_state['FIPS'].astype(str).str.zfill(5)
 
 # Assuming zero queue for csp
 csp_queue = pd.read_csv(os.path.join(dir,'inputs','csp_queues.csv'))
@@ -69,12 +67,9 @@ for pt in list(range(type_no)):
     item = pt+1
 
     # Filter out tech type
-    if version < 2025:
-        queue_data_temp = queue_data[['q_status', 'county_'+str(item), 'state', 'IA_status_clean', 'type'+str(item),'mw'+str(item)]]
-        queue_data_temp = queue_data_temp.rename(columns={'county_'+str(item): 'county_name', 'type'+str(item): 'tech','mw'+str(item):'cap'+str(item)})
-    else:
-        queue_data_temp = queue_data[['q_status', 'county', 'state', 'IA_status_clean', 'type'+str(item),'mw'+str(item)]]
-        queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'type'+str(item): 'tech','mw'+str(item):'cap'+str(item)})
+    queue_data_temp = queue_data[['q_status', 'county', 'state', 'fips_codes', 'IA_status_clean', 'type'+str(item),'mw'+str(item)]]
+    queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'fips_codes': 'FIPS',
+                                                      'type'+str(item): 'tech','mw'+str(item):'cap'+str(item)})
 
     # Only consider queues that have active status
     queue_data_active_temp = queue_data_temp[queue_data_temp['q_status']=='active']
@@ -91,15 +86,14 @@ for pt in list(range(type_no)):
     queue_data_active_temp = queue_data_active_temp.rename(columns={'cap'+str(item):'cap'})
     active_queue = pd.concat([active_queue, queue_data_active_temp], axis=0).reset_index(drop=True)
     
-# Sum up the queue capacities by county, state, tech, and online year
-active_queue['county_name'] = active_queue['county_name'].str.lower()    
-active_queue_agg = active_queue.groupby(['county_name', 'state','tech', 'online_year'])['cap'].sum().reset_index()
-
-# Merge the queue data with county2zone to assign FIPS to each county and state pair and clean up
-active_queue_county = county2zone.merge(active_queue_agg, on=['county_name','state'], how='outer')
-active_queue_county = active_queue_county[active_queue_county['county_name']!= '0']
-active_queue_county = active_queue_county.dropna(subset=['tech'])
-active_queue_county = active_queue_county.dropna(subset=['FIPS'])
+# Sum up the queue capacities by county, tech, and online year
+fips_reported = 'p' + pd.to_numeric(active_queue['FIPS'], errors='coerce').map(
+    lambda x: str(int(x)).zfill(5) if pd.notna(x) else '')
+name2fips = county_state.set_index(county_state['county_name']+'|'+county_state['state'])['FIPS']
+fips_byname = (active_queue['county_name'].str.lower()+'|'+active_queue['state']).map(name2fips)
+active_queue['FIPS'] = fips_reported.where(fips_reported.isin(county_state['FIPS']), fips_byname)
+active_queue_agg = active_queue.groupby(['FIPS','tech','online_year'])['cap'].sum().reset_index()
+active_queue_county = county_state.merge(active_queue_agg, on='FIPS', how='inner')
 
 # Assign 0 queue cap value to county-year pair with no value
 unique_year_FIPS = pd.DataFrame(product(active_queue_county['FIPS'].unique(),[t_1,t_2]),columns=['FIPS','online_year'])
@@ -111,8 +105,8 @@ active_queue_county = active_queue_county[['FIPS','tech','online_year','cap']]
 active_queue_county['cap'] = active_queue_county['cap'].fillna(0)
 
 # Sum queue capacity by year to get cumulative queue cap by year
-active_queue_county[str(t_2)] = active_queue_county['cap']
-active_queue_county[str(t_2)] = active_queue_county.groupby(['FIPS','tech'])[str(t_2)].transform("max")
+active_queue_county[str(t_2)] = active_queue_county['cap'].where(active_queue_county['online_year']==t_2, 0)
+active_queue_county[str(t_2)] = active_queue_county.groupby(['FIPS','tech'])[str(t_2)].transform("sum")
 
 active_queue_county =active_queue_county.rename(columns={'cap': str(t_1)})
 active_queue_county = active_queue_county[active_queue_county['online_year']==t_1]
@@ -144,12 +138,9 @@ active_queue_county.loc[active_queue_county['tech']=='biogas','tech'] = 'biomass
 active_queue_county = active_queue_county.groupby(['FIPS','tech'])[year_range_str].sum().reset_index()
 
 # Filter out tech to match with tg set in ReEDS
-active_queue_county_filtered = active_queue_county[(active_queue_county['tech']=="battery") | (active_queue_county['tech']=="coal") 
-                                                    | (active_queue_county['tech']=="gas") | (active_queue_county['tech']=="geothermal")
-                                                    | (active_queue_county['tech']=="hydro") | (active_queue_county['tech']=="h2") 
-                                                    | (active_queue_county['tech']=="nuclear") | (active_queue_county['tech']=="wind-ofs")
-                                                    | (active_queue_county['tech']=="pv") | (active_queue_county['tech']=="wind-ons")
-                                                    | (active_queue_county['tech']=="biomass") | (active_queue_county['tech']=="pumped-hydro")]
+reeds_techset = ['battery', 'biomass', 'coal', 'gas', 'geothermal', 'h2', 'hydro',
+                 'nuclear', 'pumped-hydro', 'pv', 'wind-ofs', 'wind-ons']
+active_queue_county_filtered = active_queue_county[active_queue_county['tech'].isin(reeds_techset)]
 
 active_queue_county_filtered = active_queue_county_filtered.rename(columns={'FIPS':'r', 'tech':'tg'})
 
