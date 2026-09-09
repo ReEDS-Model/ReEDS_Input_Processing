@@ -87,21 +87,13 @@ for pt in list(range(type_no)):
     active_queue = pd.concat([active_queue, queue_data_active_temp], axis=0).reset_index(drop=True)
     
 # Sum up the queue capacities by county, tech, and online year
-if 'FIPS' in active_queue.columns:
-    fips_reported = 'p' + pd.to_numeric(active_queue['FIPS'], errors='coerce').map(
-        lambda x: str(int(x)).zfill(5) if pd.notna(x) else '')
-    name2fips = county_state.set_index(county_state['county_name']+'|'+county_state['state'])['FIPS']
-    fips_byname = (active_queue['county_name'].str.lower()+'|'+active_queue['state']).map(name2fips)
-    active_queue['FIPS'] = fips_reported.where(fips_reported.isin(county_state['FIPS']), fips_byname)
-    active_queue_agg = active_queue.groupby(['FIPS','tech','online_year'])['cap'].sum().reset_index()
-    active_queue_county = county_state.merge(active_queue_agg, on='FIPS', how='inner')
-else:
-    active_queue['county_name'] = active_queue['county_name'].str.lower()
-    active_queue_agg = active_queue.groupby(['county_name', 'state','tech', 'online_year'])['cap'].sum().reset_index()
-    active_queue_county = county_state.merge(active_queue_agg, on=['county_name','state'], how='outer')
-    active_queue_county = active_queue_county[active_queue_county['county_name']!= '0']
-    active_queue_county = active_queue_county.dropna(subset=['tech'])
-    active_queue_county = active_queue_county.dropna(subset=['FIPS'])
+fips_reported = 'p' + pd.to_numeric(active_queue['FIPS'], errors='coerce').map(
+    lambda x: str(int(x)).zfill(5) if pd.notna(x) else '')
+name2fips = county_state.set_index(county_state['county_name']+'|'+county_state['state'])['FIPS']
+fips_byname = (active_queue['county_name'].str.lower()+'|'+active_queue['state']).map(name2fips)
+active_queue['FIPS'] = fips_reported.where(fips_reported.isin(county_state['FIPS']), fips_byname)
+active_queue_agg = active_queue.groupby(['FIPS','tech','online_year'])['cap'].sum().reset_index()
+active_queue_county = county_state.merge(active_queue_agg, on='FIPS', how='inner')
 
 # Assign 0 queue cap value to county-year pair with no value
 unique_year_FIPS = pd.DataFrame(product(active_queue_county['FIPS'].unique(),[t_1,t_2]),columns=['FIPS','online_year'])
