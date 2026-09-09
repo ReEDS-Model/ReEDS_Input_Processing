@@ -26,8 +26,7 @@ dir = os.getcwd()
 ##################### INPUTS ######################
 # Most updated version of interconnection queue
 filename = 'LBNL_Ix_Queue_Data_File_thru2025.xlsx'
-# Supplement from LBNL with the detailed resource types behind the aggregated "Other"/"Other
-# Storage" categories (2025 vintage onward); set to None for vintages that don't need it
+# LBNL supplement with the detailed types behind "Other"/"Other Storage"; None if not needed
 filename_other = 'queues_other_forNLR_2025.xlsx'
 version = 2026              # release year
 t_1 = 2028                  # first year to calculate queue
@@ -45,11 +44,8 @@ year_range_version_1 = list(range(version_1_t_1-1, version_1_t_2+1))
 year_range_str_version_1 = [str(x) for x in year_range_version_1]
 ###################################################
 
-# Resource types that LBNL folded into aggregated categories starting with the 2025 data vintage,
-# mapped to the aggregated category each one was folded into. Only the types that map onto a ReEDS
-# tech group are listed; the supplement also names compressed air, waste heat and wave (no ReEDS
-# tech group, so they stay aggregated and are dropped later) and battery, solar and hydrogen (which
-# the public file already reports as-is).
+# Resource types LBNL folded into aggregated categories from the 2025 vintage on, mapped to the
+# category each was folded into. Only types with a matching ReEDS tech group are listed.
 folded2aggregated = {
     'pumped storage': 'Other Storage',
     'biofuel': 'Other',
@@ -92,8 +88,7 @@ def add_detailed_types(queue_data, filename_other, type_cols):
 
     print('Relabeled ' + str(len(relabeled_requests)) + ' of the ' + str(len(detailed_by_request))
           + ' requests in ' + filename_other + ' that report an aggregated resource type')
-    # Requests LBNL dropped from the public file (or that are no longer active) have no capacity or
-    # location here, so they cannot contribute to the queue limits
+    # Requests missing from the public file have no capacity or location, so they can't contribute
     missing = [q for q in detailed_by_request if q not in relabeled_requests]
     if missing:
         print('  No matching request in ' + filename + ' for: '
@@ -151,8 +146,7 @@ for pt in list(range(type_no)):
     # Only consider queues that have active status
     queue_data_active_temp = queue_data_temp[queue_data_temp['q_status']=='active']
 
-    # Assign initial queue year (in this case 2027) to queues with IA_status_clean = 'IA Executed' and regardless of
-    # IA_status_clean to final queue year (in this case 2030)
+    # 'IA Executed' queues count from t_1; everything else only from t_2
     queue_data_active_temp['online_year'] = t_1
     queue_data_active_temp.loc[queue_data_active_temp['IA_status_clean']!='IA Executed','online_year'] = t_2
     
@@ -164,13 +158,10 @@ for pt in list(range(type_no)):
     active_queue = pd.concat([active_queue, queue_data_active_temp], axis=0).reset_index(drop=True)
     
 # Sum up the queue capacities by county, tech, and online year, then keep only ReEDS counties.
-# Match on the FIPS code reported by LBNL rather than the county name: LBNL county names do not
-# always use the ReEDS spelling (e.g. Louisiana is written "Acadia Parish" vs ReEDS "acadia"),
-# which silently dropped those queues.
+# Match on FIPS, not county name: LBNL names don't always use the ReEDS spelling.
 fips_reported = 'p' + pd.to_numeric(active_queue['FIPS'], errors='coerce').map(
     lambda x: str(int(x)).zfill(5) if pd.notna(x) else '')
-# LBNL sometimes reports a stale code (e.g. Oglala Lakota SD) or concatenates several codes for
-# projects spanning multiple counties, so fall back to the county name when the code is unusable
+# Fall back to the county name where the reported code is stale or spans several counties
 name2fips = county_state.set_index(county_state['county_name']+'|'+county_state['state'])['FIPS']
 fips_byname = (active_queue['county_name'].str.lower()+'|'+active_queue['state']).map(name2fips)
 active_queue['FIPS'] = fips_reported.where(fips_reported.isin(county_state['FIPS']), fips_byname)
