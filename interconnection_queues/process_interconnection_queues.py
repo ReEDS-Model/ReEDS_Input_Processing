@@ -44,11 +44,9 @@ queue_data = pd.read_excel(os.path.join(dir,'inputs',filename), sheet_name='03. 
 queue_data.columns = queue_data.iloc[0]
 queue_data = queue_data[1:]
 
-county2zone_path = os.path.join(reeds_path,'inputs','county2zone.csv')
-if not os.path.exists(county2zone_path):
-    county2zone_path = os.path.join(reeds_path,'inputs','zones','county_state.csv')
-county2zone = pd.read_csv(county2zone_path)
-county2zone['FIPS'] = 'p' + county2zone['FIPS'].astype(str).str.zfill(5)
+# County-to-FIPS mapping from the ReEDS repo
+county_state = pd.read_csv(os.path.join(reeds_path,'inputs','zones','county_state.csv'))
+county_state['FIPS'] = 'p' + county_state['FIPS'].astype(str).str.zfill(5)
 
 # Assuming zero queue for csp
 csp_queue = pd.read_csv(os.path.join(dir,'inputs','csp_queues.csv'))
@@ -92,15 +90,15 @@ for pt in list(range(type_no)):
 if 'FIPS' in active_queue.columns:
     fips_reported = 'p' + pd.to_numeric(active_queue['FIPS'], errors='coerce').map(
         lambda x: str(int(x)).zfill(5) if pd.notna(x) else '')
-    name2fips = county2zone.set_index(county2zone['county_name']+'|'+county2zone['state'])['FIPS']
+    name2fips = county_state.set_index(county_state['county_name']+'|'+county_state['state'])['FIPS']
     fips_byname = (active_queue['county_name'].str.lower()+'|'+active_queue['state']).map(name2fips)
-    active_queue['FIPS'] = fips_reported.where(fips_reported.isin(county2zone['FIPS']), fips_byname)
+    active_queue['FIPS'] = fips_reported.where(fips_reported.isin(county_state['FIPS']), fips_byname)
     active_queue_agg = active_queue.groupby(['FIPS','tech','online_year'])['cap'].sum().reset_index()
-    active_queue_county = county2zone.merge(active_queue_agg, on='FIPS', how='inner')
+    active_queue_county = county_state.merge(active_queue_agg, on='FIPS', how='inner')
 else:
     active_queue['county_name'] = active_queue['county_name'].str.lower()
     active_queue_agg = active_queue.groupby(['county_name', 'state','tech', 'online_year'])['cap'].sum().reset_index()
-    active_queue_county = county2zone.merge(active_queue_agg, on=['county_name','state'], how='outer')
+    active_queue_county = county_state.merge(active_queue_agg, on=['county_name','state'], how='outer')
     active_queue_county = active_queue_county[active_queue_county['county_name']!= '0']
     active_queue_county = active_queue_county.dropna(subset=['tech'])
     active_queue_county = active_queue_county.dropna(subset=['FIPS'])
