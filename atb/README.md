@@ -196,9 +196,27 @@ observed year: 2010–2014 and 2016–2021 use the 2015 reference, not an observ
 annual trend. Plots distinguish scaled configurations and filled years. CSP
 FOM and VOM remain manual, and ATB projections are unchanged.
 
-Other raw observations are not direct replacements: EIA battery CapEx lacks
-the power/energy split, and fuel-cell CapEx has only one year without a reviewed
-single-project proxy treatment. They do not enable `real` defaults.
+Battery `capcost` and `capcost_energy` default to `real` together. The observed
+EIA total installed cost is split using the 2022 Moderate ATB components and
+annual EIA-860 installation-cohort durations. For total cost C ($/kW), duration
+h (hours), and reference components P ($/kW) and E ($/kWh), the scale is
+`s = C / (P + h * E)`. The resulting components are `s * P` and `s * E`.
+Costs are deflated before splitting; the two components reconstruct C at h.
+Both component modes must select `real` together and use the same total series.
+
+Duration is total nameplate MWh divided by MW among battery generators installed
+in each year. The annual inventory supplies 2016–2024; the 2016 inventory also
+supplies the 2015 cohort because the 2015 edition lacks storage energy capacity.
+Inventory cohorts are proxies for the confidential cost-reporting sample, and
+include all battery chemistries. Source notes report valid-data coverage.
+The split assumes a fixed ATB component proportion; it is not an observed
+component breakdown. Plots label it "Split real history". Years 2010–2014 use
+the 2015 components; 2022 onward remains the ATB projection. Battery FOM, VOM,
+and efficiency retain their configured modes. Missing duration observations
+raise an error rather than silently assuming a duration.
+
+Fuel-cell CapEx still has only one year without a reviewed single-project
+proxy treatment and does not enable a `real` default.
 
 `real` applies to every technology with an observed series that measures the
 same quantity as its ReEDS column: UPV, land-based wind, offshore wind, gas,

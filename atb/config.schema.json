@@ -68,6 +68,16 @@
         "manifest_filename": {"type": "string", "minLength": 1},
         "allow_insecure_ssl_fallback": {"type": "boolean"},
         "reeds_mappings": {"$ref": "#/definitions/reedsMappings"},
+        "battery_cost_split": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reference_year", "reference_scenario", "duration_filters"],
+          "properties": {
+            "reference_year": {"type": "integer", "minimum": 1900},
+            "reference_scenario": {"enum": ["Moderate", "Advanced", "Conservative"]},
+            "duration_filters": {"$ref": "#/definitions/filters"}
+          }
+        },
         "sources": {
           "type": "object",
           "additionalProperties": {"$ref": "#/definitions/historicalSource"}
@@ -187,6 +197,7 @@
         "enabled": {"type": "boolean"},
         "report_year": {"type": "integer", "minimum": 1900},
         "first_year": {"type": "integer", "minimum": 1900},
+        "first_cohort_year": {"type": "integer", "minimum": 1900},
         "last_year": {"type": "integer", "minimum": 1900},
         "last_historical_year": {"type": "integer", "minimum": 1900},
         "page_url": {"type": "string", "minLength": 1},
@@ -268,10 +279,20 @@
         "cf_improvement": {"$ref": "#/definitions/observedMapping"}
       }
     },
+    "batteryMetricMappings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "capcost_energy"],
+      "properties": {
+        "capcost": {"$ref": "#/definitions/observedMapping"},
+        "capcost_energy": {"$ref": "#/definitions/observedMapping"}
+      }
+    },
     "reedsMappings": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "battery": {"$ref": "#/definitions/batteryMetricMappings"},
         "csp": {"$ref": "#/definitions/metricMappings"},
         "upv": {"$ref": "#/definitions/metricMappingsWithCf"},
         "wind-ons": {"$ref": "#/definitions/metricMappingsWithCf"},
@@ -364,6 +385,16 @@
     "historyBattery": {
       "type": "object",
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {"properties": {"capcost": {"const": "real"}}},
+          "then": {"properties": {"capcost_energy": {"const": "real"}}}
+        },
+        {
+          "if": {"properties": {"capcost_energy": {"const": "real"}}},
+          "then": {"properties": {"capcost": {"const": "real"}}}
+        }
+      ],
       "required": [
         "capcost",
         "capcost_energy",
@@ -373,8 +404,8 @@
         "rte"
       ],
       "properties": {
-        "capcost": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "capcost_energy": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "capcost": {"$ref": "#/definitions/historyMode"},
+        "capcost_energy": {"$ref": "#/definitions/historyMode"},
         "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
         "fom_energy": {"$ref": "#/definitions/historyModeWithoutReal"},
         "vom": {"$ref": "#/definitions/historyModeWithoutReal"},

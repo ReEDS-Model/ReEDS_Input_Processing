@@ -57,6 +57,7 @@ PROVENANCE_COLORS = {
     "Manual history": "#0072B2",
     "Observed history (real)": "#009E73",
     "Scaled real history": "#A6761D",
+    "Split real history": "#56B4E9",
     "Filled real history": "#D55E00",
     "Broadcast history": "#CC79A7",
     "ATB projection (raw)": "#6E6E6E",
@@ -487,6 +488,8 @@ def is_observed_history_point(
     provenance: dict,
 ) -> bool:
     """Return whether one plotted point was populated from observed history."""
+    if provenance['technology'] == 'battery' and metric in ('capcost', 'capcost_energy'):
+        return False  # Only the total is observed; both components are estimated.
     if is_scaled_csp_history(final_group, metric, provenance):
         return False
     for series in provenance["observed_series"].get(metric, []):
@@ -585,6 +588,13 @@ def provenance_categories(
                     for series in provenance['observed_series'].get(metric, [])
                 ):
                     final_categories.append('Scaled real history')
+                    continue
+                if (provenance['technology'] == 'battery'
+                        and metric in ('capcost', 'capcost_energy') and any(
+                            int(year) in series['years']
+                            for series in provenance['observed_series'].get(metric, [])
+                        )):
+                    final_categories.append('Split real history')
                     continue
                 final_categories.append(
                     "Observed history (real)"

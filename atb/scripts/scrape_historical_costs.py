@@ -3,7 +3,9 @@
 import argparse
 import hashlib
 import re
+from io import BytesIO
 from pathlib import Path
+from zipfile import ZipFile
 
 import openpyxl
 import pandas as pd
@@ -469,6 +471,48 @@ def extract_eia(path, source, year, data_url):
         raise ValueError(f"No EIA cost rows extracted from {path}")
     return rows
 
+
+def extract_battery_duration(path, source, report_year, data_url):
+    """Estimate new-installation duration from the annual EIA-860 inventory."""
+    member = f"3_4_Energy_Storage_Y{report_year}.xlsx"
+    with ZipFile(path) as archive:
+        frame = pd.read_excel(BytesIO(archive.read(member)), sheet_name='Operable', header=1)
+    frame = frame.loc[frame['Prime Mover'].eq('BA')].copy()
+    if frame.duplicated(['Plant Code', 'Generator ID']).any():
+        raise ValueError(f"Duplicate battery generator IDs in {member}")
+    for column in ('Operating Year', 'Nameplate Capacity (MW)', 'Nameplate Energy Capacity (MWh)'):
+        frame[column] = pd.to_numeric(frame[column], errors='coerce')
+    # Storage details start in 2016; use that edition for the 2015 cohort too.
+    first_cohort = (int(source['first_cohort_year'])
+                    if report_year == int(source['first_year']) else report_year)
+    rows = []
+    for year in range(first_cohort, report_year + 1):
+        cohort = frame.loc[frame['Operating Year'].eq(year)]
+        power = cohort['Nameplate Capacity (MW)']
+        energy = cohort['Nameplate Energy Capacity (MWh)']
+        valid = power.gt(0) & energy.gt(0) & power.lt(float('inf')) & energy.lt(float('inf'))
+        if not valid.any():
+            raise ValueError(f"No usable battery duration observations for {year} in {member}")
+        duration = float(energy[valid].sum() / power[valid].sum())
+        coverage = float(power[valid].sum() / power[power.gt(0)].sum())
+        row = _base_row('eia860_storage', source, Path(path).name,
+                        f'{member}:Operable', 'storage_duration')
+        row.update(
+            technology='battery', technology_detail='Battery storage', year=year,
+            value=duration, unit='hours', capacity_basis='nameplate',
+            statistic='capacity_weighted_cohort', geography='United States',
+            sample_count=int(valid.sum()), source_data_url=data_url,
+            notes=(
+                f"Sum of nameplate MWh / sum of MW for batteries installed in {year}, "
+                f"as reported in EIA-860 {report_year}; {valid.sum()} of {len(cohort)} "
+                f"generators have positive MW and MWh ({coverage:.2%} of cohort MW). "
+                "Inventory-cohort proxy, not the identifiable cost-reporting sample. "
+                "All battery chemistries; no flywheels or pumped storage."
+            ),
+        )
+        rows.append(row)
+    return rows
+
 def _sha256(path):
     digest = hashlib.sha256()
     with Path(path).open("rb") as stream:
@@ -478,7 +522,7 @@ def _sha256(path):
 
 
 def _artifact(source_id, source, year=None):
-    if source_id == "eia_generator_costs":
+    if source_id in ("eia_generator_costs", "eia860_storage"):
         filename = source["filename"].format(year=year)
         if year == int(source["last_year"]):
             data_url = source["current_data_url"]
@@ -507,12 +551,13 @@ def scrape(config, selected="all", force=False, no_download=False):
             "utility_pv": "solar",
             "offshore_wind": "offshore",
             "eia_generator_costs": "eia",
+            "eia860_storage": "eia",
         }[source_id]
         if selected not in ("all", selector):
             continue
         years = (
             range(int(source["first_year"]), int(source["last_year"]) + 1)
-            if source_id == "eia_generator_costs"
+            if source_id in ("eia_generator_costs", "eia860_storage")
             else [None]
         )
         for year in years:
@@ -550,6 +595,8 @@ def scrape(config, selected="all", force=False, no_download=False):
                 rows.extend(extract_csp_reference(path, source))
             elif source_id == "offshore_wind":
                 rows.extend(extract_offshore_wind(path, source))
+            elif source_id == "eia860_storage":
+                rows.extend(extract_battery_duration(path, source, year, data_url))
             else:
                 rows.extend(extract_eia(path, source, year, data_url))
 

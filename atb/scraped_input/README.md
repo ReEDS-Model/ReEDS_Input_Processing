@@ -38,6 +38,20 @@ Its 10-hour storage is used as the `csp2` proxy. The CSV retains the single
 observed cost in 2024 USD/kW-AC; endpoint filling and configuration-ratio scaling
 happen in the formatter. Other CSP projects are not pooled into this reference.
 
+`eia860_2016.zip` through `eia860_2024.zip` are raw annual EIA-860 inventories.
+The scraper reads `3_4_Energy_Storage_Y<year>.xlsx` directly from each archive,
+selecting the `Operable` sheet and battery prime mover `BA`. It emits
+`storage_duration` rows in hours for each year's installation cohort using
+sum(MWh)/sum(MW). The 2015 cohort comes from the 2016 inventory. Notes record
+valid-generator counts and MW coverage; missing or nonpositive energy/power
+records are excluded from both sums. These inventory cohorts approximate, but
+cannot identify, the cost-reporting sample behind the EIA average capital cost.
+
+Battery total costs remain observed `capital_cost` rows. The formatter derives
+power and energy cost components using ATB reference proportions and these
+durations; the raw CSV does not claim observed component costs. Run the scraper
+once to download the additional archives, or use `--no-download` to reuse them.
+
 Download and extract them separately from the ATB inputs:
 
 ```bash

@@ -42,6 +42,17 @@ historical_cost_sources:
   # the corresponding manual value when that metric selects `real`. Every
   # historical metric declares its own mode below.
   reeds_mappings:
+    battery:
+      # Both components are derived together from the same observed total.
+      capcost: &battery_total_cost
+        filters:
+          source_id: eia_generator_costs
+          technology: battery
+          metric: capital_cost
+          unit: USD/kW
+          source_table: major_energy_source
+          statistic: capacity_weighted_mean
+      capcost_energy: *battery_total_cost
     csp:
       # 2015 10-hour tower proxy; fill other years and scale using CSP cost ratios.
       capcost:
@@ -160,7 +171,25 @@ historical_cost_sources:
           capacity_basis: nameplate
           statistic: capacity_weighted_mean
           geography: United States
+  battery_cost_split:
+    reference_year: 2022
+    reference_scenario: Moderate
+    duration_filters:
+      source_id: eia860_storage
+      technology: battery
+      metric: storage_duration
+      unit: hours
+      statistic: capacity_weighted_cohort
   sources:
+    eia860_storage:
+      enabled: true
+      first_year: 2016
+      last_year: 2024
+      first_cohort_year: 2015  # Taken from the 2016 inventory.
+      page_url: https://www.eia.gov/electricity/data/eia860/
+      current_data_url: https://www.eia.gov/electricity/data/eia860/xls/eia8602024.zip
+      archive_data_url: https://www.eia.gov/electricity/data/eia860/archive/xls/eia860{year}.zip
+      filename: eia860_{year}.zip
     land_based_wind:
       enabled: true
       report_year: 2025
@@ -267,8 +296,8 @@ processing:
           smooth_projection_curve: true  # options: true / false
       battery:
         historical_data:
-          capcost: broadcast  # options: manual / broadcast
-          capcost_energy: broadcast  # options: manual / broadcast
+          capcost: real  # options: real / manual / broadcast (select both together)
+          capcost_energy: real  # options: real / manual / broadcast
           fom: broadcast  # options: manual / broadcast
           fom_energy: broadcast  # options: manual / broadcast
           vom: broadcast  # options: manual / broadcast

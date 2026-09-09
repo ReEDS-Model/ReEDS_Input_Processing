@@ -376,6 +376,13 @@ def _observed_values_by_year(tech, mapping, settings, deflator):
             raise ValueError(f"{tech} observed capacity factors must be in (0, 1].")
         # Dimensionless observations have no dollar year and are never deflated.
         return dict(zip(observed['year'].astype(int), values.astype(float)))
+    if mapping.get('output_column') == 'storage_duration':
+        values = pd.to_numeric(observed['value'], errors='raise')
+        if not (observed['metric'].eq('storage_duration').all()
+                and observed['unit'].eq('hours').all()
+                and (np.isfinite(values) & values.gt(0)).all()):
+            raise ValueError("Battery duration history must contain finite positive hours.")
+        return dict(zip(observed['year'].astype(int), values.astype(float)))
     if observed['dollar_year'].isna().any():
         raise ValueError(
             f"Observed historical mapping for {tech} requires a dollar_year."
@@ -628,6 +635,7 @@ def apply_real_history_csp(
 # Each receives the metric's historical_data modes so it can tell a row left
 # unclaimed by accident from one that explicitly generates its own history.
 REAL_HISTORY_APPLIERS = {
+    'battery': apply_real_history_single_series,
     'csp': apply_real_history_csp,
     'biopower': apply_real_history_single_series,
     'upv': apply_real_history_single_series,
@@ -635,6 +643,37 @@ REAL_HISTORY_APPLIERS = {
     'wind-ofs': apply_real_history_by_class,
     'gas': apply_real_history_by_class,
 }
+
+
+def _split_battery_history(total_costs, settings, deflator):
+    """Scale ATB reference components to observed totals at cohort durations."""
+    from battery_workbook import extract_battery_costs
+
+    split = settings['config']['historical_cost_sources']['battery_cost_split']
+    durations = _observed_values_by_year(
+        'battery', {'filters': split['duration_filters'], 'output_column': 'storage_duration'},
+        settings, deflator,
+    )
+    missing = sorted(set(total_costs) - set(durations))
+    if missing:
+        raise ValueError(f"Battery cost years lack observed cohort duration: {missing}")
+    reference = extract_battery_costs(settings['workbook_path'])
+    reference = reference.loc[reference['Scenario'].eq(split['reference_scenario'])]
+    year = int(split['reference_year'])
+    if year not in reference or reference['cost'].duplicated().any():
+        raise ValueError(f"Missing or ambiguous ATB battery split reference for {year}")
+    components = reference.set_index('cost')[year]
+    power, energy = float(components['capcost']), float(components['capcost_energy'])
+    if not all(np.isfinite(value) and value > 0 for value in (power, energy)):
+        raise ValueError("ATB battery reference components must be finite and positive.")
+    result = {'capcost': {}, 'capcost_energy': {}}
+    for year, total in total_costs.items():
+        if not np.isfinite(total) or total <= 0:
+            raise ValueError(f"Invalid battery total cost for {year}: {total}")
+        scale = total / (power + durations[year] * energy)
+        result['capcost'][year] = scale * power
+        result['capcost_energy'][year] = scale * energy
+    return result
 
 
 def _resolve_observed_series(
@@ -656,6 +695,11 @@ def _resolve_observed_series(
     for entry in entries:
         merged = {**inherited, **entry}
         values = _observed_values_by_year(tech, merged, settings, deflator)
+        if tech == 'battery':
+            metric = mapping.get('output_column')
+            if metric not in ('capcost', 'capcost_energy') or len(entries) != 1:
+                raise ValueError("Battery real history requires one total-cost series for both components.")
+            values = _split_battery_history(values, settings, deflator)[metric]
         csp_reference = tech == 'csp' and mapping.get('output_column') == 'capcost'
         if tech == 'csp':
             if not csp_reference or len(entries) != 1:
@@ -1238,6 +1282,18 @@ def _validate_historical_data_config(tech, historical_data, settings):
         raise TypeError(
             f"{label} must be a mapping with one entry for every modeled metric."
         )
+    if tech == 'battery' and any(
+        historical_data.get(metric) == 'real' for metric in ('capcost', 'capcost_energy')
+    ):
+        if not all(historical_data.get(metric) == 'real'
+                   for metric in ('capcost', 'capcost_energy')):
+            raise ValueError("Battery capcost and capcost_energy must select real together.")
+        sources = settings['config'].get('historical_cost_sources', {})
+        mappings = sources.get('reeds_mappings', {}).get('battery', {})
+        if not mappings.get('capcost') or mappings.get('capcost') != mappings.get('capcost_energy'):
+            raise ValueError("Battery components must map to the same observed total-cost series.")
+        if not sources.get('battery_cost_split'):
+            raise ValueError("Battery real history requires historical_cost_sources.battery_cost_split.")
     valid_metrics = set(settings['techs'][tech]['cols']) - NON_HISTORY_COLUMNS
     unknown = sorted(set(historical_data) - valid_metrics)
     if unknown:
