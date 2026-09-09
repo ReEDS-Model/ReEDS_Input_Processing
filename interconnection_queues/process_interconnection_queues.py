@@ -39,13 +39,10 @@ year_range_str_version_1 = [str(x) for x in year_range_version_1]
 
 # Number of technology type (as specified in the queue data file)
 type_no = 3
-if version < 2025:
-    queue_data = pd.read_excel(os.path.join(dir,'inputs',filename), sheet_name='data')
-else:
-    queue_data = pd.read_excel(os.path.join(dir,'inputs',filename), sheet_name='03. Complete Queue Data')
-    # In version 2025, the first row is empty, so remove it
-    queue_data.columns = queue_data.iloc[0]
-    queue_data = queue_data[1:]
+queue_data = pd.read_excel(os.path.join(dir,'inputs',filename), sheet_name='03. Complete Queue Data')
+# The first row is empty, so remove it
+queue_data.columns = queue_data.iloc[0]
+queue_data = queue_data[1:]
 
 county2zone_path = os.path.join(reeds_path,'inputs','county2zone.csv')
 if not os.path.exists(county2zone_path):
@@ -72,13 +69,9 @@ for pt in list(range(type_no)):
     item = pt+1
 
     # Filter out tech type
-    if version < 2025:
-        queue_data_temp = queue_data[['q_status', 'county_'+str(item), 'state', 'IA_status_clean', 'type'+str(item),'mw'+str(item)]]
-        queue_data_temp = queue_data_temp.rename(columns={'county_'+str(item): 'county_name', 'type'+str(item): 'tech','mw'+str(item):'cap'+str(item)})
-    else:
-        queue_data_temp = queue_data[['q_status', 'county', 'state', 'fips_codes', 'IA_status_clean', 'type'+str(item),'mw'+str(item)]]
-        queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'fips_codes': 'FIPS',
-                                                          'type'+str(item): 'tech','mw'+str(item):'cap'+str(item)})
+    queue_data_temp = queue_data[['q_status', 'county', 'state', 'fips_codes', 'IA_status_clean', 'type'+str(item),'mw'+str(item)]]
+    queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'fips_codes': 'FIPS',
+                                                      'type'+str(item): 'tech','mw'+str(item):'cap'+str(item)})
 
     # Only consider queues that have active status
     queue_data_active_temp = queue_data_temp[queue_data_temp['q_status']=='active']
