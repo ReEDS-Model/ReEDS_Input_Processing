@@ -138,12 +138,9 @@ active_queue_county.loc[active_queue_county['tech']=='biogas','tech'] = 'biomass
 active_queue_county = active_queue_county.groupby(['FIPS','tech'])[year_range_str].sum().reset_index()
 
 # Filter out tech to match with tg set in ReEDS
-active_queue_county_filtered = active_queue_county[(active_queue_county['tech']=="battery") | (active_queue_county['tech']=="coal") 
-                                                    | (active_queue_county['tech']=="gas") | (active_queue_county['tech']=="geothermal")
-                                                    | (active_queue_county['tech']=="hydro") | (active_queue_county['tech']=="h2") 
-                                                    | (active_queue_county['tech']=="nuclear") | (active_queue_county['tech']=="wind-ofs")
-                                                    | (active_queue_county['tech']=="pv") | (active_queue_county['tech']=="wind-ons")
-                                                    | (active_queue_county['tech']=="biomass") | (active_queue_county['tech']=="pumped-hydro")]
+reeds_techset = ['battery', 'biomass', 'coal', 'gas', 'geothermal', 'h2', 'hydro',
+                 'nuclear', 'pumped-hydro', 'pv', 'wind-ofs', 'wind-ons']
+active_queue_county_filtered = active_queue_county[active_queue_county['tech'].isin(reeds_techset)]
 
 active_queue_county_filtered = active_queue_county_filtered.rename(columns={'FIPS':'r', 'tech':'tg'})
 
