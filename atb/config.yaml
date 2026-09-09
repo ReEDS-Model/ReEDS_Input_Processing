@@ -270,7 +270,7 @@ processing:
     slope_change_threshold: 0.4
     max_kink_years: 4
     major_step_relative_threshold: 0.1
-    minimum_adjustment_relative_threshold: 0.005
+    minimum_adjustment_relative_threshold: 0.001
     # Default priority: real, then atb, then broadcast if no archive matches.
     technologies:
       upv:
@@ -280,7 +280,7 @@ processing:
           vom: atb
           cf_improvement: real
         future_smoothing_treatments:
-          smooth_projection_curve: true
+          smooth_projection_curve: false
       wind-ons:
         historical_data:
           capcost: real
@@ -288,7 +288,7 @@ processing:
           vom: atb
           cf_improvement: real
         future_smoothing_treatments:
-          smooth_projection_curve: true
+          smooth_projection_curve: false
       wind-ofs:
         historical_data:
           capcost:
@@ -299,7 +299,7 @@ processing:
           cf_improvement: atb
           rsc_mult: broadcast
         future_smoothing_treatments:
-          smooth_projection_curve: true
+          smooth_projection_curve: false
       battery:
         historical_data:
           capcost: real
@@ -309,14 +309,14 @@ processing:
           vom: atb
           rte: atb
         future_smoothing_treatments:
-          smooth_projection_curve: true
+          smooth_projection_curve: false
       csp:
         historical_data:
           capcost: real
           fom: atb
           vom: atb
         future_smoothing_treatments:
-          smooth_projection_curve: true
+          smooth_projection_curve: false
       coal:
         historical_data:
           capcost: atb
@@ -324,7 +324,7 @@ processing:
           vom: atb
           heatrate: atb
         future_smoothing_treatments:
-          smooth_projection_curve: true
+          smooth_projection_curve: false
       coal-ccs:
         historical_data:
           capcost: atb
@@ -345,7 +345,7 @@ processing:
           vom: atb
           heatrate: atb
         future_smoothing_treatments:
-          smooth_projection_curve: true
+          smooth_projection_curve: false
       gas-ccs:
         historical_data:
           capcost: atb
@@ -353,7 +353,7 @@ processing:
           vom: atb
           heatrate: atb
         future_smoothing_treatments:
-          smooth_projection_curve: true
+          smooth_projection_curve: false
       fuelcell:
         historical_data:
           capcost: manual
@@ -361,7 +361,7 @@ processing:
           vom: manual
           heatrate: manual
         future_smoothing_treatments:
-          smooth_projection_curve: true
+          smooth_projection_curve: false
       nuclear:
         historical_data:
           capcost: atb
@@ -369,7 +369,7 @@ processing:
           vom: atb
           heatrate: atb
         future_smoothing_treatments:
-          smooth_projection_curve: true
+          smooth_projection_curve: false
       nuclear-smr:
         historical_data:
           capcost: atb
@@ -377,7 +377,7 @@ processing:
           vom: atb
           heatrate: atb
         future_smoothing_treatments:
-          smooth_projection_curve: true
+          smooth_projection_curve: false
       biopower:
         historical_data:
           capcost: real
@@ -385,7 +385,7 @@ processing:
           vom: atb
           heatrate: atb
         future_smoothing_treatments:
-          smooth_projection_curve: true
+          smooth_projection_curve: false
 
 # ReEDS repository files fetched by historical_data_scraper.py. Pinning `ref`
 # makes the manual baseline and the deflator reproducible without a local clone.
