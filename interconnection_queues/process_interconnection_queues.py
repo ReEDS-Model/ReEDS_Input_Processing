@@ -8,17 +8,12 @@ sys.path.append(reeds_path)
 
 '''
 This script processes the raw LBNL's interconnection queues data (https://emp.lbl.gov/queues) to
-apply capacity deployment limit in ReEDS. Specifically, it determines t_1 and t_2 cumulative queues
-at FIPS level by technology (for the 2025 data vintage, t_1 = 2028 and t_2 = 2031):
-- t_1 cumulative queues: q_status = "active" and IA_status_clean = "IA Executed"
-- t_2 cumulative queues: q_status = "active" regardless of IA_status_clean status
-- values between t_1 and t_2 are interpolated from the t_1 and t_2 values
-- t_1-1 values are interpolated from 0 and t_1 values (half of t_1 values)
-
-Note: starting with the 2025 data vintage, LBNL folded the less-common resource types (e.g.
-"Pumped Storage" and "Biofuel") into the aggregated "Other Storage" and "Other" categories. LBNL
-sent us the detailed types for the active requests in a supplemental file, which is merged back
-into the public data here so that the pumped-hydro and biomass tech groups can still be built.
+apply capacity deployment limit in ReEDS. Specifically, it determines 2028 and 2031 cumulative queues
+at FIPS level by technology:
+- 2028 cumulative queues: q_status = "active" and IA_status_clean = "IA Executed"
+- 2031 cumulative queues: q_status = "active" regardless of IA_status_clean status
+- 2029-2030 cumulative values are interpolated from 2028 and 2031 values
+- 2027 values are interpolated from 0 and 2028 values (half of 2028 values)
 '''
 
 dir = os.getcwd()
@@ -146,7 +141,8 @@ for pt in list(range(type_no)):
     # Only consider queues that have active status
     queue_data_active_temp = queue_data_temp[queue_data_temp['q_status']=='active']
 
-    # 'IA Executed' queues count from t_1; everything else only from t_2
+    # Assign initial queue year (in this case 2028) to queues with IA_status_clean = 'IA Executed' and regardless of
+    # IA_status_clean to final queue year (in this case 2031)
     queue_data_active_temp['online_year'] = t_1
     queue_data_active_temp.loc[queue_data_active_temp['IA_status_clean']!='IA Executed','online_year'] = t_2
     
@@ -157,11 +153,9 @@ for pt in list(range(type_no)):
     queue_data_active_temp = queue_data_active_temp.rename(columns={'cap'+str(item):'cap'})
     active_queue = pd.concat([active_queue, queue_data_active_temp], axis=0).reset_index(drop=True)
     
-# Sum up the queue capacities by county, tech, and online year, then keep only ReEDS counties.
-# Match on FIPS, not county name: LBNL names don't always use the ReEDS spelling.
+# Sum up the queue capacities by county, tech, and online year
 fips_reported = 'p' + pd.to_numeric(active_queue['FIPS'], errors='coerce').map(
     lambda x: str(int(x)).zfill(5) if pd.notna(x) else '')
-# Fall back to the county name where the reported code is stale or spans several counties
 name2fips = county_state.set_index(county_state['county_name']+'|'+county_state['state'])['FIPS']
 fips_byname = (active_queue['county_name'].str.lower()+'|'+active_queue['state']).map(name2fips)
 active_queue['FIPS'] = fips_reported.where(fips_reported.isin(county_state['FIPS']), fips_byname)
@@ -177,7 +171,7 @@ active_queue_county = active_queue_county.merge(unique_year_FIPS_tech, on=['FIPS
 active_queue_county = active_queue_county[['FIPS','tech','online_year','cap']]
 active_queue_county['cap'] = active_queue_county['cap'].fillna(0)
 
-# Sum queue capacity by year to get cumulative queue cap by year.
+# Sum queue capacity by year to get cumulative queue cap by year
 active_queue_county[str(t_2)] = active_queue_county['cap'].where(active_queue_county['online_year']==t_2, 0)
 active_queue_county[str(t_2)] = active_queue_county.groupby(['FIPS','tech'])[str(t_2)].transform("sum")
 
