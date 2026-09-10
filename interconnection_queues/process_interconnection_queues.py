@@ -21,7 +21,7 @@ dir = os.getcwd()
 ##################### INPUTS ######################
 # Most updated version of interconnection queue
 filename = 'LBNL_Ix_Queue_Data_File_thru2025.xlsx'
-# LBNL supplement with the detailed types behind "Other"/"Other Storage"; None if not needed
+# LBNL supplement with the detailed types behind "Other"/"Other Storage"
 filename_other = 'queues_other_forNLR_2025.xlsx'
 version = 2026              # release year
 t_1 = 2028                  # first year to calculate queue
@@ -29,14 +29,6 @@ t_2 = 2031                  # last year to calculate queue
 year_range = list(range(t_1-1, t_2+1))
 year_range_str = [str(x) for x in year_range]
 
-# To compare two versions of interconnection queue
-version_1 = 2025            # version 1 release year
-version_2 = 2026            # version 2 release year
-
-version_1_t_1 = 2027        # first year to calculate queue in version 1
-version_1_t_2 = 2030        # last year to calculate queue in version 1
-year_range_version_1 = list(range(version_1_t_1-1, version_1_t_2+1))
-year_range_str_version_1 = [str(x) for x in year_range_version_1]
 ###################################################
 
 # Resource types LBNL folded into aggregated categories from the 2025 vintage on, mapped to the
@@ -97,16 +89,8 @@ queue_data = pd.read_excel(os.path.join(dir,'inputs',filename), sheet_name='03. 
 queue_data.columns = queue_data.iloc[0]
 queue_data = queue_data[1:]
 
-queue_data = queue_data.rename(columns={
-    'fips_code': 'fips_codes',
-    'IA_phase_clean': 'IA_status_clean',
-    **{prefix+'_'+str(item+1): prefix+str(item+1)
-       for prefix in ['type', 'mw'] for item in range(type_no)},
-})
-
-if filename_other is not None and version >= 2026:
-    queue_data = add_detailed_types(
-        queue_data, filename_other, ['type'+str(item+1) for item in range(type_no)])
+queue_data = add_detailed_types(
+    queue_data, filename_other, ['type_'+str(item+1) for item in range(type_no)])
 
 # County-to-FIPS mapping from the ReEDS repo
 county_state = pd.read_csv(os.path.join(reeds_path,'inputs','zones','county_state.csv'))
@@ -131,9 +115,10 @@ for pt in list(range(type_no)):
     item = pt+1
 
     # Filter out tech type
-    queue_data_temp = queue_data[['q_status', 'county', 'state', 'fips_codes', 'IA_status_clean', 'type'+str(item),'mw'+str(item)]]
-    queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'fips_codes': 'FIPS',
-                                                      'type'+str(item): 'tech','mw'+str(item):'cap'+str(item)})
+    queue_data_temp = queue_data[['q_status', 'county', 'state', 'fips_code', 'IA_phase_clean', 'type_'+str(item),'mw_'+str(item)]]
+    queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'fips_code': 'FIPS',
+                                                      'IA_phase_clean': 'IA_status_clean',
+                                                      'type_'+str(item): 'tech','mw_'+str(item):'cap'+str(item)})
 
     # Capacities are read as objects because of the header offset, so cast them back to numbers
     queue_data_temp['cap'+str(item)] = pd.to_numeric(queue_data_temp['cap'+str(item)], errors='coerce')
@@ -223,59 +208,11 @@ active_queue_county_filtered.to_csv(os.path.join(dir,'outputs','interconnection_
 #########################################################
 
 
-############### COMPARISON PLOTS #######################
-# Comparing two versions of interconnection queues
-queue_1 = pd.read_csv(os.path.join(dir,'outputs','interconnection_queues_'+str(version_1-1)+'.csv'))
-queue_2 = pd.read_csv(os.path.join(dir,'outputs','interconnection_queues_'+str(version_2-1)+'.csv'))
+############### QUEUE PLOT #######################
+queue_plot = pd.melt(active_queue_county_filtered, id_vars=['r','tg'], value_vars=year_range_str)
+queue_plot = queue_plot.rename(columns={'variable':'year', 'value':'cap'})
+queue_plot = queue_plot.groupby(['tg','year'])['cap'].sum().reset_index()
 
-queue_1_temp = pd.melt(queue_1, id_vars=['r','tg'], value_vars=year_range_str_version_1)
-queue_1_temp = queue_1_temp.rename(columns={'variable':'year', 'value':'cap_1'})
-queue_1_temp = queue_1_temp.groupby(['tg','year'])['cap_1'].sum().reset_index()
-
-queue_2_temp = pd.melt(queue_2, id_vars=['r','tg'], value_vars=year_range_str)
-queue_2_temp = queue_2_temp.rename(columns={'variable':'year', 'value':'cap_2'})
-queue_2_temp = queue_2_temp.groupby(['tg','year'])['cap_2'].sum().reset_index()
-
-queue_compare = pd.merge(queue_1_temp,queue_2_temp,on=['tg','year'],how='outer')
-queue_compare['cap_1'] = queue_compare['cap_1'].fillna(0)
-queue_compare['cap_2'] = queue_compare['cap_2'].fillna(0)
-queue_compare['cap_diff'] = queue_compare['cap_2'] - queue_compare['cap_1']
-
-# Graph version 1:
-sch_order = year_range_version_1
-status_cat = ['pv','csp','wind-ons', 'wind-ofs', 'nuclear', 'battery', 'pumped-hydro',
-              'biomass', 'gas', 'coal','hydro', 'geothermal', 'h2']
-
-resource_order_idx = {
-    resource: idx 
-    for idx, resource in enumerate(status_cat[::-1]) # Reverse list to align colors with legend order
-}        
-
-# Create "idx" column with integer values indicating order in stacked bar
-queue_compare["idx"] = queue_compare["tg"].map(resource_order_idx)
-
-chart = alt.Chart(queue_compare).mark_bar(size=30).encode(
-    x=alt.X('year:N', title=None, sort=sch_order),
-    y=alt.Y('sum(cap_1):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), scale=alt.Scale(domain=[0, 2200000]), sort=status_cat),
-    color=alt.Color('tg', 
-                    scale=alt.Scale(range=['gold','goldenrod','skyblue','aqua','lightpink','darkseagreen','aquamarine',
-                                           'saddlebrown','grey','black','lightblue','violet','turquoise']),
-                    sort=status_cat),
-    order=alt.Order('idx')).configure_axis(titleFontSize=15, labelFontSize=15, grid=False
-                ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
-    width=500,
-    height=300,
-    title='Interconnection Queue Version ' + str(version_1-1)
-)
-
-# Version 1 is a historical vintage, so only write its figure if it was never generated before
-version_1_figure = os.path.join(dir,'outputs','figures','queue_versions_'+str(version_1-1)+'.html')
-if os.path.exists(version_1_figure):
-    print('Keeping existing ' + os.path.basename(version_1_figure) + ' (historical version, not regenerated)')
-else:
-    chart.save(version_1_figure)
-
-# Graph version 2:
 sch_order = year_range
 status_cat = ['pv','csp','wind-ons', 'wind-ofs', 'nuclear', 'battery', 'pumped-hydro',
               'biomass', 'gas', 'coal','hydro', 'geothermal', 'h2']
@@ -286,11 +223,11 @@ resource_order_idx = {
 }        
 
 # Create "idx" column with integer values indicating order in stacked bar
-queue_compare["idx"] = queue_compare["tg"].map(resource_order_idx)
+queue_plot["idx"] = queue_plot["tg"].map(resource_order_idx)
 
-chart = alt.Chart(queue_compare).mark_bar(size=30).encode(
+chart = alt.Chart(queue_plot).mark_bar(size=30).encode(
     x=alt.X('year:N', title=None, sort=sch_order),
-    y=alt.Y('sum(cap_2):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), scale=alt.Scale(domain=[0, 2200000]), 
+    y=alt.Y('sum(cap):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), scale=alt.Scale(domain=[0, 2200000]),
             sort=status_cat),
     color=alt.Color('tg', 
                     scale=alt.Scale(range=['gold','goldenrod','skyblue','aqua','lightpink','darkseagreen','aquamarine',
@@ -300,38 +237,7 @@ chart = alt.Chart(queue_compare).mark_bar(size=30).encode(
                 ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
     width=500,
     height=300,
-    title='Interconnection Queue Version ' + str(version_2-1)
+    title='Interconnection Queue Version ' + str(version-1)
 )
 
-chart.save(os.path.join(dir,'outputs','figures','queue_versions_'+str(version_2-1)+'.html'))
-
-
-# Graph difference in planned online capacity between old and new NEMS
-sch_order = year_range
-status_cat = ['pv','csp','wind-ons', 'wind-ofs', 'nuclear', 'battery', 'pumped-hydro',
-              'biomass', 'gas', 'coal','hydro', 'geothermal', 'h2']
-
-resource_order_idx = {
-    resource: idx 
-    for idx, resource in enumerate(status_cat[::-1]) # Reverse list to align colors with legend order
-}        
-
-# Create "idx" column with integer values indicating order in stacked bar
-queue_compare["idx"] = queue_compare["tg"].map(resource_order_idx)
-
-chart = alt.Chart(queue_compare).mark_bar(size=30).encode(
-    x=alt.X('year:N', title=None, sort=sch_order),
-    y=alt.Y('sum(cap_diff):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), #scale=alt.Scale(domain=[-40000, 60000]), 
-            sort=status_cat),
-    color=alt.Color('tg', 
-                    scale=alt.Scale(range=['gold','goldenrod','skyblue','aqua','lightpink','darkseagreen','aquamarine',
-                                           'saddlebrown','grey','black','lightblue','violet','turquoise']),
-                    sort=status_cat),
-    order=alt.Order('idx')).configure_axis(titleFontSize=15, labelFontSize=15, grid=False
-                ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
-    width=500,
-    height=300,
-    title='Interconnection Queue Difference (Version ' + str(version_2-1) + ' - Version ' + str(version_1-1) + ')'
-)
-
-chart.save(os.path.join(dir,'outputs','figures','compare_queue_versions.html'))
+chart.save(os.path.join(dir,'outputs','figures','queue_versions_'+str(version-1)+'.html'))

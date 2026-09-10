@@ -24,14 +24,12 @@ Note: starting with the 2025 data vintage, LBNL renamed several columns (`IA_sta
 - The script prints how many requests it relabeled and lists any supplement record it could not match
 - See the `add_detailed_types` docstring for how hybrid / co-located requests are matched
 
-To use a new vintage, update `filename_other` at the top of the script; set it to `None` for vintages that don't need it.
+The script processes the 2025 vintage and requires both workbooks; no historical queue inputs or outputs are needed.
 
 # Output
 - Located in the `outputs` folder
 - Final file that will be used to run ReEDS: `interconnection_queues.csv`
-- Previous version files are also kept there
+- The same data is saved as `interconnection_queues_2025.csv`, covering 2027-2031
 
-# Comparison figures
-- Interconnection queue figures for 2 versions of queue data can be generated from `process_interconnection_queues.py` by setting the versions' release years and the first and last years that cap limit is applied for the two versions
-  
-![comparing two versions of interconnection queue](comparing_interconnection_queue_versions.png)
+# Figure
+- The script generates `outputs/figures/queue_versions_2025.html` from the current output. Historical and difference figures are no longer generated.
