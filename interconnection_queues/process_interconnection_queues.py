@@ -102,9 +102,16 @@ queue_data = pd.read_excel(os.path.join(dir,'inputs',filename), sheet_name='03. 
 queue_data.columns = queue_data.iloc[0]
 queue_data = queue_data[1:]
 
+queue_data = queue_data.rename(columns={
+    'fips_code': 'fips_codes',
+    'IA_phase_clean': 'IA_status_clean',
+    **{prefix+'_'+str(item+1): prefix+str(item+1)
+       for prefix in ['type', 'mw'] for item in range(type_no)},
+})
+
 if filename_other is not None and version >= 2026:
     queue_data = add_detailed_types(
-        queue_data, filename_other, ['type_'+str(item+1) for item in range(type_no)])
+        queue_data, filename_other, ['type'+str(item+1) for item in range(type_no)])
 
 # County-to-FIPS mapping from the ReEDS repo
 county_state = pd.read_csv(os.path.join(reeds_path,'inputs','zones','county_state.csv'))
@@ -129,16 +136,9 @@ for pt in list(range(type_no)):
     item = pt+1
 
     # Filter out tech type
-    if version < 2026:
-        queue_data_temp = queue_data[['q_status', 'county', 'state', 'fips_codes', 'IA_status_clean', 'type'+str(item),'mw'+str(item)]]
-        queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'fips_codes': 'FIPS',
-                                                          'type'+str(item): 'tech','mw'+str(item):'cap'+str(item)})
-    else:
-        # In version 2026, IA_status_* was renamed to IA_phase_* and the type/mw columns gained an underscore
-        queue_data_temp = queue_data[['q_status', 'county', 'state', 'fips_code', 'IA_phase_clean', 'type_'+str(item),'mw_'+str(item)]]
-        queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'fips_code': 'FIPS',
-                                                          'IA_phase_clean': 'IA_status_clean',
-                                                          'type_'+str(item): 'tech','mw_'+str(item):'cap'+str(item)})
+    queue_data_temp = queue_data[['q_status', 'county', 'state', 'fips_codes', 'IA_status_clean', 'type'+str(item),'mw'+str(item)]]
+    queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'fips_codes': 'FIPS',
+                                                      'type'+str(item): 'tech','mw'+str(item):'cap'+str(item)})
 
     # Capacities are read as objects because of the header offset, so cast them back to numbers
     queue_data_temp['cap'+str(item)] = pd.to_numeric(queue_data_temp['cap'+str(item)], errors='coerce')
