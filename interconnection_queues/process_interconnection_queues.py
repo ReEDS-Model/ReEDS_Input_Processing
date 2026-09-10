@@ -241,3 +241,24 @@ chart = alt.Chart(queue_plot).mark_bar(size=30).encode(
 )
 
 chart.save(os.path.join(dir,'outputs','figures','queue_versions_'+str(version-1)+'.html'))
+
+############### COMPARISON PLOT #######################
+queue_previous = pd.read_csv(os.path.join(dir,'outputs','interconnection_queues_'+str(version-2)+'.csv'))
+previous_years = [col for col in queue_previous.columns if col.isdigit()]
+queue_previous = pd.melt(queue_previous, id_vars=['r','tg'], value_vars=previous_years,
+                         var_name='year', value_name='cap_previous')
+queue_previous = queue_previous.groupby(['tg','year'])['cap_previous'].sum().reset_index()
+
+queue_compare = queue_plot.merge(queue_previous, on=['tg','year'], how='outer')
+queue_compare[['cap','cap_previous']] = queue_compare[['cap','cap_previous']].fillna(0)
+queue_compare['cap_diff'] = queue_compare['cap'] - queue_compare['cap_previous']
+queue_compare['idx'] = queue_compare['tg'].map(resource_order_idx)
+
+chart_compare = chart.properties(
+    data=queue_compare,
+    title='Interconnection Queue Difference (Version ' + str(version-1) + ' - Version ' + str(version-2) + ')'
+).encode(
+    x=alt.X('year:N', title=None, sort=sorted(set(previous_years + year_range_str), key=int)),
+    y=alt.Y('sum(cap_diff):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), sort=status_cat)
+)
+chart_compare.save(os.path.join(dir,'outputs','figures','compare_queue_versions.html'))

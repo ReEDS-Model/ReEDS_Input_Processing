@@ -24,12 +24,15 @@ Note: starting with the 2025 data vintage, LBNL renamed several columns (`IA_sta
 - The script prints how many requests it relabeled and lists any supplement record it could not match
 - See the `add_detailed_types` docstring for how hybrid / co-located requests are matched
 
-The script processes the 2025 vintage and requires both workbooks; no historical queue inputs or outputs are needed.
+The script processes the 2025 vintage and requires both workbooks. The comparison plot also requires the previous vintage's saved CSV; no historical workbook processing is needed.
 
 # Output
 - Located in the `outputs` folder
 - Final file that will be used to run ReEDS: `interconnection_queues.csv`
 - The same data is saved as `interconnection_queues_2025.csv`, covering 2027-2031
 
-# Figure
-- The script generates `outputs/figures/queue_versions_2025.html` from the current output. Historical and difference figures are no longer generated.
+# Figures
+- The script generates `outputs/figures/queue_versions_2025.html` from the current output and `outputs/figures/compare_queue_versions.html` for 2025 minus 2024.
+- Comparison vintages follow `version` (the release year): current data is `version-1`, and the previous CSV is `outputs/interconnection_queues_<version-2>.csv`. Year columns are read from that CSV.
+- For a 2026 data update, update the workbook filenames, set `version=2027`, and update `t_1`/`t_2`. The comparison automatically becomes 2026 minus 2025, using the saved 2025 CSV.
+- Years present in only one vintage are plotted against zero for the difference calculation; this does not mean the missing vintage imposed a zero-capacity limit.
