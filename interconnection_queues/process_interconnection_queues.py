@@ -145,7 +145,7 @@ name2fips = county_state.set_index(county_state['county_name']+'|'+county_state[
 fips_byname = (active_queue['county_name'].str.lower()+'|'+active_queue['state']).map(name2fips)
 active_queue['FIPS'] = fips_reported.where(fips_reported.isin(county_state['FIPS']), fips_byname)
 active_queue_agg = active_queue.groupby(['FIPS','tech','online_year'])['cap'].sum().reset_index()
-active_queue_county = county_state.merge(active_queue_agg, on='FIPS', how='inner')
+active_queue_county = active_queue_agg[active_queue_agg['FIPS'].isin(county_state['FIPS'])].copy()
 
 # Assign 0 queue cap value to county-year pair with no value
 unique_year_FIPS = pd.DataFrame(product(active_queue_county['FIPS'].unique(),[t_1,t_2]),columns=['FIPS','online_year'])
