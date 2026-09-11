@@ -1,0 +1,10 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Outputs and intermediate inputs (reproducible)
+outputs/
+inputs/gasreg_regression_data.csv

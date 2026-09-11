@@ -16,7 +16,7 @@ igdx("c:\\gams\\win64\\24.7")
 #WriteHintage.R
 Args=list()
 #WriteHintage.R
-# localrepo <- "D:/ReEDS_YSun/ReEDS-2.0/"
+# localrepo <- "D:/ReEDS_YSun/ReEDS/"
 setwd(localrepo)
 genunitfile='inputs\\capacitydata\\ReEDS_generator_database_final_EIA-NEMS.csv'
 retscen = "NukeRefRetireYear"

@@ -5,6 +5,11 @@
 
 import pandas as pd
 import json
+import sys
+
+reeds_path = '' # User should specify path to ReEDS repository here
+sys.path.append(reeds_path)
+import reeds
 
 
 def get_line_data(line_id_certificate_map):    
@@ -58,12 +63,8 @@ def main():
     )
     county_capacities = county_capacities.loc[county_capacities.Capacity > 0].copy()
 
-    # Rename counties to match ReEDS counties file and merge to get corresponding pFIPS
-    reeds_counties = pd.read_excel(
-        '../Region_Disaggregation/processing_scripts/county_reeds_corrected0310.xlsx',
-        header=0,
-        usecols=['NAME','STATE_NAME','pFIPS']
-    )
+    # Rename counties to match ReEDS counties file and merge to get corresponding FIPS code
+    reeds_counties = reeds.io.get_countymap()[['NAME', 'STATE', 'rb']]
     county_capacities['County'] = county_capacities['County'].str.replace('Saint', 'St.')
     assert (
         len(reeds_counties.loc[reeds_counties.NAME.isin(county_capacities.County)].NAME.unique())
@@ -71,11 +72,11 @@ def main():
     )
     county_capacities = (
         county_capacities.merge(
-            reeds_counties[['NAME', 'STATE_NAME', 'pFIPS']],
+            reeds_counties,
             left_on=['County', 'State'],
-            right_on=['NAME', 'STATE_NAME']
+            right_on=['NAME', 'STATE']
         )
-        [['Province', 'pFIPS', 'Capacity']]
+        [['Province', 'rb', 'Capacity']]
     )
 
     # Calculate proportion of each province's transmission capacity going to each county
@@ -87,7 +88,7 @@ def main():
     province_to_county_map = pd.pivot_table(
         county_capacities,
         index='Province',
-        columns='pFIPS',
+        columns='rb',
         values='proportion_of_province_capacity'
     )
     assert(all(province_to_county_map.sum(axis=1) == 1))

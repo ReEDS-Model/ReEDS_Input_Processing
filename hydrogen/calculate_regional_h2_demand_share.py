@@ -2,8 +2,8 @@ import pandas as pd
 import os
 import sys
 import geopandas as gpd
-#reeds_path = os.path.expanduser('~/github/ReEDS-2.0')
-reeds_path = os.path.expanduser('~/Documents/Github/ReEDS/ReEDS-2.0/')
+#reeds_path = os.path.expanduser('~/github/ReEDS')
+reeds_path = os.path.expanduser('~/Documents/Github/ReEDS/ReEDS/')
 sys.path.append(reeds_path)
 import reeds
 

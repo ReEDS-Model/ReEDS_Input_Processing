@@ -2,7 +2,7 @@ These updates were done 05/31/2024 by Wesley Cole and Max Vanatta and 02/28/2025
 
 The GSw_Canada switch for cases in ReEDS allow for:
 0: No Canadian trade
-1: Seasonal balancing of Canadian electricity trade which uses the annual balances (can_exports.csv and can_imports.csv in outputs folder, which contains inputs to ReEDS-2.0) and seasonal fractions (can_exports_szn_frac.csv and can_imports_szn_frac.csv in outputs folder). Operated simnilar to Hydro.
+1: Seasonal balancing of Canadian electricity trade which uses the annual balances (can_exports.csv and can_imports.csv in outputs folder, which contains inputs to ReEDS) and seasonal fractions (can_exports_szn_frac.csv and can_imports_szn_frac.csv in outputs folder). Operated similar to Hydro.
 2: (not implemented in Current ReEDS 2.0) Strict hourly limits defined by can_trade_8760.h5
 
 To generate updated input files for option 1 using Canadian_import_export_formatter.py:
@@ -24,6 +24,7 @@ Option 2 has been deprecated in the current version of ReEDS (2024.4.0), so the 
 To update the province-to-county map:
 - Download the "Border Crossings - Electric Transmission Line" dataset from the EIA: https://www.eia.gov/trilateral/#!/maps. 
 - Move and rename the file to "data/raw_inputs/EIA_trilateral_lines.csv".
+- If there are known lines that are not included in the EIA dataset, add them to "data/raw_inputs/manual_usa_can_lines.csv".
 - Run process_eia_lines.py to create "data/EIA_usa_can_lines.csv".
 
 - Download the "Sheet 1" Excel file from the Canadian government's "International Power Lines" dashboard: https://www.cer-rec.gc.ca/en/data-analysis/facilities-we-regulate/international-power-lines-dashboard/.
@@ -37,3 +38,5 @@ To update the province-to-county map:
 -- In cases where the U.S. state listed in the datasets do not match, we use EIA's provided location, as it has county-level information.
 
 - Run create_province_to_county_map.py in the "Exogenous_Canadian_Trade" directory.
+
+Note: The entry of "data/raw_inputs/CER_usa_can_lines.xlsx" corresponding to the CHPE Quebec-New York City line (https://chpexpress.com/construction/), which has original regulatory instrument ID "EP-306", was updated manually to change its status from "Approved" to "Operating" because the line's completion was not reflected in the CER dataset at the time of writing (August 2026).

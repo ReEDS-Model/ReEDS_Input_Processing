@@ -15,7 +15,7 @@ import os
 from dsgrid2reeds import read_file
 
 #%%
-reedsdir = os.path.join("C:\\Users\\LSERPE\\Documents\\Repo\\main\\ReEDS-2.0")
+reedsdir = os.path.join("C:\\Users\\LSERPE\\Documents\\Repo\\main\\ReEDS")
 inputs_dir = os.path.join(reedsdir,'inputs')
 hierarchy = pd.read_csv(os.path.join(inputs_dir,'hierarchy.csv'))
 

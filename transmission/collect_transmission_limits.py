@@ -7,7 +7,7 @@ from tqdm import tqdm
 from glob import glob
 import geopandas as gpd
 
-reeds_path = os.path.expanduser('~/github/ReEDS-2.0')
+reeds_path = os.path.expanduser('~/github/ReEDS')
 remotepath = '/Volumes/ReEDS/Users/pbrown/Transmission/TSC/runs/'
 tscpath = os.path.expanduser('~/github/TSC')
 

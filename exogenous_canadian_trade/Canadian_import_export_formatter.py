@@ -11,7 +11,7 @@ Monthly_Sheet = 'Fig. 1(m), Fig. 3(m)'
 Canada_Projection_FN = 'Electricity_Interchange.xlsx' # From https://apps.cer-rec.gc.ca/ftrppndc/dflt.aspx?GoCTemplateCulture=en-CA
 
 # Ensure the headers for the provinces match the excel file
-Province_header_dict = {'Newfoundland and Labrador':6,
+Province_header_dict = {'Newfoundland and Labrador':15,
                         'Prince Edward Island':24,
                         'Nova Scotia':33,
                         'New Brunswick':42,
@@ -70,7 +70,7 @@ Import_Season_Fractions['order'] = [order_dict[x] for x in Import_Season_Fractio
 Import_Season_Fractions.sort_values(by = 'order',inplace = True)
 Import_Season_Fractions.drop('order',axis = 1, inplace = True)
 Import_Season_Fractions.columns = ['*szn','frac']
-Import_Season_Fractions.round(4).to_csv(os.path.join(Output_folder, 'can_imports_quarter_frac.csv'), index = False)
+Import_Season_Fractions.round(5).to_csv(os.path.join(Output_folder, 'can_imports_quarter_frac.csv'), index = False)
 
 # generating the Exports season fractions from available years
 Export_Season_Fractions = pd.DataFrame(pd.pivot_table(Historical, values = ['Export_Month_Fraction'], index = 'Season',  aggfunc = 'sum'))
@@ -81,7 +81,7 @@ Export_Season_Fractions['order'] = [order_dict[x] for x in Export_Season_Fractio
 Export_Season_Fractions.sort_values(by = 'order',inplace = True)
 Export_Season_Fractions.drop('order',axis = 1, inplace = True)
 Export_Season_Fractions.columns = ['*szn','frac']
-Export_Season_Fractions.round(4).to_csv(os.path.join(Output_folder, 'can_exports_szn_frac.csv'), index = False)
+Export_Season_Fractions.round(5).to_csv(os.path.join(Output_folder, 'can_exports_szn_frac.csv'), index = False)
 
 
 ########################################
@@ -151,4 +151,4 @@ Imports.set_index('r', inplace = True)
 
 Imports.round(1).to_csv(os.path.join(Output_folder, 'can_imports.csv'))
 
-print(f"Run complete. See outputs folder for outputs which are inputs to ReEDS-2.0.")
+print(f"Run complete. See the '{Output_folder}' directory for outputs.")

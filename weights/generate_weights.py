@@ -11,8 +11,8 @@ import os
 import sys
 
 # get ReEDS path
-# https://github.com/natlabrockies/ReEDS-2.0
-reeds_path = os.path.expanduser('~/ReEDS-2.0')
+# https://github.com/ReEDS-Model/ReEDS
+reeds_path = os.path.expanduser('~/ReEDS')
 sys.path.append(reeds_path)
 import reeds
 
