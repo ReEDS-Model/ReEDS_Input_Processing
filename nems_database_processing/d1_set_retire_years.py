@@ -203,7 +203,7 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
     df_temp['EFDcd'] = 'CTN'
     df_temp['T_SYR'] = 2028
     df_temp['T_RYR'] = 2108
-    # Keep the old coal unit with 2025 retirement year
+    # Keep the old coal unit and change retire year to 2026
     nems_cleaned.loc[(nems_cleaned['T_PID']==3845) &
                      (nems_cleaned['T_UID']=='2') &
                      (nems_cleaned['EFDcd']=='CSC'),
