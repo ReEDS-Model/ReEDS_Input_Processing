@@ -1,6 +1,7 @@
 """Download and normalize observed generator capital costs, O&M, and CF."""
 
 import hashlib
+import math
 import re
 from io import BytesIO
 from pathlib import Path
@@ -612,6 +613,48 @@ def _sha256(path):
     return digest.hexdigest()
 
 
+def extract_nuclear_projects(path):
+    """Read nuclear project costs and calculate USD/kW."""
+    data = pd.read_csv(path, keep_default_na=False)
+    if data.empty or data.year.duplicated().any():
+        raise ValueError('Nuclear projects require distinct annual anchors')
+    rows = []
+    for project in data.to_dict('records'):
+        total, capacity, per_kw = (project[c] for c in
+                                  ('reported_total_usd', 'capacity_mw', 'reported_usd_per_kw'))
+        if per_kw != '' and total == '' and capacity == '':
+            value = float(per_kw)
+        elif per_kw == '' and total != '' and capacity != '':
+            if not math.isfinite(float(capacity)) or float(capacity) <= 0:
+                raise ValueError('Nuclear project capacity must be finite and positive')
+            value = float(total) / (float(capacity) * 1000)
+        else:
+            raise ValueError('Supply either project USD and MW or reported USD/kW')
+        if not math.isfinite(value) or value <= 0:
+            raise ValueError('Nuclear project costs must be finite and positive')
+        if project['statistic'] not in ('project_proxy', 'project_reconstruction'):
+            raise ValueError('Nuclear costs must identify their derived cost basis')
+        for column in ('year', 'dollar_year'):
+            number = float(project[column])
+            if not math.isfinite(number) or not number.is_integer() or number < 1900:
+                raise ValueError(f'Invalid nuclear {column}')
+        if not project['source_page_url'] or not project['notes']:
+            raise ValueError('Nuclear projects require source URLs and qualifications')
+        rows.append(dict(
+            technology='nuclear', technology_detail=project['project'],
+            year=int(project['year']), metric='capital_cost', value=value,
+            unit='USD/kW', capacity_basis=project['capacity_basis'],
+            statistic=project['statistic'], geography='United States',
+            dollar_year=int(project['dollar_year']), price_basis=project['price_basis'],
+            sample_count=project['sample_count'], source_id='nuclear_projects',
+            source_file=Path(path).name, source_sheet='',
+            source_table=project['source_location'],
+            source_page_url=project['source_page_url'], source_data_url=project['source_data_url'],
+            notes=project['notes'],
+        ))
+    return rows
+
+
 def _artifact(source_id, source, year=None):
     if source_id in ("eia_generator_costs", "eia860_storage"):
         filename = source["filename"].format(year=year)
@@ -696,6 +739,16 @@ def scrape(config, selected="all", force=False, no_download=False):
     normalized = pd.DataFrame(rows, columns=COLUMNS).sort_values(
         ["technology", "metric", "source_id", "capacity_basis", "geography", "year"]
     )
+    if settings.get('nuclear_project_file') and selected in ('all', 'nuclear'):
+        path = resolve_atb_path(settings['nuclear_project_file'])
+        projects = pd.DataFrame(extract_nuclear_projects(path), columns=COLUMNS)
+        normalized = pd.concat([normalized, projects], ignore_index=True)
+        manifest.append(dict(
+            source_id='nuclear_projects', report_year='',
+            page_url=' | '.join(projects.source_page_url),
+            data_url=' | '.join(projects.source_data_url),
+            local_file=path.name, size_bytes=path.stat().st_size, sha256=_sha256(path),
+        ))
     normalized_path = output_dir / settings["normalized_filename"]
     manifest_path = output_dir / settings["manifest_filename"]
     normalized.to_csv(normalized_path, index=False)

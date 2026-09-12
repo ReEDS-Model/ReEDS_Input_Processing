@@ -38,6 +38,10 @@ retain their original dollar year (2024 for LBNL) and mapped costs use 2022
 dollars. Alternate cost statistics and reported energy-weighted durations
 remain raw; the latter are not used for this conversion.
 
+Nuclear capital history uses Watts Bar 2 (2016) and combined Vogtle 3-4 (2024)
+from `../manual_input/nuclear_historical_projects.csv`. Both are `calculated`;
+source notes document their cost definitions and assumptions.
+
 All seven CSP project costs and 171 annual plant CF observations are retained.
 Crescent Dunes remains the mapped cost proxy; the other designs lack a reviewed
 configuration mapping. CSP CF rows describe operating years, not build vintages,

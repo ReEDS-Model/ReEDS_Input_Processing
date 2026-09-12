@@ -57,6 +57,7 @@ METRIC_LABELS = {
 PROVENANCE_COLORS = {
     "Manual history": "#0072B2",
     "Observed history (real)": "#009E73",
+    "Calculated project history": "#117A65",
     "Scaled real history": "#A6761D",
     "Split real history": "#56B4E9",
     "Filled real history": "#D55E00",
@@ -578,6 +579,10 @@ def provenance_categories(
                         f"{provenance['technology']}.{metric} selects real "
                         "history, but this plotted series has no real mapping."
                     )
+                if (provenance['technology'] == 'nuclear' and metric == 'capcost'
+                        and is_observed_history_point(final_group, metric, int(year), provenance)):
+                    final_categories.append('Calculated project history')
+                    continue
                 if is_scaled_csp_history(final_group, metric, provenance) and any(
                     int(year) in series['years']
                     for series in provenance['observed_series'].get(metric, [])
@@ -624,7 +629,8 @@ def input_point_categories(
     historical_mode = resolve_historical_mode(metric, final_group, provenance)
     categories = []
     for year, category in zip(years, final_categories):
-        if category in ('Observed history (real)', 'Split real history', 'Scaled real history'):
+        if category in ('Observed history (real)', 'Split real history', 'Scaled real history',
+                        'Calculated project history'):
             categories.append(category)
         elif year >= boundary:
             categories.append("ATB projection (raw)")
@@ -777,6 +783,7 @@ def plot_file_with_provenance(
                 ).to_numpy()
                 real_points = np.isin(point_categories, [
                     'Observed history (real)', 'Split real history', 'Scaled real history',
+                    'Calculated project history',
                 ])
                 point_values[real_points] = values[real_points]
                 for category in PROVENANCE_COLORS:

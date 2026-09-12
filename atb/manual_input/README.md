@@ -6,6 +6,8 @@
   adjustments to ATB offshore costs.
 - `coal_projection_overrides_<year>.csv`: retained ReEDS coal values for
   specified projection years (2024: 2033-2034).
+- `nuclear_historical_projects.csv`: TVA and MIT capital-cost inputs and source
+  notes, prepared in `../historical/real.csv`.
 
 Historical values are consolidated in `../historical/manual.csv`, sourced from
 ReEDS ATB 2024. Review year-specific projection inputs when updating ATB.

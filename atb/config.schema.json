@@ -95,6 +95,7 @@
         "manifest_filename": {"type": "string", "minLength": 1},
         "allow_insecure_ssl_fallback": {"type": "boolean"},
         "reeds_mappings": {"$ref": "#/definitions/reedsMappings"},
+        "nuclear_project_file": {"type": "string", "minLength": 1},
         "battery_cost_split": {
           "type": "object",
           "additionalProperties": false,
@@ -369,6 +370,7 @@
       "properties": {
         "battery": {"$ref": "#/definitions/batteryMetricMappings"},
         "csp": {"$ref": "#/definitions/metricMappings"},
+        "nuclear": {"$ref": "#/definitions/metricMappings"},
         "upv": {"$ref": "#/definitions/metricMappingsWithCf"},
         "wind-ons": {"$ref": "#/definitions/metricMappingsWithCf"},
         "wind-ofs": {"$ref": "#/definitions/metricMappings"},
@@ -683,7 +685,7 @@
             "gas": {"$ref": "#/definitions/technologyObservedCapcost"},
             "gas-ccs": {"$ref": "#/definitions/technologyCostsWithHeatrate"},
             "fuelcell": {"$ref": "#/definitions/technologyCostsWithHeatrate"},
-            "nuclear": {"$ref": "#/definitions/technologyCostsWithHeatrate"},
+            "nuclear": {"$ref": "#/definitions/technologyObservedCapcost"},
             "nuclear-smr": {"$ref": "#/definitions/technologyCostsWithHeatrate"},
             "biopower": {"$ref": "#/definitions/technologyObservedCapcost"}
           }

@@ -105,9 +105,11 @@ def prepare_real(settings, deflator, deflator_source):
     manifest = pd.read_csv(directory / config['manifest_filename'], keep_default_na=False)
     rows = []
     for index, source in raw.iterrows():
+        calculated = (source.source_id == 'nuclear_projects'
+                      or (source.metric == 'storage_duration'
+                          and source.statistic == 'capacity_weighted_cohort'))
         row = point(source.technology, f'raw:{index}', source.metric, source.year, source.value,
-                    source.dollar_year, 'calculated' if (source.metric == 'storage_duration'
-                                                        and source.statistic == 'capacity_weighted_cohort') else 'real',
+                    source.dollar_year, 'calculated' if calculated else 'real',
                     observed_references(raw.loc[[index]], directory, manifest),
                     source.notes or 'Reported historical observation.')
         row.update(scope='raw', unit=source.unit, dollar_year=source.dollar_year,
@@ -130,6 +132,11 @@ def prepare_real(settings, deflator, deflator_source):
                 extras = [deflator_source] if metric in MONETARY else []
                 method = 'Reviewed source mapping; monetary values converted with the ReEDS deflator.' if metric in MONETARY else 'Observed capacity factor fraction; normalized to the current ATB reference during formatting.'
                 calculated = False
+                if tech == 'nuclear':
+                    calculated = True
+                    method = ('Provisional large-nuclear project cost mapping; completion-cost proxy '
+                              'and reconstructed overnight cost are not equivalent cost scopes. '
+                              'Converted with the ReEDS deflator. See sources for project qualifications.')
                 if tech == 'battery':
                     durations = _observed_values_by_year(
                         tech, {'output_column': 'storage_duration'}, settings, deflator, observed=duration_rows)

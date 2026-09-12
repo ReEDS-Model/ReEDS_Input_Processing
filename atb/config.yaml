@@ -26,7 +26,15 @@ historical_cost_sources:
   normalized_filename: historical_capital_costs.csv
   manifest_filename: source_manifest.csv
   allow_insecure_ssl_fallback: true
+  nuclear_project_file: manual_input/nuclear_historical_projects.csv
   reeds_mappings:
+    nuclear:
+      capcost:
+        filters:
+          source_id: nuclear_projects
+          technology: nuclear
+          metric: capital_cost
+          unit: USD/kW
     battery:
       capcost: &battery_total_cost
         filters:
@@ -364,7 +372,7 @@ processing:
           smooth_projection_curve: false
       nuclear:
         historical_data:
-          capcost: atb
+          capcost: real
           fom: atb
           vom: atb
           heatrate: atb
