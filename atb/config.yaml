@@ -1,0 +1,424 @@
+# yaml-language-server: $schema=./config.schema.json
+
+workflow:
+  format_reeds_inputs: true
+  make_plots: true
+  make_comparison_plots: true
+
+atb:
+  year: 2024
+  release_version: 3
+  dollar_year: 2022
+
+raw_data:
+  directory: scraped_input
+  allow_insecure_ssl_fallback: true
+  flat_file:
+    filename: atb_2024_flat_file.csv
+    url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2024/v3.0.0/ATBe.csv
+  workbook:
+    filename: atb_2024_workbook.xlsx
+    url: https://data.openei.org/files/6006/2024_v3_Workbook.xlsx
+
+# Scraper inputs and reviewed mappings.
+historical_cost_sources:
+  directory: scraped_input/historical_costs
+  normalized_filename: historical_capital_costs.csv
+  manifest_filename: source_manifest.csv
+  allow_insecure_ssl_fallback: true
+  reeds_mappings:
+    battery:
+      capcost: &battery_total_cost
+        filters:
+          source_id: eia_generator_costs
+          technology: battery
+          metric: capital_cost
+          unit: USD/kW
+          source_table: major_energy_source
+          statistic: capacity_weighted_mean
+      capcost_energy: *battery_total_cost
+    csp:
+      capcost:
+        filters:
+          source_id: utility_pv
+          technology: csp
+          technology_detail: Crescent Dunes
+          metric: capital_cost
+          unit: USD/kW
+          capacity_basis: AC
+          statistic: project
+          geography: United States
+    upv:
+      fom:
+        filters:
+          source_id: utility_pv
+          metric: fixed_om
+          unit: USD/kW-yr
+          capacity_basis: AC
+          statistic: mean
+          geography: United States
+      cf_improvement:
+        filters:
+          source_id: utility_pv
+          metric: capacity_factor
+          unit: fraction
+          capacity_basis: AC
+          statistic: capacity_weighted_cumulative
+          geography: United States
+      capcost:
+        filters:
+          source_id: utility_pv
+          metric: capital_cost
+          unit: USD/kW
+          capacity_basis: AC
+          statistic: capacity_weighted_mean
+          geography: United States
+    biopower:
+      capcost:
+        filters:
+          source_id: eia_generator_costs
+          metric: capital_cost
+          unit: USD/kW
+          technology_detail: Biomass
+          source_table: major_energy_source
+    gas:
+      capcost:
+        series:
+          - technologies:
+              - Gas-CC
+            filters:
+              source_id: eia_generator_costs
+              metric: capital_cost
+              unit: USD/kW
+              technology_detail: Natural gas combined cycle
+              source_table: natural_gas_technology
+          - technologies:
+              - Gas-CT
+            filters:
+              source_id: eia_generator_costs
+              metric: capital_cost
+              unit: USD/kW
+              technology_detail: Natural gas combustion turbine
+              source_table: natural_gas_technology
+    wind-ofs:
+      capcost:
+        turbine_classes:
+          - fixed
+        filters:
+          source_id: offshore_wind
+          metric: capital_cost
+          unit: USD/kW
+          capacity_basis: nameplate
+          statistic: capacity_weighted_mean
+          geography: Europe and United States
+    wind-ons:
+      fom:
+        filters:
+          source_id: land_based_wind
+          metric: fixed_om
+          unit: USD/kW-yr
+          capacity_basis: nameplate
+          statistic: mean
+          geography: United States
+      cf_improvement:
+        filters:
+          source_id: land_based_wind
+          metric: capacity_factor
+          unit: fraction
+          capacity_basis: nameplate
+          statistic: generation_weighted_mean
+          geography: United States
+      capcost:
+        filters:
+          source_id: land_based_wind
+          metric: capital_cost
+          unit: USD/kW
+          capacity_basis: nameplate
+          statistic: capacity_weighted_mean
+          geography: United States
+  battery_cost_split:
+    reference_year: 2022
+    reference_scenario: Moderate
+    preferred_cost_filters:
+      source_id: utility_pv
+      technology: battery
+      metric: capital_cost
+      unit: USD/kWh
+      statistic: energy_weighted_mean
+    preferred_duration_filters:
+      source_id: utility_pv
+      technology: battery
+      metric: storage_duration
+      unit: hours
+      statistic: capacity_weighted_cohort
+    duration_filters:
+      source_id: eia860_storage
+      technology: battery
+      metric: storage_duration
+      unit: hours
+      statistic: capacity_weighted_cohort
+  sources:
+    eia860_storage:
+      enabled: true
+      first_year: 2016
+      last_year: 2024
+      first_cohort_year: 2015  # Taken from the 2016 inventory.
+      page_url: https://www.eia.gov/electricity/data/eia860/
+      current_data_url: https://www.eia.gov/electricity/data/eia860/xls/eia8602024.zip
+      archive_data_url: https://www.eia.gov/electricity/data/eia860/archive/xls/eia860{year}.zip
+      filename: eia860_{year}.zip
+    land_based_wind:
+      enabled: true
+      report_year: 2025
+      page_url: https://emp.lbl.gov/publications/land-based-wind-energy-technology
+      data_url: https://eta-publications.lbl.gov/sites/default/files/2025-08/data_file_land-based_wind_energy_technology_update_2025_edition.xlsx
+      filename: lbnl_land_based_wind_2025.xlsx
+    utility_pv:
+      enabled: true
+      report_year: 2025
+      page_url: https://emp.lbl.gov/publications/us-utility-scale-solar-2025-data
+      data_url: https://eta-publications.lbl.gov/sites/default/files/2025-10/2025_utility-scale_solar_data_update.xlsx
+      filename: lbnl_utility_scale_solar_2025.xlsx
+    offshore_wind:
+      enabled: true
+      report_year: 2024
+      last_historical_year: 2023
+      page_url: https://www.nlr.gov/wind/offshore-market-assessment
+      data_url: https://www.nlr.gov/docs/fy24osti/90525data.xlsx
+      filename: nlr_offshore_wind_market_2024.xlsx
+    eia_generator_costs:
+      enabled: true
+      first_year: 2013
+      last_year: 2024
+      page_url: https://www.eia.gov/electricity/generatorcosts/
+      current_data_url: https://www.eia.gov/electricity/generatorcosts/xls/generator_costs.xlsx
+      archive_data_url: https://www.eia.gov/electricity/generatorcosts/archive/{year}/xls/generator_costs_{year}.xlsx
+      filename: eia_generator_costs_{year}.xlsx
+
+historical_atb:
+  directory: scraped_input/historical_atb
+  normalized_filename: historical_atb.csv
+  missing_series: broadcast
+  releases:
+    2015:
+      - format: workbook
+        filename: atb_2015_workbook.xlsm
+        dollar_year: 2013
+        url: https://docs.nlr.gov/docs/fy15osti/64077-DA.xlsm
+    2016:
+      - format: workbook
+        filename: atb_2016_workbook.xlsm
+        dollar_year: 2014
+        url: https://docs.nlr.gov/docs/fy16osti/66944-DA.xlsm
+    2017:
+      - format: workbook
+        filename: atb_2017_workbook.xlsm
+        dollar_year: 2015
+        url: https://data.nlr.gov/system/files/71/2017-ATB-data.xlsm
+    2018:
+      - format: workbook
+        filename: atb_2018_workbook.xlsm
+        dollar_year: 2016
+        url: https://data.nlr.gov/system/files/89/2018-ATB-data-interim-geo.xlsm
+    2019:
+      - format: workbook
+        filename: atb_2019_workbook.xlsm
+        dollar_year: 2017
+        url: https://data.nlr.gov/system/files/115/2019-ATB-data.xlsm
+    2020:
+      - format: workbook
+        filename: atb_2020_workbook.xlsm
+        dollar_year: 2018
+        url: https://atb-archive.nlr.gov/electricity/2020/files/2020-ATB-Data.xlsm
+    2021:
+      - format: workbook
+        filename: atb_2021_workbook.xlsm
+        dollar_year: 2019
+        url: https://data.openei.org/files/4129/2021-ATB-Data_Master_new.xlsm
+    2022:
+      - format: workbook
+        filename: atb_2022_workbook.xlsx
+        dollar_year: 2020
+        url: https://data.openei.org/files/5716/2022 v3 Annual Technology Baseline Workbook Mid-year update 2-15-2023.xlsx
+    2023:
+      - format: flat
+        filename: atb_2023_flat_file.csv
+        dollar_year: 2021
+        url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2023/ATBe.csv
+      - format: battery
+        filename: atb_2023_workbook.xlsx
+        dollar_year: 2021
+        url: https://data.openei.org/files/5865/2023-ATB-Data_Master_v9.0.xlsx
+
+processing:
+  atb_case: Market
+  atb_case_overrides: {}
+  reeds_repo: C:/ReEDS/ReEDS
+  output_directory: output
+  copy_to_reeds: false
+  technologies: all
+  update_costs: true
+  update_financials: false
+  sensitivity_name: null
+  reeds_start_year: 2010
+  decimals: 6
+  smooth_cost_curves:
+    enabled: true
+    method: selective
+    columns: all
+    fill_atbstartyear2atbyear_with_real: true
+    slope_change_threshold: 0.4
+    max_kink_years: 4
+    major_step_relative_threshold: 0.1
+    minimum_adjustment_relative_threshold: 0.001
+    # Default priority: real, then atb, then broadcast if no archive matches.
+    technologies:
+      upv:
+        historical_data:
+          capcost: real
+          fom: real
+          vom: atb
+          cf_improvement: real
+        future_smoothing_treatments:
+          smooth_projection_curve: false
+      wind-ons:
+        historical_data:
+          capcost: real
+          fom: real
+          vom: atb
+          cf_improvement: real
+        future_smoothing_treatments:
+          smooth_projection_curve: false
+      wind-ofs:
+        historical_data:
+          capcost:
+            fixed: real
+            floating: atb
+          fom: atb
+          vom: atb
+          cf_improvement: atb
+          rsc_mult: broadcast
+        future_smoothing_treatments:
+          smooth_projection_curve: false
+      battery:
+        historical_data:
+          capcost: real
+          capcost_energy: real
+          fom: atb
+          fom_energy: atb
+          vom: atb
+          rte: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false
+      csp:
+        historical_data:
+          capcost: real
+          fom: atb
+          vom: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false
+      coal:
+        historical_data:
+          capcost: atb
+          fom: atb
+          vom: atb
+          heatrate: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false
+      coal-ccs:
+        historical_data:
+          capcost: atb
+          fom: atb
+          vom: atb
+          heatrate: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: true
+      gas:
+        historical_data:
+          capcost:
+            Gas-CC: real
+            Gas-CC_H_1x1: atb
+            Gas-CC_H_2x1: atb
+            Gas-CT: real
+            Gas-CT_aero: atb
+          fom: atb
+          vom: atb
+          heatrate: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false
+      gas-ccs:
+        historical_data:
+          capcost: atb
+          fom: atb
+          vom: atb
+          heatrate: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false
+      fuelcell:
+        historical_data:
+          capcost: manual
+          fom: manual
+          vom: manual
+          heatrate: manual
+        future_smoothing_treatments:
+          smooth_projection_curve: false
+      nuclear:
+        historical_data:
+          capcost: atb
+          fom: atb
+          vom: atb
+          heatrate: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false
+      nuclear-smr:
+        historical_data:
+          capcost: atb
+          fom: atb
+          vom: atb
+          heatrate: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false
+      biopower:
+        historical_data:
+          capcost: real
+          fom: atb
+          vom: atb
+          heatrate: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false
+
+# ReEDS repository files fetched by historical_data_scraper.py. Pinning `ref`
+# makes the manual baseline and the deflator reproducible without a local clone.
+reeds_source:
+  repo: ReEDS-Model/ReEDS
+  ref: db6a1ba95836b649176fca50030e82a6b4cf9bb5
+  cache_directory: scraped_input/reeds_source
+
+# Prepared CSVs consumed by the pipeline.
+historical_data:
+  directory: historical
+  real_filename: real.csv
+  atb_filename: atb.csv
+  manual_filename: manual.csv
+  dollar_year: 2022
+  reference_atb_year: 2024
+
+plotting:
+  metrics:
+    - CAPEX
+    - Fixed O&M
+    - Variable O&M
+  crp_years: 20
+  figure_format: png
+  output_directory: figures
+  smoothing_comparison_directory: comparison/plot_component
+  technologies:
+    - Biopower
+    - Coal_FE
+    - CSP
+    - LandbasedWind
+    - NaturalGas_FE
+    - Nuclear
+    - OffShoreWind
+    - Utility-Scale Battery Storage
+    - UtilityPV
