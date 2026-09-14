@@ -97,12 +97,71 @@ def observed_references(rows, directory, manifest):
     return references
 
 
+def _scope_reference_name(tech_settings, target):
+    """Return the ATB display name whose components represent one ReEDS series."""
+    display = tech_settings['DisplayName']
+    if isinstance(display, str):
+        return display
+    return {v: k for k, v in display.items()}.get(target, next(iter(display)))
+
+
+def cost_scope_factor(settings, tech, target, scope):
+    """Return OCC / (OCC + removed components) for one observed cost scope.
+
+    Components come from cost_scope_adjustment.reference_year, falling back to a
+    technology's earliest published year where ATB omits that year.
+    """
+    config = settings['config']['historical_cost_sources']['cost_scope_adjustment']
+    components = config['scopes'].get(scope)
+    if components is None:
+        raise ValueError(f'Unknown cost scope {scope!r} for {tech}')
+    if not components:
+        return 1.0, '', None
+    cache = settings.setdefault('_cost_scope_components', {})
+    if not cache:
+        flat = pd.read_csv(settings['reference_flat_file'], low_memory=False)
+        flat = flat.loc[flat.core_metric_case.eq(config['reference_case'])
+                        & flat.crpyears.eq(config['reference_crpyears'])
+                        & flat.scenario.eq(config['reference_scenario'])
+                        & flat.core_metric_parameter.isin(['OCC', 'GCC', 'CFC'])]
+        if flat.empty:
+            raise ValueError('No ATB cost components match cost_scope_adjustment; '
+                             'check reference_case, reference_crpyears and reference_scenario.')
+        cache['table'] = flat
+    flat = cache['table']
+    name = _scope_reference_name(settings['techs'][tech], target)
+    rows = flat.loc[flat.display_name.eq(name)]
+    if rows.empty:
+        raise ValueError(f'ATB {settings["atbyear"]} has no cost components for {name!r}')
+    year = int(config['reference_year'])
+    if year not in set(rows.core_metric_variable):
+        year = int(rows.core_metric_variable.min())
+    rows = rows.loc[rows.core_metric_variable.eq(year)]
+    values = rows.groupby('core_metric_parameter').value.mean()
+    if 'OCC' not in values:
+        raise ValueError(f'ATB {settings["atbyear"]} has no OCC for {name!r}')
+    # ATB omits GCC or CFC for some technologies; a missing component is zero.
+    removed = sum(float(values.get(component, 0.0)) for component in components)
+    occ = float(values['OCC'])
+    if not np.isfinite(occ) or occ <= 0 or removed < 0:
+        raise ValueError(f'Invalid ATB cost components for {name!r}')
+    factor = occ / (occ + removed)
+    detail = ' '.join(f'{c}={float(values.get(c, 0.0)):.1f}' for c in components)
+    method = (f'Cost scope {scope}: rescaled to ATB overnight capital cost using '
+              f'ATB {settings["atbyear"]} {config["reference_scenario"]} {year} '
+              f'{name}: OCC={occ:.1f} {detail} ($/kW); factor={factor:.4f}.')
+    reference = source_reference(settings['reference_flat_file'], settings['reference_flat_url'],
+                                 f'{name}; {config["reference_scenario"]}; {year}; OCC, {", ".join(components)}')
+    return factor, method, reference
+
+
 def prepare_real(settings, deflator, deflator_source):
     settings = reference_settings(settings)
     config = settings['config']['historical_cost_sources']
     directory = resolve_atb_path(config['directory'])
     raw = pd.read_csv(directory / config['normalized_filename'], keep_default_na=False)
     manifest = pd.read_csv(directory / config['manifest_filename'], keep_default_na=False)
+    scope_overrides = config['cost_scope_adjustment'].get('overrides') or {}
     rows = []
     for index, source in raw.iterrows():
         calculated = (source.source_id == 'nuclear_projects'
@@ -114,7 +173,8 @@ def prepare_real(settings, deflator, deflator_source):
                     source.notes or 'Reported historical observation.')
         row.update(scope='raw', unit=source.unit, dollar_year=source.dollar_year,
                    identifiers=json.dumps({k: source[k] for k in ('technology_detail', 'capacity_basis',
-                                                                  'statistic', 'geography', 'sample_count')}))
+                                                                  'statistic', 'geography', 'cost_scope',
+                                                                  'sample_count')}))
         rows.append(row)
     for tech, metrics in config['reeds_mappings'].items():
         for metric, mapping in metrics.items():
@@ -134,9 +194,12 @@ def prepare_real(settings, deflator, deflator_source):
                 calculated = False
                 if tech == 'nuclear':
                     calculated = True
-                    method = ('Provisional large-nuclear project cost mapping; completion-cost proxy '
-                              'and reconstructed overnight cost are not equivalent cost scopes. '
-                              'Converted with the ReEDS deflator. See sources for project qualifications.')
+                    method = ('Provisional large-nuclear project cost mapping. The completion-cost '
+                              'proxy and the reconstructed overnight cost are reported on different '
+                              'boundaries and each is rescaled to the overnight basis from its own '
+                              'declared scope; earlier sunk costs and the summer-net capacity basis of '
+                              'the proxy remain unreconciled. Converted with the ReEDS deflator. '
+                              'See sources for project qualifications.')
                 if tech == 'battery':
                     durations = _observed_values_by_year(
                         tech, {'output_column': 'storage_duration'}, settings, deflator, observed=duration_rows)
@@ -159,10 +222,24 @@ def prepare_real(settings, deflator, deflator_source):
                     path = resolve_atb_path(f"manual_input/csp_cost_ratios_{settings['atbyear']}.csv")
                     extras.append(source_reference(path, 'https://github.com/ReEDS-Model/ReEDS', 'CSP configuration ratios'))
                     method = 'Crescent Dunes 10-hour project used as csp2 proxy; converted with the ReEDS deflator; configuration cost=proxy*ratio.'
+                # Only capital costs carry a boundary, and it belongs to the
+                # observation: the two nuclear anchors declare different scopes.
+                scopes_by_year = {}
+                if metric.startswith('capcost'):
+                    override = scope_overrides.get(tech)
+                    scopes_by_year = {int(row.year): override or row.cost_scope
+                                      for row in selected.itertuples(index=False)}
+                    missing = sorted(set(values) - set(scopes_by_year))
+                    if missing:
+                        raise ValueError(f'{tech} {metric} has no cost scope for {missing}')
                 anchors = sorted(values)
                 end = max(settings['config']['atb']['year'] - 2, max(anchors))
                 years = sorted(set(anchors) | set(range(settings['reeds_start_year'], end + 1)))
                 for target, ratio in ratios.items():
+                    factors = {scope: cost_scope_factor(settings, tech, target, scope)
+                               for scope in set(scopes_by_year.values())}
+                    scaled = {year: value * factors[scopes_by_year[year]][0]
+                              for year, value in values.items()} if factors else dict(values)
                     for year in years:
                         source_years = [year] if year in values else sorted({
                             max((y for y in anchors if y < year), default=anchors[0]),
@@ -171,12 +248,17 @@ def prepare_real(settings, deflator, deflator_source):
                         references = observed_references(selected.loc[selected.year.isin(source_years)], directory, manifest)
                         if not duration_rows.empty:
                             references += observed_references(duration_rows.loc[duration_rows.year.isin(source_years)], directory, manifest)
-                        source_type = 'calculated' if calculated or ratio != 1 else 'real'
+                        applied = [factors[scopes_by_year[y]] for y in source_years] if factors else []
+                        rescaled = [f for f in applied if f[0] != 1]
+                        source_type = 'calculated' if calculated or ratio != 1 or rescaled else 'real'
                         description = method + (f' Ratio={ratio}.' if tech == 'csp' else '')
+                        for scope_method in dict.fromkeys(f[1] for f in rescaled):
+                            description += ' ' + scope_method
+                        references = references + [f[2] for f in rescaled if f[2] is not None]
                         if year not in values:
                             source_type = 'filled'
                             description += ' Linear interpolation between source years.' if len(source_years) == 2 else ' Nearest endpoint carried to this year.'
-                        value = np.interp(year, anchors, [values[y] for y in anchors]) * ratio
+                        value = np.interp(year, anchors, [scaled[y] for y in anchors]) * ratio
                         rows.append(point(tech, target, metric, year, value, settings['dollaryear'], source_type,
                                           references + extras, description, source_years))
     return pd.DataFrame(rows)
@@ -238,6 +320,11 @@ def reference_settings(settings):
     settings['atbyear'] = vintage
     settings['workbook_path'] = str(directory / source.iloc[0].filename)
     config['raw_data']['workbook']['url'] = source.iloc[0].url
+    flat = manifest.loc[manifest.atb_year.eq(vintage) & manifest['format'].eq('flat')]
+    if len(flat) != 1:
+        raise ValueError(f'Expected one archived flat file for ATB {vintage}')
+    settings['reference_flat_file'] = str(directory / flat.iloc[0].filename)
+    settings['reference_flat_url'] = flat.iloc[0].url
     return settings
 
 

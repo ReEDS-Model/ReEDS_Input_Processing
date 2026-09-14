@@ -26,6 +26,7 @@ COLUMNS = [
     "geography",
     "dollar_year",
     "price_basis",
+    "cost_scope",
     "sample_count",
     "source_id",
     "source_file",
@@ -35,6 +36,10 @@ COLUMNS = [
     "source_data_url",
     "notes",
 ]
+
+# Cost boundaries an observed capital cost can be reported on; anything wider
+# than the ATB overnight capital cost is rescaled during preparation.
+COST_SCOPES = ('overnight', 'overnight_plus_grid', 'installed_with_financing')
 
 # Only the three mapped tables give national cost by technology; the rest split
 # the same capacity by region, state, size, or panel type. Labels drift between
@@ -89,6 +94,8 @@ EIA_TABLES = (
 def _base_row(source_id, source, filename, sheet, metric="capital_cost"):
     return {
         "metric": metric,
+        # Cost boundary; set by capital-cost extractors, blank elsewhere.
+        "cost_scope": "",
         "source_id": source_id,
         "source_file": filename,
         "source_sheet": sheet,
@@ -128,8 +135,12 @@ def extract_land_based_wind(path, source):
                 geography="United States",
                 dollar_year=2024,
                 price_basis="real",
+                cost_scope="overnight_plus_grid",
                 sample_count=sample_count,
-                notes="Observed project CapEx; 2024 COD values are preliminary.",
+                notes=("Observed project CapEx; 2024 COD values are preliminary. "
+                       "Recent years are EIA-sourced; reported project costs cover "
+                       "turbine purchase and installation, balance of plant, and any "
+                       "substation and/or interconnection expenses, and exclude financing."),
             )
             rows.append(row)
     workbook.close()
@@ -308,7 +319,8 @@ def extract_csp_reference(path, source):
                                                       f'{technology}, {capacity:g} MW, {year} COD'),
                 year=int(year), value=float(value) * 1000, unit="USD/kW",
                 capacity_basis="AC", statistic="project", geography="United States",
-                dollar_year=2024, price_basis="real", sample_count=1,
+                dollar_year=2024, price_basis="real", cost_scope="overnight_plus_grid",
+                sample_count=1,
                 notes=(
                     "110-MW 2015 tower matched to Crescent Dunes; $/W-AC converted "
                     "to $/kW-AC. Project identity and 10-hour storage: "
@@ -363,6 +375,7 @@ def extract_storage_costs(path, source):
                     raise ValueError(f'Invalid battery cost for {year}: {value}')
                 rows.append(dict(base, value=float(value), unit='USD/kWh', capacity_basis='energy',
                                  statistic=statistic, dollar_year=int(match.group(1)), price_basis='real',
+                                 cost_scope='overnight_plus_grid',
                                  source_table=f'{openpyxl.utils.get_column_letter(col + 1)}{n}',
                                  sample_count=count if col < 11 else '', notes=note))
             for statistic, value, location in (
@@ -448,8 +461,11 @@ def extract_utility_pv(path, source):
                 geography="United States",
                 dollar_year=2024,
                 price_basis="real",
+                cost_scope="overnight_plus_grid",
                 sample_count=values[count_col - 1],
-                notes="Observed PV-only project CapEx; 2024 COD values are preliminary.",
+                notes=("Observed PV-only project CapEx; 2024 COD values are preliminary. "
+                       "Sourced primarily from Form EIA-860 Schedule 5B, so the value "
+                       "includes electrical interconnection and excludes financing."),
             )
             rows.append(row)
     workbook.close()
@@ -489,12 +505,17 @@ def extract_offshore_wind(path, source):
                 geography=geography,
                 dollar_year=2023,
                 price_basis="real",
+                cost_scope="overnight_plus_grid",
                 sample_count="",
                 notes=(
                     "Figure 31 annual project CapEx. The data file omits units; the "
-                    "report's Figure 31 axis reads USD2023/kW and its section 1.2.2 "
-                    "normalizes all costs to real 2023 USD (FX conversion, then U.S. "
-                    "CPI). Post-2023 pipeline years are excluded."
+                    "report's Figure 31 axis reads USD2023/kW and its Section 1.2 "
+                    "data-methods note normalizes all costs to real 2023 USD (FX "
+                    "conversion, then U.S. CPI). Post-2023 pipeline years are excluded. "
+                    "The report defines these CapEx as all expenditures incurred before "
+                    "commercial operation, but also states that export cable and "
+                    "interconnection costs are present in some plotted projects and not "
+                    "others, so the grid-connection share of this average is uncertain."
                 ),
             )
             rows.append(row)
@@ -549,12 +570,16 @@ def extract_eia(path, source, year, data_url):
             geography="United States",
             dollar_year=int(year),
             price_basis="nominal",
+            cost_scope="overnight_plus_grid",
             sample_count="",
             source_table=table_tag,
             notes=(
                 "EIA-860 generators installed in this year. Average construction "
                 "cost is total cost divided by total capacity. Categories follow "
-                "EIA definitions and are not one-to-one with ATB technologies."
+                "EIA definitions and are not one-to-one with ATB technologies. "
+                "Schedule 5 total construction cost includes owner costs with the "
+                "electrical interconnection tie-in to a nearby transmission system, "
+                "and excludes financing, land, grants and tax benefits."
             ),
         )
         rows.append(row)
@@ -634,6 +659,8 @@ def extract_nuclear_projects(path):
             raise ValueError('Nuclear project costs must be finite and positive')
         if project['statistic'] not in ('project_proxy', 'project_reconstruction'):
             raise ValueError('Nuclear costs must identify their derived cost basis')
+        if project['cost_scope'] not in COST_SCOPES:
+            raise ValueError(f"Unknown nuclear cost scope: {project['cost_scope']}")
         for column in ('year', 'dollar_year'):
             number = float(project[column])
             if not math.isfinite(number) or not number.is_integer() or number < 1900:
@@ -646,6 +673,7 @@ def extract_nuclear_projects(path):
             unit='USD/kW', capacity_basis=project['capacity_basis'],
             statistic=project['statistic'], geography='United States',
             dollar_year=int(project['dollar_year']), price_basis=project['price_basis'],
+            cost_scope=project['cost_scope'],
             sample_count=project['sample_count'], source_id='nuclear_projects',
             source_file=Path(path).name, source_sheet='',
             source_table=project['source_location'],

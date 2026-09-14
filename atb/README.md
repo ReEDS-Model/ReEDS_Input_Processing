@@ -73,6 +73,14 @@ year-specific future adjustment files still need the normal annual update.
 - Monetary history is stored in `historical_data.dollar_year` and converted to
   the output dollar year with the ReEDS deflator. Nonmonetary rows have no
   dollar year.
+- Observed capital costs are reported on wider boundaries than ReEDS `capcost`,
+  which is the ATB overnight capital cost. Each scraped cost declares a
+  `cost_scope`, and preparation removes the grid connection and, where the source
+  is an as-spent project cost, the construction financing, using ATB components
+  from `historical_data.reference_atb_year`. Configure this under
+  `historical_cost_sources.cost_scope_adjustment`; see
+  [`historical/README.md`](historical/README.md) for the per-source boundaries
+  and the offshore-wind caveat.
 - Real and archived capacity factors remain fractions in the prepared files;
   formatting divides them by the current ATB reference capacity factor.
 - Battery power and energy costs are estimated from observed total cost and

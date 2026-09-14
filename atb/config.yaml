@@ -144,6 +144,19 @@ historical_cost_sources:
           capacity_basis: nameplate
           statistic: capacity_weighted_mean
           geography: United States
+  # Rescale observed capital costs onto ReEDS capcost, the ATB overnight capital
+  # cost: factor = OCC / (OCC + the components each row's cost_scope names).
+  # See historical/README.md for the source boundaries and the offshore caveat.
+  cost_scope_adjustment:
+    reference_year: 2022  # ATB 2024 base year; one ratio covers all history.
+    reference_scenario: Moderate
+    reference_case: Market
+    reference_crpyears: 30
+    scopes:
+      overnight: []
+      overnight_plus_grid: [GCC]
+      installed_with_financing: [GCC, CFC]
+    overrides: {}  # e.g. {wind-ofs: overnight} to keep a reported basis.
   battery_cost_split:
     reference_year: 2022
     reference_scenario: Moderate

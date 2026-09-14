@@ -96,6 +96,32 @@
         "allow_insecure_ssl_fallback": {"type": "boolean"},
         "reeds_mappings": {"$ref": "#/definitions/reedsMappings"},
         "nuclear_project_file": {"type": "string", "minLength": 1},
+        "cost_scope_adjustment": {
+          "type": "object",
+          "description": "Rescales observed capital costs from their reported boundary onto the ATB overnight capital cost used by ReEDS, using components from the release pinned by historical_data.reference_atb_year.",
+          "additionalProperties": false,
+          "required": ["scopes"],
+          "properties": {
+            "reference_year": {"type": "integer", "minimum": 1900},
+            "reference_scenario": {"enum": ["Moderate", "Advanced", "Conservative"]},
+            "reference_case": {"type": "string"},
+            "reference_crpyears": {"type": "integer", "minimum": 1},
+            "scopes": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "overnight": {"$ref": "#/definitions/cost_components"},
+                "overnight_plus_grid": {"$ref": "#/definitions/cost_components"},
+                "installed_with_financing": {"$ref": "#/definitions/cost_components"}
+              }
+            },
+            "overrides": {
+              "type": "object",
+              "description": "Force a technology onto a declared scope instead of the one its source reports.",
+              "additionalProperties": {"enum": ["overnight", "overnight_plus_grid", "installed_with_financing"]}
+            }
+          }
+        },
         "battery_cost_split": {
           "type": "object",
           "additionalProperties": false,
@@ -256,6 +282,12 @@
     }
   },
   "definitions": {
+    "cost_components": {
+      "type": "array",
+      "description": "ATB components removed from a reported cost to reach the overnight capital cost.",
+      "items": {"enum": ["GCC", "CFC"]},
+      "uniqueItems": true
+    },
     "downloadArtifact": {
       "type": "object",
       "additionalProperties": false,

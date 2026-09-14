@@ -15,6 +15,43 @@ or raw source classifications. A `*` series applies to the family's single
 modeled series. Monetary rows explicitly label their dollar year; dimensionless
 values and durations leave it blank.
 
+## Cost scope
+
+ReEDS `capcost` is the ATB overnight capital cost (OCC), which excludes grid
+connection (GCC) and construction financing (CFC). Observed sources do not use
+that boundary, so every scraped capital cost declares a `cost_scope` and
+preparation rescales it onto OCC by `OCC / (OCC + removed components)`, taken
+from the ATB release pinned by `historical_data.reference_atb_year` at that
+release's base year. Rescaled points become `source_type=calculated` and record
+the release, technology, components, and factor in `method`. A single ratio per
+technology covers every history year; because `GCC` is a flat $/kW assumption,
+this over-adjusts years when equipment was more expensive than it is today.
+
+| `cost_scope` | Meaning | Removed | Sources |
+| --- | --- | --- | --- |
+| `overnight` | Already OCC | none | Vogtle (MIT overnight reconstruction) |
+| `overnight_plus_grid` | Includes the interconnection tie-in, excludes financing | `GCC` | LBNL wind and solar, EIA-860 generator costs, LBNL storage and CSP, NLR offshore |
+| `installed_with_financing` | As-spent project cost | `GCC`, `CFC` | Watts Bar (TVA completion cost) |
+
+Form EIA-860 Schedule 5 asks for total construction cost including owner costs
+with "the electrical interconnection costs, including a tie-in to a nearby
+electrical transmission system," and instructs respondents to "exclude
+financing." LBNL's utility-scale solar CapEx comes from Schedule 5B, LBNL's
+recent wind CapEx is EIA-sourced, and LBNL's wind reports describe project costs
+as covering "turbine purchase and installation, balance of plant, and any
+substation and/or interconnection expenses." All therefore sit one component
+wider than OCC.
+
+Offshore wind is the one judgment call. NLR defines the Figure 31 series as
+every expenditure incurred before commercial operation, but also states that
+export cable and interconnection costs are present in some plotted projects and
+absent from others, so its grid-connection share is uncertain. The default
+applies the same `GCC` removal used everywhere else. Set
+`cost_scope_adjustment.overrides.wind-ofs: overnight` in `config.yaml` to leave
+that series on its reported basis instead. Because the series is a Europe-and-US
+average while ATB projects U.S. costs, offshore history already sits well below
+the first projection year; removing `GCC` widens that step.
+
 `source_type` is `real`, `calculated`, `filled`, `atb`, or `manual`.
 `source_file` and `source_url` identify inputs; `sources` contains their SHA256
 checksums, locations, original dollar years, and source notes. `source_years`
