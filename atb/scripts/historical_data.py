@@ -97,9 +97,30 @@ def apply_history(frame, tech, settings, deflator):
         series = labels.get(identity, '*') if tech != 'wind-ons' else '*'
         for metric in modes:
             mode = _historical_mode_for_metric(modes, metric, labels.get(tech_settings.get('history_class_column')))
-            if mode not in ('real', 'atb') or not len(history):
+            if not len(history):
+                continue
+            if mode == 'indexed':
+                # ATB supplies the level at the reference year; the observed
+                # series supplies only how it moved relative to that year.
+                index = select_history(settings, 'real', tech, series, f'{metric}_index')
+                reference_year = int(settings['config']['processing']['smooth_cost_curves']['index_reference_year'])
+                anchor = group.loc[group.t.eq(reference_year), metric]
+                base = index.loc[index.year.eq(reference_year), 'value']
+                if index.empty or len(anchor) != 1 or len(base) != 1 or reference_year < boundary:
+                    raise ValueError(f'Cannot index {tech}/{series}/{metric} at {reference_year}')
+                ratio = np.interp(group.loc[history, 't'], index.year.to_numpy(float),
+                                  index.value.to_numpy(float)) / float(base.iloc[0])
+                result.loc[history, metric] = float(anchor.iloc[0]) * ratio
+                continue
+            if mode not in ('real', 'atb'):
                 continue
             data = select_history(settings, mode, tech, series, metric)
+            if mode == 'real':
+                # Drop the years carried flat past the last observation so the
+                # bridge below runs from that observation to the projection.
+                anchors = data.loc[data.source_type.isin(['real', 'calculated'])]
+                if not anchors.empty:
+                    data = data.loc[data.year.le(anchors.year.max())]
             if mode == 'atb':
                 data = data.loc[data.year.lt(boundary) & data.atb_year.le(settings['atbyear'])]
             if data.empty:
@@ -157,10 +178,13 @@ def apply_real_overlap(frame, tech, settings, deflator):
                                            labels.get(config.get('history_class_column'))) != 'real':
                 continue
             data = select_history(settings, 'real', tech, series, metric)
-            data = data.loc[data.source_type.isin(['real', 'calculated'])
-                            & data.year.between(boundary, settings['atbyear'])]
-            if data.empty:
+            anchors = data.loc[data.source_type.isin(['real', 'calculated'])
+                               & data.year.between(boundary, settings['atbyear'])]
+            if anchors.empty:
                 continue
+            # Years between real anchors follow the prepared straight-line fill,
+            # never ATB; ATB resumes only after the last anchor.
+            data = data.loc[data.year.between(boundary, anchors.year.max())]
             values = converted_values(data, settings['dollaryear'], deflator)
             if metric == 'cf_improvement':
                 reference = settings['cf_normalization_bases'][tech]

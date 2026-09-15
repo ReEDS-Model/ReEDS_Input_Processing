@@ -164,14 +164,14 @@ def prepare_real(settings, deflator, deflator_source):
     scope_overrides = config['cost_scope_adjustment'].get('overrides') or {}
     rows = []
     for index, source in raw.iterrows():
-        calculated = (source.source_id == 'nuclear_projects'
+        calculated = (source.source_id.endswith('_projects')
                       or (source.metric == 'storage_duration'
                           and source.statistic == 'capacity_weighted_cohort'))
         row = point(source.technology, f'raw:{index}', source.metric, source.year, source.value,
                     source.dollar_year, 'calculated' if calculated else 'real',
                     observed_references(raw.loc[[index]], directory, manifest),
                     source.notes or 'Reported historical observation.')
-        row.update(scope='raw', unit=source.unit, dollar_year=source.dollar_year,
+        row.update(scope='raw', unit=source.unit, dollar_year=source.dollar_year, cost_scope=source.cost_scope,
                    identifiers=json.dumps({k: source[k] for k in ('technology_detail', 'capacity_basis',
                                                                   'statistic', 'geography', 'cost_scope',
                                                                   'sample_count')}))
@@ -191,6 +191,8 @@ def prepare_real(settings, deflator, deflator_source):
                 ratios = dict.fromkeys(targets, 1.0)
                 extras = [deflator_source] if metric in MONETARY else []
                 method = 'Reviewed source mapping; monetary values converted with the ReEDS deflator.' if metric in MONETARY else 'Observed capacity factor fraction; normalized to the current ATB reference during formatting.'
+                if metric == 'fom_index':
+                    method = 'Early-age O&M median by vintage bin at the bin midpoint; an index only, scaled onto the ATB reference FOM during formatting.'
                 calculated = False
                 if tech == 'nuclear':
                     calculated = True
@@ -260,7 +262,9 @@ def prepare_real(settings, deflator, deflator_source):
                             description += ' Linear interpolation between source years.' if len(source_years) == 2 else ' Nearest endpoint carried to this year.'
                         value = np.interp(year, anchors, [scaled[y] for y in anchors]) * ratio
                         rows.append(point(tech, target, metric, year, value, settings['dollaryear'], source_type,
-                                          references + extras, description, source_years))
+                                          references + extras, description, source_years,
+                                          cost_scope='|'.join(dict.fromkeys(scopes_by_year[y] for y in source_years))
+                                          if scopes_by_year else ''))
     return pd.DataFrame(rows)
 
 
@@ -370,6 +374,62 @@ def prepare_manual(settings, deflator, deflator_source, force=False, no_download
     return pd.DataFrame(rows)
 
 
+COVERAGE_START, COVERAGE_END = '<!-- coverage:start -->', '<!-- coverage:end -->'
+
+
+def _collapse_years(files):
+    """Shorten runs of yearly files: eia860_2016.zip, eia860_2017.zip -> eia860_2016-2017.zip."""
+    groups = {}
+    for name in files:
+        stem, dot, ext = name.rpartition('.')
+        head, sep, tail = stem.rpartition('_')
+        if sep and tail.isdigit() and len(tail) == 4:
+            groups.setdefault((head + sep, dot + ext), []).append(int(tail))
+        else:
+            groups[(name, '')] = None
+    out = []
+    for (head, ext), years in groups.items():
+        if years is None:
+            out.append(head)
+        elif len(years) == 1:
+            out.append(f'{head}{years[0]}{ext}')
+        else:
+            out.append(f'{head}{min(years)}-{max(years)}{ext}')
+    return sorted(out)
+
+
+def write_coverage(settings, real):
+    """Rewrite the coverage table in historical/README.md from config and prepared history."""
+    smoothing = settings['config']['processing']['smooth_cost_curves']['technologies']
+    mapped = real.loc[real.scope.eq('reeds')]
+    lines = ['| technology | metric | series | history | observed source | anchor years | cost scope |',
+             '| --- | --- | --- | --- | --- | --- | --- |']
+    for tech, config in smoothing.items():
+        for metric, mode in config['historical_data'].items():
+            for series, series_mode in (mode.items() if isinstance(mode, dict) else [('*', mode)]):
+                lookup = metric + '_index' if series_mode == 'indexed' else metric
+                rows = mapped.loc[mapped.technology.eq(tech) & mapped.metric.eq(lookup)]
+                if series != '*':
+                    rows = rows.loc[rows.series.eq(series)]
+                anchors = rows.loc[rows.source_type.isin(['real', 'calculated'])]
+                if series_mode in ('real', 'indexed') and not anchors.empty:
+                    files = sorted({f for cell in anchors.source_file for f in cell.split(' | ')
+                                    if not f.startswith('atb_') and f != 'deflator.csv'
+                                    and not f.startswith('csp_cost_ratios')})
+                    years = f'{anchors.year.min()}-{anchors.year.max()} ({anchors.year.nunique()})'
+                    scopes = ', '.join(sorted({c for cell in anchors.cost_scope for c in str(cell).split('|') if c}))
+                    source = ', '.join(_collapse_years(files))
+                else:
+                    years, scopes, source = '-', '-', '-'
+                lines.append(f'| {tech} | {metric} | {series} | {series_mode} | {source} | {years} | {scopes or "-"} |')
+    path = resolve_atb_path(settings['config']['historical_data']['directory']) / 'README.md'
+    text = path.read_text(encoding='utf-8')
+    start, end = text.index(COVERAGE_START) + len(COVERAGE_START), text.index(COVERAGE_END)
+    path.write_text(text[:start] + '\n' + '\n'.join(lines) + '\n' + text[end:],
+                    encoding='utf-8', newline='\n')
+    print(f'Updated coverage table in {path}')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config')
@@ -412,6 +472,7 @@ def main():
     for temporary, path, count in pending:
         temporary.replace(path)
         print(f'Saved {count:,} points to {path}')
+    write_coverage(settings, tables['real'])
 
 
 if __name__ == '__main__':

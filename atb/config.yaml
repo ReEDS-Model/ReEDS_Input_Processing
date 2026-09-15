@@ -26,7 +26,13 @@ historical_cost_sources:
   normalized_filename: historical_capital_costs.csv
   manifest_filename: source_manifest.csv
   allow_insecure_ssl_fallback: true
-  nuclear_project_file: manual_input/nuclear_historical_projects.csv
+  # Plant-level anchors for technologies with too few builds for a survey.
+  project_files:
+    nuclear_projects: {technology: nuclear, path: manual_input/nuclear_historical_projects.csv}
+    offshore_projects: {technology: wind-ofs, path: manual_input/offshore_historical_projects.csv}
+  # FOM index: mean of these operating years per vintage bin; bins with fewer
+  # available ages are kept raw only (guards partial first-year data).
+  om_index: {ages: [1, 2, 3], minimum_ages: 2}
   reeds_mappings:
     nuclear:
       capcost:
@@ -81,6 +87,11 @@ historical_cost_sources:
           capacity_basis: AC
           statistic: capacity_weighted_mean
           geography: United States
+      fom_index:
+        filters:
+          source_id: utility_pv
+          metric: fixed_om
+          statistic: median_early_age_mean
     biopower:
       capcost:
         filters:
@@ -113,12 +124,9 @@ historical_cost_sources:
         turbine_classes:
           - fixed
         filters:
-          source_id: offshore_wind
+          source_id: offshore_projects
           metric: capital_cost
           unit: USD/kW
-          capacity_basis: nameplate
-          statistic: capacity_weighted_mean
-          geography: Europe and United States
     wind-ons:
       fom:
         filters:
@@ -144,6 +152,11 @@ historical_cost_sources:
           capacity_basis: nameplate
           statistic: capacity_weighted_mean
           geography: United States
+      fom_index:
+        filters:
+          source_id: land_based_wind
+          metric: fixed_om
+          statistic: median_early_age_mean
   # Rescale observed capital costs onto ReEDS capcost, the ATB overnight capital
   # cost: factor = OCC / (OCC + the components each row's cost_scope names).
   # See historical/README.md for the source boundaries and the offshore caveat.
@@ -288,6 +301,16 @@ processing:
     method: selective
     columns: all
     fill_atbstartyear2atbyear_with_real: true
+    index_reference_year: 2022  # ATB year supplying the level for indexed metrics.
+    unavailable_value: 99999  # ReEDS placeholder for years before a technology existed.
+    # First buildable year for every metric using the unavailable mode; earlier
+    # years get unavailable_value in the outputs. manual.csv never carries it.
+    unavailable_before:
+      fuelcell: 2035
+      nuclear-smr: 2030
+      wind-ofs: 2030
+      coal-ccs: 2022
+      gas-ccs: 2022
     slope_change_threshold: 0.4
     max_kink_years: 4
     major_step_relative_threshold: 0.1
@@ -297,16 +320,16 @@ processing:
       upv:
         historical_data:
           capcost: real
-          fom: real
-          vom: atb
+          fom: indexed
+          vom: broadcast
           cf_improvement: real
         future_smoothing_treatments:
           smooth_projection_curve: false
       wind-ons:
         historical_data:
           capcost: real
-          fom: real
-          vom: atb
+          fom: indexed
+          vom: broadcast
           cf_improvement: real
         future_smoothing_treatments:
           smooth_projection_curve: false
@@ -314,10 +337,10 @@ processing:
         historical_data:
           capcost:
             fixed: real
-            floating: atb
-          fom: atb
-          vom: atb
-          cf_improvement: atb
+            floating: unavailable
+          fom: broadcast
+          vom: broadcast
+          cf_improvement: broadcast
           rsc_mult: broadcast
         future_smoothing_treatments:
           smooth_projection_curve: false
@@ -325,86 +348,86 @@ processing:
         historical_data:
           capcost: real
           capcost_energy: real
-          fom: atb
-          fom_energy: atb
-          vom: atb
-          rte: atb
+          fom: broadcast
+          fom_energy: broadcast
+          vom: broadcast
+          rte: broadcast
         future_smoothing_treatments:
           smooth_projection_curve: false
       csp:
         historical_data:
           capcost: real
-          fom: atb
-          vom: atb
+          fom: broadcast
+          vom: broadcast
         future_smoothing_treatments:
           smooth_projection_curve: false
       coal:
         historical_data:
-          capcost: atb
-          fom: atb
-          vom: atb
-          heatrate: atb
+          capcost: broadcast
+          fom: broadcast
+          vom: broadcast
+          heatrate: broadcast
         future_smoothing_treatments:
           smooth_projection_curve: false
       coal-ccs:
         historical_data:
-          capcost: atb
-          fom: atb
-          vom: atb
-          heatrate: atb
+          capcost: unavailable
+          fom: broadcast
+          vom: broadcast
+          heatrate: broadcast
         future_smoothing_treatments:
           smooth_projection_curve: true
       gas:
         historical_data:
           capcost:
             Gas-CC: real
-            Gas-CC_H_1x1: atb
-            Gas-CC_H_2x1: atb
+            Gas-CC_H_1x1: broadcast
+            Gas-CC_H_2x1: broadcast
             Gas-CT: real
-            Gas-CT_aero: atb
-          fom: atb
-          vom: atb
-          heatrate: atb
+            Gas-CT_aero: broadcast
+          fom: broadcast
+          vom: broadcast
+          heatrate: broadcast
         future_smoothing_treatments:
           smooth_projection_curve: false
       gas-ccs:
         historical_data:
-          capcost: atb
-          fom: atb
-          vom: atb
-          heatrate: atb
+          capcost: unavailable
+          fom: broadcast
+          vom: broadcast
+          heatrate: broadcast
         future_smoothing_treatments:
           smooth_projection_curve: false
       fuelcell:
         historical_data:
-          capcost: manual
-          fom: manual
-          vom: manual
-          heatrate: manual
+          capcost: unavailable
+          fom: broadcast
+          vom: broadcast
+          heatrate: broadcast
         future_smoothing_treatments:
           smooth_projection_curve: false
       nuclear:
         historical_data:
           capcost: real
-          fom: atb
-          vom: atb
-          heatrate: atb
+          fom: broadcast
+          vom: broadcast
+          heatrate: broadcast
         future_smoothing_treatments:
           smooth_projection_curve: false
       nuclear-smr:
         historical_data:
-          capcost: atb
-          fom: atb
-          vom: atb
-          heatrate: atb
+          capcost: unavailable
+          fom: broadcast
+          vom: broadcast
+          heatrate: broadcast
         future_smoothing_treatments:
           smooth_projection_curve: false
       biopower:
         historical_data:
           capcost: real
-          fom: atb
-          vom: atb
-          heatrate: atb
+          fom: broadcast
+          vom: broadcast
+          heatrate: broadcast
         future_smoothing_treatments:
           smooth_projection_curve: false
 

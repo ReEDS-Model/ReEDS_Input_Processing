@@ -50,6 +50,13 @@ def _observed_values_by_year(tech, mapping, settings, deflator, observed=None):
             raise ValueError(f"{tech} observed capacity factors must be in (0, 1].")
         # Dimensionless observations have no dollar year and are never deflated.
         return dict(zip(observed['year'].astype(int), values.astype(float)))
+    if mapping.get('output_column') == 'fom_index':
+        values = pd.to_numeric(observed['value'], errors='raise')
+        if not (observed['metric'].eq('fixed_om').all()
+                and (np.isfinite(values) & values.gt(0)).all()):
+            raise ValueError(f"{tech} FOM index must contain finite positive O&M values.")
+        # Only ratios between years are used, so the dollar year cancels.
+        return dict(zip(observed['year'].astype(int), values.astype(float)))
     if mapping.get('output_column') == 'storage_duration':
         values = pd.to_numeric(observed['value'], errors='raise')
         if not (observed['metric'].eq('storage_duration').all()

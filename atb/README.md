@@ -17,9 +17,11 @@ creates plots. It never downloads data or rewrites historical inputs. Use
 
 The three versioned tables in [`historical/`](historical/README.md) are sufficient
 for historical processing; users do not need the historical raw downloads.
-Defaults select reviewed real data, then archived ATB estimates, then broadcast
-the first projection value when no archived series matches. Each metric can
-also explicitly select `manual` in `config.yaml`.
+The defaults use observed data wherever a reviewed source exists (`real`, or
+`indexed` for O&M), hold the first ATB projection value flat otherwise
+(`broadcast`), and write the ReEDS placeholder before a technology's first
+buildable year (`unavailable`). Archived ATB estimates (`atb`) and the ReEDS
+ATB 2024 baseline (`manual`) remain selectable per metric in `config.yaml`.
 
 To rebuild history from original sources:
 
@@ -33,6 +35,27 @@ releases, including the configured current release. It writes all three CSVs
 only after extraction and preparation succeed. Review their changes before
 committing them. Manual values always come from the ReEDS **ATB 2024** files.
 
+Each metric's history mode is set per technology in `config.yaml`:
+
+- `real`: observed anchors from `historical/real.csv`, interpolated between
+  anchors and carried back before the first.
+- `indexed`: ATB's value at `index_reference_year` scaled by an observed
+  index; used for wind-ons and upv FOM, whose surveys report a partial-scope
+  level but a usable trend.
+- `unavailable`: a placeholder cost (`unavailable_value`, 99999) for years
+  before the technology's first buildable year, declared per technology in
+  `unavailable_before`; used for fuel cells, nuclear-SMR, floating offshore,
+  and CCS. The placeholder is written last, after every dollar-year step, and
+  never lives in `manual.csv`. It is a marker, not the barrier: ReEDS blocks
+  investment before its own `firstyear`, so the value only needs to be far
+  above any real cost (ReEDS's own files use 9999, which is below Vogtle).
+- `atb`, `manual`, `broadcast`: archived ATB estimates, the ReEDS ATB 2024
+  baseline, or the first projection value held flat.
+
+Technologies with only a few builds use plant-level project files under
+`manual_input/` (nuclear, fixed offshore). The scraper writes a coverage table
+into `historical/README.md` showing every metric's mode, source, and anchors.
+
 Archived anchors use exactly `historical year = ATB release year - 2`.
 Formatting interpolates missing years, carries the first anchor backward before
 coverage, and interpolates from the last anchor to the first projection year.
@@ -43,10 +66,12 @@ observations.
 ATB history uses Moderate estimates across output scenarios.
 
 `processing.smooth_cost_curves.fill_atbstartyear2atbyear_with_real: true`
-also replaces available ATB points through the release year for metrics selected
-as `real` (2022-2024 for ATB 2024). Only observed or calculated source anchors
-qualify; filled years keep their ATB values. This runs after smoothing and can
-be overridden per technology. Plots label the replacement sources.
+also replaces ATB points through the release year for metrics selected as
+`real` (2022-2024 for ATB 2024): every year from the series start through the
+last observed or calculated anchor, with years between anchors on the straight
+line between them. ATB resumes only after the last anchor. This runs after
+smoothing and can be overridden per technology. Plots label the replacement
+sources.
 
 During an annual update, update the configured release, URLs, dollar year and
 technology mappings, download future ATB, then rerun historical preparation to

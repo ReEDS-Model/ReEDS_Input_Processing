@@ -638,11 +638,14 @@ def _sha256(path):
     return digest.hexdigest()
 
 
-def extract_nuclear_projects(path):
-    """Read nuclear project costs and calculate USD/kW."""
+PROJECT_STATISTICS = ('project_proxy', 'project_reconstruction', 'project_reported', 'project_estimate')
+
+
+def extract_projects(path, technology, source_id):
+    """Read plant-level project costs for one technology and calculate USD/kW."""
     data = pd.read_csv(path, keep_default_na=False)
     if data.empty or data.year.duplicated().any():
-        raise ValueError('Nuclear projects require distinct annual anchors')
+        raise ValueError(f'{source_id} requires distinct annual anchors')
     rows = []
     for project in data.to_dict('records'):
         total, capacity, per_kw = (project[c] for c in
@@ -651,36 +654,133 @@ def extract_nuclear_projects(path):
             value = float(per_kw)
         elif per_kw == '' and total != '' and capacity != '':
             if not math.isfinite(float(capacity)) or float(capacity) <= 0:
-                raise ValueError('Nuclear project capacity must be finite and positive')
+                raise ValueError(f'{source_id} capacity must be finite and positive')
             value = float(total) / (float(capacity) * 1000)
         else:
             raise ValueError('Supply either project USD and MW or reported USD/kW')
         if not math.isfinite(value) or value <= 0:
-            raise ValueError('Nuclear project costs must be finite and positive')
-        if project['statistic'] not in ('project_proxy', 'project_reconstruction'):
-            raise ValueError('Nuclear costs must identify their derived cost basis')
+            raise ValueError(f'{source_id} costs must be finite and positive')
+        if project['statistic'] not in PROJECT_STATISTICS:
+            raise ValueError(f'{source_id} costs must identify their derived cost basis')
         if project['cost_scope'] not in COST_SCOPES:
-            raise ValueError(f"Unknown nuclear cost scope: {project['cost_scope']}")
+            raise ValueError(f"Unknown {source_id} cost scope: {project['cost_scope']}")
         for column in ('year', 'dollar_year'):
             number = float(project[column])
             if not math.isfinite(number) or not number.is_integer() or number < 1900:
-                raise ValueError(f'Invalid nuclear {column}')
+                raise ValueError(f'Invalid {source_id} {column}')
         if not project['source_page_url'] or not project['notes']:
-            raise ValueError('Nuclear projects require source URLs and qualifications')
+            raise ValueError(f'{source_id} requires source URLs and qualifications')
         rows.append(dict(
-            technology='nuclear', technology_detail=project['project'],
+            technology=technology, technology_detail=project['project'],
             year=int(project['year']), metric='capital_cost', value=value,
             unit='USD/kW', capacity_basis=project['capacity_basis'],
             statistic=project['statistic'], geography='United States',
             dollar_year=int(project['dollar_year']), price_basis=project['price_basis'],
             cost_scope=project['cost_scope'],
-            sample_count=project['sample_count'], source_id='nuclear_projects',
+            sample_count=project['sample_count'], source_id=source_id,
             source_file=Path(path).name, source_sheet='',
             source_table=project['source_location'],
             source_page_url=project['source_page_url'], source_data_url=project['source_data_url'],
             notes=project['notes'],
         ))
     return rows
+
+
+def _vintage_bin(label):
+    """Return (label, midpoint year) for a '2012-2018' or '2023' vintage label."""
+    match = re.fullmatch(r'(\d{4})(?:-(\d{4}))?', str(label).strip())
+    if match is None:
+        return None
+    first, last = int(match.group(1)), int(match.group(2) or match.group(1))
+    return (f'{first}-{last}' if last != first else str(first)), (first + last) // 2
+
+
+def _om_index_rows(base, bins, index_settings):
+    """Emit per-age medians and one early-age mean per vintage bin.
+
+    ``bins`` maps a vintage label to ``(midpoint, {age: (median, sample_count)})``.
+    The early-age mean over ``ages`` is the FOM index; bins with fewer than
+    ``minimum_ages`` available ages are reported raw only.
+    """
+    ages = [int(a) for a in index_settings.get('ages', [1, 2, 3])]
+    minimum = int(index_settings.get('minimum_ages', 2))
+    rows = []
+    for label, (midpoint, by_age) in bins.items():
+        for age, (value, count) in sorted(by_age.items()):
+            rows.append(dict(base, technology_detail=f'Vintage {label}', year=midpoint,
+                             value=value, statistic=f'median_age_{age}', sample_count=count,
+                             notes=f'Median O&M in operating year {age} for projects with COD {label}; '
+                                   'year is the bin midpoint.'))
+        used = {age: by_age[age][0] for age in ages if age in by_age}
+        if len(used) < minimum:
+            continue
+        counts = [by_age[a][1] for a in used]
+        rows.append(dict(base, technology_detail=f'Vintage {label}', year=midpoint,
+                         value=sum(used.values()) / len(used), statistic='median_early_age_mean',
+                         sample_count=min(counts) if all(c != '' for c in counts) else '',
+                         notes='FOM index: mean of ' + ', '.join(f'age {a}={v:.1f}' for a, v in used.items())
+                               + f' for COD {label}; year is the bin midpoint. Not a full-scope O&M level.'))
+    return rows
+
+
+def extract_wind_om_by_age(path, source, index_settings):
+    """Extract LBNL wind O&M by vintage bin and operating year (rows are bins)."""
+    sheet_name = 'O&M by Project Age'
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    try:
+        sheet = workbook[sheet_name]
+        header = _find_header_row(sheet, 'Years Since')
+        rows = list(sheet.iter_rows(min_row=header + 1, values_only=True))
+        ages = [int(a) for a in rows[0][1:] if isinstance(a, (int, float))]
+        bins = {}
+        for row in rows[1:]:
+            parsed = _vintage_bin(row[0])
+            if parsed is None:
+                continue
+            label, midpoint = parsed
+            if label in bins:
+                break  # a later block on the sheet repeats the bin labels
+            by_age = {age: (float(v), '') for age, v in zip(ages, row[1:])
+                      if isinstance(v, (int, float)) and v > 0}
+            bins[label] = (midpoint, by_age)
+    finally:
+        workbook.close()
+    base = _base_row('land_based_wind', source, Path(path).name, sheet_name, 'fixed_om')
+    base.update(technology='wind-ons', unit='USD/kW-yr', capacity_basis='nameplate',
+                geography='United States', dollar_year=2024, price_basis='real')
+    return _om_index_rows(base, bins, index_settings)
+
+
+def extract_pv_om_by_age(path, source, index_settings):
+    """Extract LBNL PV O&M by vintage bin and operating year (columns are bins)."""
+    sheet_name = 'O&M Cost by Project Age'
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    try:
+        sheet = workbook[sheet_name]
+        header = _find_header_row(sheet, 'Years post COD')
+        rows = list(sheet.iter_rows(min_row=header + 1, values_only=True))
+        labels = []
+        for cell in rows[0][1:]:
+            parsed = _vintage_bin(cell)
+            if parsed is None or parsed in labels:
+                break  # sample-count and capacity blocks repeat the bin labels
+            labels.append(parsed)
+        count_offset = len(labels)
+        bins = {label: (midpoint, {}) for label, midpoint in labels}
+        for row in rows[1:]:
+            if not isinstance(row[0], (int, float)):
+                continue
+            age = int(row[0])
+            for k, (label, _) in enumerate(labels):
+                value, count = row[1 + k], row[1 + count_offset + k]
+                if isinstance(value, (int, float)) and value > 0:
+                    bins[label][1][age] = (float(value), int(count) if isinstance(count, (int, float)) else '')
+    finally:
+        workbook.close()
+    base = _base_row('utility_pv', source, Path(path).name, sheet_name, 'fixed_om')
+    base.update(technology='upv', unit='USD/kW-yr', capacity_basis='AC',
+                geography='United States', dollar_year=2024, price_basis='real')
+    return _om_index_rows(base, bins, index_settings)
 
 
 def _artifact(source_id, source, year=None):
@@ -750,10 +850,12 @@ def scrape(config, selected="all", force=False, no_download=False):
                 rows.extend(extract_land_based_wind(path, source))
                 rows.extend(extract_capacity_factors(path, source, source_id))
                 rows.extend(extract_land_based_wind_om(path, source))
+                rows.extend(extract_wind_om_by_age(path, source, settings.get('om_index', {})))
             elif source_id == "utility_pv":
                 rows.extend(extract_utility_pv(path, source))
                 rows.extend(extract_capacity_factors(path, source, source_id))
                 rows.extend(extract_utility_pv_om(path, source))
+                rows.extend(extract_pv_om_by_age(path, source, settings.get('om_index', {})))
                 rows.extend(extract_csp_reference(path, source))
                 rows.extend(extract_storage_costs(path, source))
                 rows.extend(extract_csp_capacity_factors(path, source))
@@ -767,12 +869,14 @@ def scrape(config, selected="all", force=False, no_download=False):
     normalized = pd.DataFrame(rows, columns=COLUMNS).sort_values(
         ["technology", "metric", "source_id", "capacity_basis", "geography", "year"]
     )
-    if settings.get('nuclear_project_file') and selected in ('all', 'nuclear'):
-        path = resolve_atb_path(settings['nuclear_project_file'])
-        projects = pd.DataFrame(extract_nuclear_projects(path), columns=COLUMNS)
+    for source_id, spec in settings.get('project_files', {}).items():
+        if selected not in ('all', 'projects', spec['technology']):
+            continue
+        path = resolve_atb_path(spec['path'])
+        projects = pd.DataFrame(extract_projects(path, spec['technology'], source_id), columns=COLUMNS)
         normalized = pd.concat([normalized, projects], ignore_index=True)
         manifest.append(dict(
-            source_id='nuclear_projects', report_year='',
+            source_id=source_id, report_year='',
             page_url=' | '.join(projects.source_page_url),
             data_url=' | '.join(projects.source_data_url),
             local_file=path.name, size_bytes=path.stat().st_size, sha256=_sha256(path),

@@ -95,7 +95,27 @@
         "manifest_filename": {"type": "string", "minLength": 1},
         "allow_insecure_ssl_fallback": {"type": "boolean"},
         "reeds_mappings": {"$ref": "#/definitions/reedsMappings"},
-        "nuclear_project_file": {"type": "string", "minLength": 1},
+        "project_files": {
+          "type": "object",
+          "description": "Plant-level project cost files keyed by source id; each names its ReEDS technology and CSV path.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["technology", "path"],
+            "properties": {
+              "technology": {"type": "string", "minLength": 1},
+              "path": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "om_index": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ages": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 1}},
+            "minimum_ages": {"type": "integer", "minimum": 1}
+          }
+        },
         "cost_scope_adjustment": {
           "type": "object",
           "description": "Rescales observed capital costs from their reported boundary onto the ATB overnight capital cost used by ReEDS, using components from the release pinned by historical_data.reference_atb_year.",
@@ -384,6 +404,7 @@
       "properties": {
         "capcost": {"$ref": "#/definitions/observedMapping"},
         "fom": {"$ref": "#/definitions/observedMapping"},
+        "fom_index": {"$ref": "#/definitions/observedMapping"},
         "cf_improvement": {"$ref": "#/definitions/observedMapping"}
       }
     },
@@ -411,16 +432,16 @@
       }
     },
     "historyMode": {
-      "enum": ["real", "atb", "manual", "broadcast"]
+      "enum": ["real", "atb", "manual", "broadcast", "indexed", "unavailable"]
     },
     "historyModeWithoutReal": {
-      "enum": ["atb", "manual", "broadcast"]
+      "enum": ["atb", "manual", "broadcast", "unavailable"]
     },
     "historyModeByTurbineClass": {
       "type": "object",
       "additionalProperties": false,
       "minProperties": 1,
-      "description": "One history mode per turbine class. Use when an observed series describes only some classes; each class selecting real must match the mapping's turbine_classes. Only fixed offers real: NREL's Figure 31 CapEx series is fixed-bottom, and no observed floating cost history exists.",
+      "description": "One history mode per turbine class. Use when an observed series describes only some classes; each class selecting real must match the mapping's turbine_classes. Only fixed offers real: the offshore project file holds completed US fixed-bottom projects, and no floating project has been completed in the US.",
       "properties": {
         "fixed": {"$ref": "#/definitions/historyMode"},
         "floating": {"$ref": "#/definitions/historyModeWithoutReal"}
@@ -673,6 +694,13 @@
       "properties": {
         "enabled": {"type": "boolean"},
         "fill_atbstartyear2atbyear_with_real": {"type": "boolean"},
+        "index_reference_year": {"type": "integer", "minimum": 1900},
+        "unavailable_value": {"type": "number"},
+        "unavailable_before": {
+          "type": "object",
+          "description": "First buildable year per technology using the unavailable mode; earlier years get unavailable_value.",
+          "additionalProperties": {"type": "integer", "minimum": 1900}
+        },
         "method": {"enum": ["selective", "linear_bridge"]},
         "columns": {
           "oneOf": [

@@ -62,6 +62,9 @@ PROVENANCE_COLORS = {
     "Split real history": "#56B4E9",
     "Filled real history": "#D55E00",
     "Broadcast history": "#CC79A7",
+    "Unavailable placeholder": "#999999",
+    "Indexed history (ATB level, observed trend)": "#009E73",
+    "Indexed anchor (observed O&M)": "#00553F",
     "ATB history (estimated)": "#7570B3",
     "Filled ATB history": "#B3A2D0",
     "Manual history (ATB unavailable)": "#0072B2",
@@ -545,7 +548,13 @@ def provenance_categories(
         if provenance['technology'] == 'wind-ons':
             series = '*'
         selected = select_history(provenance['settings'], 'real', provenance['technology'], series, metric)
-        real_years = set(selected.loc[selected.source_type.isin(['real', 'calculated']), 'year'])
+        anchors = selected.loc[selected.source_type.isin(['real', 'calculated']), 'year']
+        real_years = set(anchors)
+        # Match the formatter: years between anchors inside the overlap window
+        # carry the straight-line fill rather than ATB.
+        window = anchors[anchors.between(boundary, provenance['settings']['atbyear'])]
+        if not window.empty:
+            real_years |= set(selected.loc[selected.year.between(boundary, window.max()), 'year'])
     if historical_mode == 'atb':
         from historical_atb import archive_series
         tech = provenance['technology']
@@ -567,6 +576,16 @@ def provenance_categories(
                 final_categories.append("Manual history")
             elif historical_mode == "broadcast":
                 final_categories.append("Broadcast history")
+            elif historical_mode == "unavailable":
+                final_categories.append("Unavailable placeholder")
+            elif historical_mode == "indexed":
+                index_years = set().union(*(
+                    series['years'] for series in provenance['observed_series'].get(f'{metric}_index', [])
+                ))
+                final_categories.append(
+                    "Indexed anchor (observed O&M)" if int(year) in index_years
+                    else "Indexed history (ATB level, observed trend)"
+                )
             elif historical_mode == 'atb':
                 if archived_years:
                     final_categories.append('ATB history (estimated)' if year in archived_years else 'Filled ATB history')
@@ -630,7 +649,7 @@ def input_point_categories(
     categories = []
     for year, category in zip(years, final_categories):
         if category in ('Observed history (real)', 'Split real history', 'Scaled real history',
-                        'Calculated project history'):
+                        'Calculated project history', 'Indexed anchor (observed O&M)'):
             categories.append(category)
         elif year >= boundary:
             categories.append("ATB projection (raw)")
@@ -783,8 +802,9 @@ def plot_file_with_provenance(
                 ).to_numpy()
                 real_points = np.isin(point_categories, [
                     'Observed history (real)', 'Split real history', 'Scaled real history',
-                    'Calculated project history',
+                    'Calculated project history', 'Indexed anchor (observed O&M)',
                 ])
+                atb_values = point_values.copy()
                 point_values[real_points] = values[real_points]
                 for category in PROVENANCE_COLORS:
                     point_mask = np.asarray([
@@ -804,13 +824,40 @@ def plot_file_with_provenance(
                         alpha=0.95,
                         zorder=3,
                     )
-        axis.axvline(
-            provenance["projection_start_year"],
-            color="0.35",
-            linestyle=":",
-            linewidth=1.0,
-            alpha=0.7,
-        )
+                # Inside the overlap window a real observation replaces ATB's
+                # value; keep showing what ATB said so the replacement is
+                # visible for every technology, not only where years were filled.
+                overlap = (
+                    real_points
+                    & (point_years >= series_boundary(final_group, provenance))
+                    & (point_years <= provenance['settings']['atbyear'])
+                    & np.isfinite(atb_values)
+                )
+                if overlap.any():
+                    points_present = True
+                    present_categories.add("ATB projection (raw)")
+                    axis.scatter(
+                        point_years[overlap],
+                        atb_values[overlap],
+                        s=18,
+                        marker="o",
+                        facecolors=PROVENANCE_COLORS["ATB projection (raw)"],
+                        edgecolors="none",
+                        alpha=0.95,
+                        zorder=3,
+                    )
+        # One line per distinct series start: floating offshore begins in
+        # 2030 while fixed begins in 2022, and a single line would mislabel one.
+        for start_year in sorted({
+            series_boundary(group, provenance) for _, group in generated_groups
+        }):
+            axis.axvline(
+                start_year,
+                color="0.35",
+                linestyle=":",
+                linewidth=1.0,
+                alpha=0.7,
+            )
         axis.set_title(METRIC_LABELS.get(metric, metric))
         axis.set_xlabel("Year")
         axis.set_ylabel(METRIC_LABELS.get(metric, metric))

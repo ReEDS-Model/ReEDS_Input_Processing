@@ -596,7 +596,7 @@ def _selective_smooth_cost_values(
 FUTURE_SMOOTHING_TREATMENTS = (
     'smooth_projection_curve',
 )
-HISTORICAL_DATA_MODES = ('real', 'atb', 'manual', 'broadcast')
+HISTORICAL_DATA_MODES = ('real', 'atb', 'manual', 'broadcast', 'indexed', 'unavailable')
 NON_HISTORY_COLUMNS = {'Scenario', 'i', 't', 'turbine', 'type'}
 
 
@@ -676,6 +676,17 @@ def _validate_historical_data_config(tech, historical_data, settings):
         raise KeyError(
             f"Unavailable historical metric modes in {label}; choose from "
             f"{list(HISTORICAL_DATA_MODES)}: {invalid}"
+        )
+    uses_unavailable = any(
+        mode == 'unavailable'
+        for metric in historical_data
+        for mode in _metric_modes(historical_data, metric).values()
+    )
+    declared = settings['config']['processing']['smooth_cost_curves'].get('unavailable_before', {})
+    if uses_unavailable and tech not in declared:
+        raise KeyError(
+            f"{tech} selects the unavailable history mode; declare its first "
+            "buildable year in processing.smooth_cost_curves.unavailable_before."
         )
     return dict(historical_data)
 
@@ -864,6 +875,9 @@ def smooth_cost_curve(tech, settings, df):
     minimum_adjustment_threshold = parameters['minimum_adjustment_threshold']
 
     series_starts = settings.get('atb_series_start', {}).get(tech, {})
+    unavailable_value = float(smoothing.get('unavailable_value', 99999))
+    unavailable_before = smoothing.get('unavailable_before', {})
+    unavailable_writes = []
     future_treatments = smoothing['future_smoothing_treatments']
     historical_data = smoothing['historical_data']
     history_columns = [
@@ -942,6 +956,16 @@ def smooth_cost_curve(tech, settings, df):
                 anchor_index, broadcast_columns
             ].to_numpy()
             group = output.loc[index].sort_values('t')
+        # Years before a technology could be built get the ReEDS placeholder.
+        # The cutoff is declared in config, and the write happens last so no
+        # smoothing or dollar-year step can alter it.
+        unavailable_columns = [
+            column for column in history_columns
+            if group_modes[column] == 'unavailable'
+        ]
+        if unavailable_columns:
+            cutoff = int(unavailable_before[tech])
+            unavailable_writes.append((group.index[group['t'] < cutoff], unavailable_columns))
         if method == 'selective':
             for column in columns:
                 output.loc[group.index, column] = _selective_smooth_cost_values(
@@ -1002,6 +1026,8 @@ def smooth_cost_curve(tech, settings, df):
     output.loc[future_mask, columns] = candidate_values.mask(
         keep_original, source_values
     )
+    for rows, unavailable_columns in unavailable_writes:
+        output.loc[rows, unavailable_columns] = unavailable_value
 
     return output.sort_index()
 
