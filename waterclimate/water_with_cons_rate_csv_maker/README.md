@@ -1,0 +1,3 @@
+# Recommeneded use
+
+This repository processes the heritage ReEDS's input datafile and extracts essential water usage rate from `Cooling Water` sheet. `water_with_cons_rate_v0.py` doesn't account for CSP's water usage. Since CSP's data is kept differently, `water_with_cons_rate_v1.py` extracts CSP's water usage rate as well to create the output file `water_with_cons_rate.csv`. Since, `csp-ns` and `csp-ws` have same data and `csp-ws` is treated differently in ReEDS 2.0, this script just extracts `csp-ns`'s data for simplicity. And, `csp-ws`'s data should be populated by the help of `csp-ns`'s data.
