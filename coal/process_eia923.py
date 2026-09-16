@@ -9,32 +9,27 @@ from matplotlib.ticker import AutoMinorLocator
 import seaborn as sns
 
 #%%
-# Get FIPS from ReEDS-2.0 repo
-reeds_path = os.path.expanduser('~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS')
+# Get reeds_path from ReEDS repo
+reeds_path = os.path.expanduser('~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS/')
 sys.path.append(reeds_path)
 import reeds
 
+# Folder with EIA923 zip files located on nrelnas
 dir = '/Volumes/ReEDS/FY26- Historical validation/'
 # Note: Coal price in EIA is in cents/MMBTU and quantity is in ton
-# folder with your zip files
 input_folder = "EIA_923"
 dollar_year=2024
-unit = 'mmbtu'                # ton or mmbtu
-resolution = 'fips'         # fips, cendiv, state, national
-type = 'all'                # BIT, SUB, LIG, RC, WC, all
-recent_years = 20            # plot 5, 10, etc most recent years
+unit = 'mmbtu'                  # ton or mmbtu
+resolution = 'fips'             # fips, cendiv, state, national
+type = 'all'                    # BIT, SUB, LIG, RC, WC, all
+recent_years = 20               # plot 5, 10, etc most recent years
 year_weight = True
 
-if recent_years == 5:
-    yearset = [2020,2021,2022,2023,2024]
-elif recent_years == 10:
-    yearset = [2015,2016,2017,2018,2019,2020,2021,2022,2023,2024]
-else:
-    yearset = [2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024]
+yearset = list(np.arange(2010, 2025))
 
 # Read in processed coal data
-df_matched = pd.read_csv(os.path.join("outputs", "NEMS_EIA_matched1.csv"))
-df_unmatched = pd.read_csv(os.path.join("outputs", "NEMS_EIA_unmatched1_manually_cleaned.csv"))
+df_matched = pd.read_csv(os.path.join("inputs", "NEMS_EIA_matched1.csv"))
+df_unmatched = pd.read_csv(os.path.join("inputs", "NEMS_EIA_unmatched1_manually_cleaned.csv"))
 df_total = pd.concat([df_matched, df_unmatched], axis=0)
 df_total = df_total.rename(columns={'Plant State':'State'})
 
@@ -55,37 +50,6 @@ df.to_csv(os.path.join('outputs','coal_prices_by_years_weighted.csv'), index=Fal
 ###
 '''
  # %%
-def main():
-    final_df = prepare_fuel_product_df()
-    final_df.to_csv(os.path.join('outputs','coal_prices_by_'+resolution+'_'+unit+'_'+type+'.csv'), index=False)
-
-    #final_df = pd.read_csv(os.path.join('outputs','coal_prices_by_'+resolution+'_'+unit+'_'+type+'.csv'))
-    #final_df = pd.read_csv(os.path.join('outputs','coal_prices_by_fips_mmbtu_2010-2024.csv'))
-    #final_df = pd.read_csv(os.path.join('outputs','weighted_fuel_cost_across_years50.csv'))
-    
-    final_df = final_df[final_df['Year'].isin(yearset)]
-
-    if year_weight:
-        final_df = final_df.groupby(['FIPS'], as_index=False).agg({'Total_Fuel_Cost': 'sum', 'Quantity': 'sum'})
-        final_df['Weighted_Fuel_Cost'] = final_df['Total_Fuel_Cost']/final_df['Quantity']
-        final_df = final_df[final_df['Weighted_Fuel_Cost']>0]
-
-        final_df.to_csv(os.path.join('outputs','weighted_fuel_cost_across_years'+str(recent_years)+'.csv'), index=False)
-    else:
-        if resolution == 'state':
-            index = 'State'
-        elif resolution == 'fips':
-            index = 'FIPS'
-        else:
-            index = 'Country'
-        final_df_pivot = final_df.pivot_table(values='Weighted_Fuel_Cost', index=index,
-                                            columns='Year').fillna(0.0)
-        final_df_pivot = final_df_pivot.reset_index()
-
-        # Plot the weighted fuel cost:
-        line_plot(final_df_pivot)
-# %%
-
 def prepare_fuel_product_df():
     all_dfs = []
     
@@ -102,11 +66,11 @@ def prepare_fuel_product_df():
         ".xls":  {"sheet": "Page 5 Fuel Receipts and Cost",  "header": 7}
     }
 
-    for filename in os.listdir(os.path.join(dir,input_folder)):
+    ## Read all the EIA923 data in input folder
+    for filename in os.listdir(os.path.join(dir,input_folder)): 
+        # (skip if not .zip file)
         if not filename.endswith(".zip"):
             continue
-        #if '2011' not in filename:
-        #    continue
 
         print(filename)  
 
@@ -150,7 +114,9 @@ def prepare_fuel_product_df():
                 df_EIA923['Total_Fuel_Cost'] = df_EIA923['Fuel_Cost'] * df_EIA923['Quantity']
                 df_EIA923 = df_EIA923.groupby(['T_PID','Fuel Code'], as_index=False).agg({'Total_Fuel_Cost': 'sum', 'Quantity': 'sum'})
 
-                # Merge in coal prices:
+                # Merge EIA923 with NEMS database to get long/lat:
+                df_nems = pd.read_csv(os.path.join(reeds_path,'inputs',
+                                                   'capacity_exogenous','ReEDS_generator_database_final_EIA-NEMS.csv'))
                 df = df_total.merge(df_EIA923,on=['T_PID','Fuel Code'],how='left')
                 if type !='all':
                     df = df[df['Fuel Code']==type]
@@ -279,4 +245,33 @@ def line_plot(df_pivot):
     #plt.xticks(rotation=90)
     #fig.savefig(os.path.join('figures','weighted_fuel_costs_fips_box_plot_ton.png'), dpi=400, bbox_inches='tight')
 
-main()
+if __name__ == '__main__':
+    final_df = prepare_fuel_product_df()
+    final_df.to_csv(os.path.join('outputs','coal_prices_by_'+resolution+'_'+unit+'_'+type+'.csv'), index=False)
+
+    #final_df = pd.read_csv(os.path.join('outputs','coal_prices_by_'+resolution+'_'+unit+'_'+type+'.csv'))
+    #final_df = pd.read_csv(os.path.join('outputs','coal_prices_by_fips_mmbtu_2010-2024.csv'))
+    #final_df = pd.read_csv(os.path.join('outputs','weighted_fuel_cost_across_years50.csv'))
+    
+    final_df = final_df[final_df['Year'].isin(yearset)]
+
+    if year_weight:
+        final_df = final_df.groupby(['FIPS'], as_index=False).agg({'Total_Fuel_Cost': 'sum', 'Quantity': 'sum'})
+        final_df['Weighted_Fuel_Cost'] = final_df['Total_Fuel_Cost']/final_df['Quantity']
+        final_df = final_df[final_df['Weighted_Fuel_Cost']>0]
+
+        final_df.to_csv(os.path.join('outputs','weighted_fuel_cost_across_years'+str(recent_years)+'.csv'), index=False)
+    else:
+        if resolution == 'state':
+            index = 'State'
+        elif resolution == 'fips':
+            index = 'FIPS'
+        else:
+            index = 'Country'
+        final_df_pivot = final_df.pivot_table(values='Weighted_Fuel_Cost', index=index,
+                                            columns='Year').fillna(0.0)
+        final_df_pivot = final_df_pivot.reset_index()
+
+        # Plot the weighted fuel cost:
+        line_plot(final_df_pivot)
+# %%
