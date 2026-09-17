@@ -27,8 +27,6 @@ csp_class(i,class_idx)$[i_water_cooling(i)$csp2(i)] = sum(ii$ctt_i_ii(i,ii),csp_
 csp_class(i,class_idx)$[i_water_cooling(i)$csp3(i)] = sum(ii$ctt_i_ii(i,ii),csp_class(ii,class_idx)) ;
 csp_class(i,class_idx)$[i_water_cooling(i)$csp4(i)] = sum(ii$ctt_i_ii(i,ii),csp_class(ii,class_idx)) ;
 
-By: Saroj Khanal \<Saroj.Khanal@nrel.gov or sarojpkhanal@gmail.com\> on 6/11/2020 
-
 """
 
 import pandas as pd
