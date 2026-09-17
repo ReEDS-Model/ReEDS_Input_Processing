@@ -320,7 +320,7 @@ processing:
           vom: broadcast  # options: manual / broadcast / unavailable
           heatrate: broadcast  # options: manual / broadcast / unavailable
         future_smoothing_treatments:
-          smooth_projection_curve: true  # options: true / false
+          smooth_projection_curve: false  # options: true / false
       gas:
         historical_data:
           capcost:
