@@ -41,7 +41,7 @@ def subset_atb_rows(subset_rows, atb_data_in):
     Parameters
     ----------
     subset_rows: dict
-        Default {Case: "Exp + TC", CRPYears: 30} for most techs; some techs can have other values for Case, e.g., Market, R&D etc.)
+        Case comes from config.yaml (atb_case / atb_case_overrides) and CRPYears from settings.yaml; CRP only affects financial parameters, so it de-duplicates cost rows.
     atb_data_in: pd.DataFrame
         ATB flat file dataframe to subset
     """
