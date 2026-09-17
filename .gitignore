@@ -11,10 +11,8 @@ atb/figures/*
 atb/comparison/*
 !atb/comparison/README.md
 !atb/comparison/compare_atb_outputs.py
-atb/_dev/
 atb/scraped_input/*
 !atb/scraped_input/README.md
-atb/manual_input/csp_cost_ratios_2025.csv
 
 # Legacy CF source; final historical CF multipliers now live in historical/.
 /NEMS_database_processing/Outputs/

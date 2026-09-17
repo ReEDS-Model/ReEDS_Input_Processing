@@ -3,7 +3,7 @@
 | File | Role |
 | --- | --- |
 | `future_atb_scraper.py` | Download the configured future ATB flat file and workbook. |
-| `historical_data_scraper.py` | Download historical sources and prepare the three versioned historical tables. |
+| `historical_data_scraper.py` | Download historical sources and prepare the two versioned historical tables. |
 | `run_pipeline.py` | Run formatting, plotting, and comparisons from local inputs. |
 | `generate_atb_files.py` | Format projections and merge selected history. |
 | `historical_data.py` | Validate, select, and apply prepared history. |

@@ -39,15 +39,16 @@ because the temporary pre-smoothing data is intentionally not retained.
 The full pipeline also compares the temporary unsmoothed data with the final
 smoothed outputs. Those plots are written to `plot_component/`, which lets
 reviewers see the smoothing effect without retaining duplicate CSV outputs. Final processed
-values are lines, while solid dots identify input data values. Manual history
-and directly observed real history receive dots; broadcast history and filled
-real-history years do not. Future dots show the raw ATB values, while the line
-shows the final raw or smoothed trajectory. A selected manual or broadcast
-history uses one color for its entire historical curve. Real history uses green
-for observations and orange for years filled from that same real series; an
-internal gap is linearly interpolated. Gray and gold distinguish raw and
-smoothed ATB projections. A dotted vertical line marks the configured
-projection start year; line styles distinguish technology series. Each interval
+values are lines, while solid dots identify input data values. Observed real
+anchors, indexed O&M anchors, and manual history receive dots; broadcast,
+placeholder, and filled years do not. Future dots show the raw ATB values, and
+inside the real-data overlap window the raw ATB dot is kept beside the real
+marker so the replacement is visible. Real history uses green for observations
+and orange for filled years; indexed history is green with dark anchors; the
+unavailable placeholder is light gray. Gray and gold distinguish raw and
+smoothed ATB projections. A dotted vertical line marks each series' ATB start
+year (two lines where sub-technologies start in different years); line styles
+distinguish technology series. Each interval
 takes the color of the year it ends in, so a new source color appears on the
 interval that reaches its first year. The one exception is the interval leaving
 the last historical year: it keeps the historical color, so the step into the
