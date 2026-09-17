@@ -12,7 +12,9 @@ This repo includes scripts and inputs to preprocess interconnection queues that 
 ![interconnection queue inputs](interconnection_queue_inputs.png)
 
 # Input files and params to run process_interconnection_queues.py
-All the input files to run the scripts are located in `inputs` folder, including original queue data from LBNL (most recently `lbnl_ix_queue_data_file_thru2024.xlsx`) and `county_state.csv` (read from the `inputs/zones` folder of the ReEDS repo) to match ReEDS counties to appropriate bas.
+All the input files to run the scripts are located in `inputs` folder, including original queue data from LBNL (most recently `LBNL_Ix_Queue_Data_File_thru2025.xlsx`), the supplement `queues_other_forNLR_2025.xlsx` and `county_state.csv` (read from the `inputs/zones` folder of the ReEDS repo) to match ReEDS counties to appropriate bas. Set `REEDS_PATH` to your ReEDS checkout.
+
+The 2025 supplement restores pumped-storage and biofuel/biomass types grouped under `Other Storage`/`Other` in the public file. Requests are matched on `q_id` + `entity` and resource category, preserving public-file capacities; see `add_detailed_types` for hybrid matching details.
 
 # Output
 - Located in the `outputs` folder
@@ -20,6 +22,7 @@ All the input files to run the scripts are located in `inputs` folder, including
 - Previous version files are also kept there
 
 # Comparison figures
-- Interconnection queue figures for 2 versions of queue data can be generated from `process_interconnection_queues.py` by setting the versions' release years and the first and last years that cap limit is applied for the two versions
-  
+- Interconnection queue figures are generated from `process_interconnection_queues.py` for the current vintage (`version-1`) and its difference from the previous vintage, using `outputs/interconnection_queues_<version-2>.csv`. Update the input filenames, release year `version`, and `t_1`/`t_2` for a new vintage; comparison years are selected automatically.
+- Years present in only one vintage are plotted against zero for the difference calculation; this does not mean the missing vintage imposed a zero-capacity limit.
+
 ![comparing two versions of interconnection queue](comparing_interconnection_queue_versions.png)

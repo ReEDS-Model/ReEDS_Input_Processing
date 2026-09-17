@@ -8,34 +8,79 @@ sys.path.append(reeds_path)
 
 '''
 This script processes the raw LBNL's interconnection queues data (https://emp.lbl.gov/queues) to
-apply capacity deployment limit in ReEDS. Specifically, it determines 2026 and 2030 cumulative queues 
+apply capacity deployment limit in ReEDS. Specifically, it determines 2028 and 2031 cumulative queues
 at FIPS level by technology:
-- 2027 cumulative queues: q_status = "active" and IA_status_clean = "IA Executed"
-- 2030 cumulative queues: q_status = "active" regardless of IA_status_clean status
-- 2027-2029 cumulative values are interpolated from 2026 and 2030 values
-- 2026 values are interpolated from 0 and 2027 values (half of 2027 values)
+- 2028 cumulative queues: q_status = "active" and IA_status_clean = "IA Executed"
+- 2031 cumulative queues: q_status = "active" regardless of IA_status_clean status
+- 2029-2030 cumulative values are interpolated from 2028 and 2031 values
+- 2027 values are interpolated from 0 and 2028 values (half of 2028 values)
 '''
 
 dir = os.getcwd()
 
 ##################### INPUTS ######################
 # Most updated version of interconnection queue
-filename = 'lbnl_ix_queue_data_file_thru2024.xlsx'
-version = 2025              # release year
-t_1 = 2027                  # first year to calculate queue
-t_2 = 2030                  # last year to calculate queue
+filename = 'LBNL_Ix_Queue_Data_File_thru2025.xlsx'
+# LBNL supplement with the detailed types behind "Other"/"Other Storage"
+filename_other = 'queues_other_forNLR_2025.xlsx'
+version = 2026              # release year
+t_1 = 2028                  # first year to calculate queue
+t_2 = 2031                  # last year to calculate queue
 year_range = list(range(t_1-1, t_2+1))
 year_range_str = [str(x) for x in year_range]
 
-# To compare two versions of interconnection queue
-version_1 = 2024            # version 1 release year
-version_2 = 2025            # version 2 release year
-
-version_1_t_1 = 2026        # first year to calculate queue in version 1
-version_1_t_2 = 2029        # last year to calculate queue in version 1
-year_range_version_1 = list(range(version_1_t_1-1, version_1_t_2+1))
-year_range_str_version_1 = [str(x) for x in year_range_version_1]
 ###################################################
+
+# Resource types LBNL folded into aggregated categories from the 2025 vintage on, mapped to the
+# category each was folded into. Only types with a matching ReEDS tech group are listed.
+folded2aggregated = {
+    'pumped storage': 'Other Storage',
+    'biofuel': 'Other',
+    'biomass': 'Other',
+}
+
+def add_detailed_types(queue_data, filename_other, type_cols):
+    """Relabel the aggregated LBNL resource types using the detailed types from LBNL's supplement.
+
+    Hybrid (co-located) requests name their detailed types in a different order than the public
+    file's type columns, so each is matched to the aggregated category it was folded into rather
+    than by position. A request with the same aggregated category in two type columns is skipped,
+    since there is no way to tell which slot the detailed type belongs to. Capacities always come
+    from the public file.
+    """
+    other = pd.read_excel(os.path.join(dir,'inputs',filename_other))
+    detailed_by_request = {}
+    for row in other.itertuples(index=False):
+        # Requests with a single resource type leave type1-3 blank and only name it in type_raw
+        types = [t.strip() for t in (row.type1, row.type2, row.type3) if isinstance(t, str)]
+        types = types or [str(row.type_raw).strip()]
+        detailed = {folded2aggregated[t.lower()]: t for t in types if t.lower() in folded2aggregated}
+        if detailed:
+            detailed_by_request[(str(row.q_id).strip(), str(row.entity).strip())] = detailed
+
+    # A q_id is only unique within an interconnecting entity, so match on the pair
+    request = list(zip(queue_data['q_id'].astype(str).str.strip(),
+                       queue_data['entity'].astype(str).str.strip()))
+    aggregated = queue_data[type_cols].apply(lambda c: c.astype(str).str.strip())
+    relabeled_requests = set()
+    for col in type_cols:
+        # Number of type columns sharing this row's category; >1 means the slot is ambiguous
+        shared = aggregated.eq(aggregated[col], axis=0).sum(axis=1)
+        relabeled = pd.Series(
+            [detailed_by_request.get(q, {}).get(t) if n == 1 else None
+             for q, t, n in zip(request, aggregated[col], shared)],
+            index=queue_data.index)
+        relabeled_requests.update(q for q, t in zip(request, relabeled) if t is not None)
+        queue_data[col] = relabeled.fillna(queue_data[col])
+
+    print('Relabeled ' + str(len(relabeled_requests)) + ' of the ' + str(len(detailed_by_request))
+          + ' requests in ' + filename_other + ' that report an aggregated resource type')
+    # Requests missing from the public file have no capacity or location, so they can't contribute
+    missing = [q for q in detailed_by_request if q not in relabeled_requests]
+    if missing:
+        print('  No matching request in ' + filename + ' for: '
+              + ', '.join(q_id + ' (' + entity + ')' for q_id, entity in missing))
+    return queue_data
 
 # Number of technology type (as specified in the queue data file)
 type_no = 3
@@ -43,6 +88,9 @@ queue_data = pd.read_excel(os.path.join(dir,'inputs',filename), sheet_name='03. 
 # The first row is empty, so remove it
 queue_data.columns = queue_data.iloc[0]
 queue_data = queue_data[1:]
+
+queue_data = add_detailed_types(
+    queue_data, filename_other, ['type_'+str(item+1) for item in range(type_no)])
 
 # County-to-FIPS mapping from the ReEDS repo
 county_state = pd.read_csv(os.path.join(reeds_path,'inputs','zones','county_state.csv'))
@@ -67,15 +115,19 @@ for pt in list(range(type_no)):
     item = pt+1
 
     # Filter out tech type
-    queue_data_temp = queue_data[['q_status', 'county', 'state', 'fips_codes', 'IA_status_clean', 'type'+str(item),'mw'+str(item)]]
-    queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'fips_codes': 'FIPS',
-                                                      'type'+str(item): 'tech','mw'+str(item):'cap'+str(item)})
+    queue_data_temp = queue_data[['q_status', 'county', 'state', 'fips_code', 'IA_phase_clean', 'type_'+str(item),'mw_'+str(item)]]
+    queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'fips_code': 'FIPS',
+                                                      'IA_phase_clean': 'IA_status_clean',
+                                                      'type_'+str(item): 'tech','mw_'+str(item):'cap'+str(item)})
+
+    # Capacities are read as objects because of the header offset, so cast them back to numbers
+    queue_data_temp['cap'+str(item)] = pd.to_numeric(queue_data_temp['cap'+str(item)], errors='coerce')
 
     # Only consider queues that have active status
     queue_data_active_temp = queue_data_temp[queue_data_temp['q_status']=='active']
 
-    # Assign initial queue year (in this case 2027) to queues with IA_status_clean = 'IA Executed' and regardless of
-    # IA_status_clean to final queue year (in this case 2030)
+    # Assign initial queue year (in this case 2028) to queues with IA_status_clean = 'IA Executed' and regardless of
+    # IA_status_clean to final queue year (in this case 2031)
     queue_data_active_temp['online_year'] = t_1
     queue_data_active_temp.loc[queue_data_active_temp['IA_status_clean']!='IA Executed','online_year'] = t_2
     
@@ -93,7 +145,7 @@ name2fips = county_state.set_index(county_state['county_name']+'|'+county_state[
 fips_byname = (active_queue['county_name'].str.lower()+'|'+active_queue['state']).map(name2fips)
 active_queue['FIPS'] = fips_reported.where(fips_reported.isin(county_state['FIPS']), fips_byname)
 active_queue_agg = active_queue.groupby(['FIPS','tech','online_year'])['cap'].sum().reset_index()
-active_queue_county = county_state.merge(active_queue_agg, on='FIPS', how='inner')
+active_queue_county = active_queue_agg[active_queue_agg['FIPS'].isin(county_state['FIPS'])].copy()
 
 # Assign 0 queue cap value to county-year pair with no value
 unique_year_FIPS = pd.DataFrame(product(active_queue_county['FIPS'].unique(),[t_1,t_2]),columns=['FIPS','online_year'])
@@ -156,25 +208,11 @@ active_queue_county_filtered.to_csv(os.path.join(dir,'outputs','interconnection_
 #########################################################
 
 
-############### COMPARISON PLOTS #######################
-# Comparing two versions of interconnection queues
-queue_1 = pd.read_csv(os.path.join(dir,'outputs','interconnection_queues_'+str(version_1-1)+'.csv'))
-queue_2 = pd.read_csv(os.path.join(dir,'outputs','interconnection_queues_'+str(version_2-1)+'.csv'))
+############### QUEUE PLOT #######################
+queue_plot = pd.melt(active_queue_county_filtered, id_vars=['r','tg'], value_vars=year_range_str)
+queue_plot = queue_plot.rename(columns={'variable':'year', 'value':'cap'})
+queue_plot = queue_plot.groupby(['tg','year'])['cap'].sum().reset_index()
 
-queue_1_temp = pd.melt(queue_1, id_vars=['r','tg'], value_vars=year_range_str_version_1)
-queue_1_temp = queue_1_temp.rename(columns={'variable':'year', 'value':'cap_1'})
-queue_1_temp = queue_1_temp.groupby(['tg','year'])['cap_1'].sum().reset_index()
-
-queue_2_temp = pd.melt(queue_2, id_vars=['r','tg'], value_vars=year_range_str)
-queue_2_temp = queue_2_temp.rename(columns={'variable':'year', 'value':'cap_2'})
-queue_2_temp = queue_2_temp.groupby(['tg','year'])['cap_2'].sum().reset_index()
-
-queue_compare = pd.merge(queue_1_temp,queue_2_temp,on=['tg','year'],how='outer')
-queue_compare['cap_1'] = queue_compare['cap_1'].fillna(0)
-queue_compare['cap_2'] = queue_compare['cap_2'].fillna(0)
-queue_compare['cap_diff'] = queue_compare['cap_2'] - queue_compare['cap_1']
-
-# Graph version 1:
 sch_order = year_range
 status_cat = ['pv','csp','wind-ons', 'wind-ofs', 'nuclear', 'battery', 'pumped-hydro',
               'biomass', 'gas', 'coal','hydro', 'geothermal', 'h2']
@@ -185,40 +223,11 @@ resource_order_idx = {
 }        
 
 # Create "idx" column with integer values indicating order in stacked bar
-queue_compare["idx"] = queue_compare["tg"].map(resource_order_idx)
+queue_plot["idx"] = queue_plot["tg"].map(resource_order_idx)
 
-chart = alt.Chart(queue_compare).mark_bar(size=30).encode(
+chart = alt.Chart(queue_plot).mark_bar(size=30).encode(
     x=alt.X('year:N', title=None, sort=sch_order),
-    y=alt.Y('sum(cap_1):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), scale=alt.Scale(domain=[0, 2200000]), sort=status_cat),
-    color=alt.Color('tg', 
-                    scale=alt.Scale(range=['gold','goldenrod','skyblue','aqua','lightpink','darkseagreen','aquamarine',
-                                           'saddlebrown','grey','black','lightblue','violet','turquoise']),
-                    sort=status_cat),
-    order=alt.Order('idx')).configure_axis(titleFontSize=15, labelFontSize=15, grid=False
-                ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
-    width=500,
-    height=300,
-    title='Interconnection Queue Version ' + str(version_1-1)
-)
-
-chart.save(os.path.join(dir,'outputs','figures','queue_versions_'+str(version_1-1)+'.html'))
-
-# Graph version 2:
-sch_order = year_range
-status_cat = ['pv','csp','wind-ons', 'wind-ofs', 'nuclear', 'battery', 'pumped-hydro',
-              'biomass', 'gas', 'coal','hydro', 'geothermal', 'h2']
-
-resource_order_idx = {
-    resource: idx 
-    for idx, resource in enumerate(status_cat[::-1]) # Reverse list to align colors with legend order
-}        
-
-# Create "idx" column with integer values indicating order in stacked bar
-queue_compare["idx"] = queue_compare["tg"].map(resource_order_idx)
-
-chart = alt.Chart(queue_compare).mark_bar(size=30).encode(
-    x=alt.X('year:N', title=None, sort=sch_order),
-    y=alt.Y('sum(cap_2):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), scale=alt.Scale(domain=[0, 2200000]), 
+    y=alt.Y('sum(cap):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), scale=alt.Scale(domain=[0, 2200000]),
             sort=status_cat),
     color=alt.Color('tg', 
                     scale=alt.Scale(range=['gold','goldenrod','skyblue','aqua','lightpink','darkseagreen','aquamarine',
@@ -228,38 +237,28 @@ chart = alt.Chart(queue_compare).mark_bar(size=30).encode(
                 ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
     width=500,
     height=300,
-    title='Interconnection Queue Version ' + str(version_2-1)
+    title='Interconnection Queue Version ' + str(version-1)
 )
 
-chart.save(os.path.join(dir,'outputs','figures','queue_versions_'+str(version_2-1)+'.html'))
+chart.save(os.path.join(dir,'outputs','figures','queue_versions_'+str(version-1)+'.html'))
 
+############### COMPARISON PLOT #######################
+queue_previous = pd.read_csv(os.path.join(dir,'outputs','interconnection_queues_'+str(version-2)+'.csv'))
+previous_years = [col for col in queue_previous.columns if col.isdigit()]
+queue_previous = pd.melt(queue_previous, id_vars=['r','tg'], value_vars=previous_years,
+                         var_name='year', value_name='cap_previous')
+queue_previous = queue_previous.groupby(['tg','year'])['cap_previous'].sum().reset_index()
 
-# Graph difference in planned online capacity between old and new NEMS
-sch_order = year_range
-status_cat = ['pv','csp','wind-ons', 'wind-ofs', 'nuclear', 'battery', 'pumped-hydro',
-              'biomass', 'gas', 'coal','hydro', 'geothermal', 'h2']
+queue_compare = queue_plot.merge(queue_previous, on=['tg','year'], how='outer')
+queue_compare[['cap','cap_previous']] = queue_compare[['cap','cap_previous']].fillna(0)
+queue_compare['cap_diff'] = queue_compare['cap'] - queue_compare['cap_previous']
+queue_compare['idx'] = queue_compare['tg'].map(resource_order_idx)
 
-resource_order_idx = {
-    resource: idx 
-    for idx, resource in enumerate(status_cat[::-1]) # Reverse list to align colors with legend order
-}        
-
-# Create "idx" column with integer values indicating order in stacked bar
-queue_compare["idx"] = queue_compare["tg"].map(resource_order_idx)
-
-chart = alt.Chart(queue_compare).mark_bar(size=30).encode(
-    x=alt.X('year:N', title=None, sort=sch_order),
-    y=alt.Y('sum(cap_diff):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), #scale=alt.Scale(domain=[-40000, 60000]), 
-            sort=status_cat),
-    color=alt.Color('tg', 
-                    scale=alt.Scale(range=['gold','goldenrod','skyblue','aqua','lightpink','darkseagreen','aquamarine',
-                                           'saddlebrown','grey','black','lightblue','violet','turquoise']),
-                    sort=status_cat),
-    order=alt.Order('idx')).configure_axis(titleFontSize=15, labelFontSize=15, grid=False
-                ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
-    width=500,
-    height=300,
-    title='Interconnection Queue Difference (Version 2025 - Version 2024)'
+chart_compare = chart.properties(
+    data=queue_compare,
+    title='Interconnection Queue Difference (Version ' + str(version-1) + ' - Version ' + str(version-2) + ')'
+).encode(
+    x=alt.X('year:N', title=None, sort=sorted(set(previous_years + year_range_str), key=int)),
+    y=alt.Y('sum(cap_diff):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), sort=status_cat)
 )
-
-chart.save(os.path.join(dir,'outputs','figures','compare_queue_versions.html'))
+chart_compare.save(os.path.join(dir,'outputs','figures','compare_queue_versions.html'))
