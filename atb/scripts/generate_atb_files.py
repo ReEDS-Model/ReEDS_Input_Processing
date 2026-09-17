@@ -437,50 +437,6 @@ def apply_offshore_cost_multipliers(tech, settings, df):
     return df
 
 
-def apply_coal_projection_overrides(tech, settings, df):
-    """Preserve the published ReEDS 2024 coal values changed by ATB v3."""
-    override_path = os.path.join(
-        ATBDIR,
-        "manual_input",
-        f"coal_projection_overrides_{settings['atbyear']}.csv",
-    )
-    overrides = pd.read_csv(override_path)
-    overrides = overrides.loc[overrides["tech"] == tech].drop(columns="tech")
-    keys = ["Scenario", "i", "t"]
-    values = [column for column in overrides if column not in keys]
-    indexed = df.set_index(keys)
-    override_indexed = overrides.set_index(keys)
-    missing = override_indexed.index.difference(indexed.index)
-    if not missing.empty:
-        raise ValueError(f"Coal override rows not found in ATB data: {missing.tolist()}")
-    indexed.update(override_indexed[values])
-    return indexed.reset_index()
-
-def smooth_hist_cf(tech, settings, df):
-    """
-    function to interpolate historical capacity factor values through 2035
-
-    Parameters
-    ----------
-    tech: str
-        Technology key in settings['techs'] to use when looking up cfbase/base year
-    settings: dict
-        Expects settings['techs'][tech]['cfbase']['t'] to specify the base year for interpolation
-    df: pd.DataFrame
-        Input dataframe containing ['Scenario', 't', 'cf_improvement'] columns
-    """
-    # sort by scenario and year
-    df = df.sort_values(by=['Scenario', 't'])
-    # remove values between 2022 (ATB starts in 2023) and atb base year (usually 2035)
-    tech_settings = settings['techs'][tech]
-    baseyear = tech_settings['cfbase']['t']
-    df['cf_improvement'] = np.where((df['t'] > 2022) & (df['t'] < baseyear), np.nan, df['cf_improvement'])
-    # interpolate to fill dropped values
-    df['cf_improvement'] = df.groupby('Scenario')['cf_improvement'].transform(lambda x: x.interpolate(method='linear'))
-
-    return df
-
-
 # Divide-by-zero floor when expressing a change relative to its own value.
 RELATIVE_SCALE_FLOOR = 1e-9
 
@@ -1030,26 +986,6 @@ def smooth_cost_curve(tech, settings, df):
         output.loc[rows, unavailable_columns] = unavailable_value
 
     return output.sort_index()
-
-def add_beccs_techs(tech, settings, df, techcol='i'):
-    """
-    function to copy costs for beccs_mod to beccs_max
-
-    Parameters
-    ----------
-    tech: str
-        Technology key in settings['techs']
-    df: pd.DataFrame
-        Must include column `techcol` for beccs technologies
-    techcol: str, optional
-        Column name identifying the technology label in `df` (default 'i')
-    """
-    # copy beccs_max from beccs_mod
-    df_add = df.copy()
-    df_add['i'] = "beccs_max"
-    df_out = pd.concat([df, df_add])
-    
-    return df_out
 
 def format_continuous_battery(tech, settings, df):
     """
@@ -1733,9 +1669,6 @@ if __name__ == "__main__":
     FUNCTION_MAPPING = {
         'normalize_cf': normalize_cf,
         'apply_offshore_cost_multipliers': apply_offshore_cost_multipliers,
-        'apply_coal_projection_overrides': apply_coal_projection_overrides,
-        'smooth_hist_cf': smooth_hist_cf,
         'add_csp_techs': add_csp_techs,
-        'add_beccs_techs': add_beccs_techs,
     }
     main(args)

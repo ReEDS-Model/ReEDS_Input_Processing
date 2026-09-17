@@ -247,8 +247,6 @@ techs:
       - fom
       - vom
       - heatrate
-    functions:
-      - apply_coal_projection_overrides
 
   coal-ccs:
     Technology: Coal_FE
@@ -271,8 +269,6 @@ techs:
       - fom
       - vom
       - heatrate
-    functions:
-      - apply_coal_projection_overrides
 
   gas:
     Technology: NaturalGas_FE
