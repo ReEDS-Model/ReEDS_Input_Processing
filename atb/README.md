@@ -77,18 +77,17 @@ the prepared fills extend to the new base year. The pinned reference release in
 Pipeline runs alone never add historical data. ATB schema or technology changes still require review.
 
 The default projection start follows `atb.year - 2`; individual series retain
-their actual start year. Financial cases can be changed in config without
-editing `settings.yaml`. To match `yc/25ATB`, use:
+their actual start year. Financial cases are set in config without editing
+`settings.yaml`: ATB 2025 has no Market case, so this branch uses `atb_case:
+R&D` with `{upv, wind-ons, battery: Exp}`.
 
-```yaml
-processing:
-  atb_case: R&D
-  atb_case_overrides: {upv: Exp, wind-ons: Exp, battery: Exp}
-```
-
-With ATB 2025 configured, the real-data overlap becomes 2023-2025 automatically;
-years without source observations stay ATB. Release URLs, dollar year, and
-year-specific future adjustment files still need the normal annual update.
+With ATB 2025 configured, the real-data overlap is 2023-2025 automatically;
+years without source observations stay ATB. `processing.reeds_atb_year: 2024`
+compares outputs against ReEDS's ATB 2024 files until ReEDS carries 2025, and
+`reeds_end_year` caps the written years. The pinned history references
+(`reference_atb_year`, the two `reference_year` settings) stay at the ATB 2024
+release on purpose; `index_reference_year` and the CCS `unavailable_before`
+years move with the ATB base year (2023 for ATB 2025).
 
 ## Data treatment
 

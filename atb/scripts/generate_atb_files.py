@@ -336,6 +336,10 @@ def merge_historical_atb_data(
         subset=tech_settings['indexcols'], keep='last'
     )
     output = output.reset_index(drop=True)
+    if settings.get('reeds_end_year'):
+        output = output.loc[
+            pd.to_numeric(output['t'], errors='raise') <= settings['reeds_end_year']
+        ].reset_index(drop=True)
     settings.setdefault('atb_series_start', {})[tech] = series_starts
     from historical_data import apply_history
     output = apply_history(output, tech, settings, deflator)

@@ -107,11 +107,14 @@ def apply_history(frame, tech, settings, deflator):
                 index = select_history(settings, 'real', tech, series, f'{metric}_index')
                 reference_year = int(settings['config']['processing']['smooth_cost_curves']['index_reference_year'])
                 anchor = group.loc[group.t.eq(reference_year), metric]
-                base = index.loc[index.year.eq(reference_year), 'value']
-                if index.empty or len(anchor) != 1 or len(base) != 1 or reference_year < boundary:
+                if index.empty or len(anchor) != 1 or reference_year < boundary:
                     raise ValueError(f'Cannot index {tech}/{series}/{metric} at {reference_year}')
-                ratio = np.interp(group.loc[history, 't'], index.year.to_numpy(float),
-                                  index.value.to_numpy(float)) / float(base.iloc[0])
+                # The index past its last observation is horizontal, so the
+                # reference value clamps rather than requiring a prepared row.
+                index_years = index.year.to_numpy(float)
+                index_values = index.value.to_numpy(float)
+                base = float(np.interp(reference_year, index_years, index_values))
+                ratio = np.interp(group.loc[history, 't'], index_years, index_values) / base
                 result.loc[history, metric] = float(anchor.iloc[0]) * ratio
                 continue
             if mode != 'real':

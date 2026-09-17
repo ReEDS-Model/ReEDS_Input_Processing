@@ -6,19 +6,19 @@ workflow:
   make_comparison_plots: true
 
 atb:
-  year: 2024
-  release_version: 3
-  dollar_year: 2022
+  year: 2025
+  release_version: 1
+  dollar_year: 2023
 
 raw_data:
   directory: scraped_input
   allow_insecure_ssl_fallback: true
   flat_file:
-    filename: atb_2024_flat_file.csv
-    url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2024/v3.0.0/ATBe.csv
+    filename: atb_2025_flat_file.csv
+    url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2025/v1.0.0/ATBe.csv
   workbook:
-    filename: atb_2024_workbook.xlsx
-    url: https://data.openei.org/files/6006/2024_v3_Workbook.xlsx
+    filename: atb_2025_workbook.xlsx
+    url: https://data.openei.org/files/8759/2025_v1_Workbook_08-27-2026.xlsx
 
 # Scraper inputs and reviewed mappings.
 historical_cost_sources:
@@ -230,9 +230,11 @@ historical_cost_sources:
       filename: eia_generator_costs_{year}.xlsx
 
 processing:
-  atb_case: Market
-  atb_case_overrides: {}
+  atb_case: R&D  # ATB 2025 has no Market case; Exp is closest for the techs below.
+  atb_case_overrides: {upv: Exp, wind-ons: Exp, battery: Exp}
   reeds_repo: C:/ReEDS/ReEDS
+  reeds_atb_year: 2024  # ReEDS plant_characteristics vintage compared against; ReEDS has no ATB 2025 files yet.
+  reeds_end_year: 2060  # last year written to outputs
   output_directory: output
   copy_to_reeds: false
   technologies: all
@@ -246,7 +248,7 @@ processing:
     method: selective
     columns: all
     fill_atbstartyear2atbyear_with_real: true
-    index_reference_year: 2022  # ATB year supplying the level for indexed metrics.
+    index_reference_year: 2023  # ATB year supplying the level for indexed metrics (ATB 2025 base year).
     unavailable_value: 99999  # ReEDS placeholder for years before a technology existed.
     # First buildable year for every metric using the unavailable mode; earlier
     # years get unavailable_value in the outputs. manual.csv never carries it.
@@ -254,8 +256,8 @@ processing:
       fuelcell: 2035
       nuclear-smr: 2030
       wind-ofs: 2030
-      coal-ccs: 2022
-      gas-ccs: 2022
+      coal-ccs: 2023
+      gas-ccs: 2023
     slope_change_threshold: 0.4
     max_kink_years: 4
     major_step_relative_threshold: 0.1
