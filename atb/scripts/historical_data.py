@@ -9,6 +9,10 @@ from atb_config import resolve_atb_path
 
 
 MONETARY = {'capcost', 'capcost_energy', 'fom', 'fom_energy', 'vom'}
+UNITS = {'capcost': 'USD/kW', 'capcost_energy': 'USD/kWh',
+         'fom': 'USD/kW-yr', 'fom_energy': 'USD/kWh-yr',
+         'vom': 'USD/MWh', 'heatrate': 'MMBtu/MWh',
+         'cf_improvement': 'fraction', 'rte': 'fraction'}
 KEYS = ['scope', 'technology', 'series', 'scenario', 'identifiers', 'metric', 'year']
 
 
@@ -40,8 +44,6 @@ def load_history(settings, kind):
             raise ValueError(f'Monetary history requires a dollar year in {path}')
         if data[['source_type', 'source_file', 'source_url', 'method']].eq('').any().any():
             raise ValueError(f'Incomplete history provenance in {path}')
-        if kind == 'atb' and not data.year.eq(data.atb_year - 2).all():
-            raise ValueError('Archived ATB anchors must use release year minus two.')
         cache[kind] = data
     return cache[kind]
 
@@ -112,27 +114,16 @@ def apply_history(frame, tech, settings, deflator):
                                   index.value.to_numpy(float)) / float(base.iloc[0])
                 result.loc[history, metric] = float(anchor.iloc[0]) * ratio
                 continue
-            if mode not in ('real', 'atb'):
+            if mode != 'real':
                 continue
-            data = select_history(settings, mode, tech, series, metric)
-            if mode == 'real':
-                # Drop the years carried flat past the last observation so the
-                # bridge below runs from that observation to the projection.
-                anchors = data.loc[data.source_type.isin(['real', 'calculated'])]
-                if not anchors.empty:
-                    data = data.loc[data.year.le(anchors.year.max())]
-            if mode == 'atb':
-                data = data.loc[data.year.lt(boundary) & data.atb_year.le(settings['atbyear'])]
+            data = select_history(settings, 'real', tech, series, metric)
+            # Drop the years carried flat past the last observation so the
+            # bridge below runs from that observation to the projection.
+            anchors = data.loc[data.source_type.isin(['real', 'calculated'])]
+            if not anchors.empty:
+                data = data.loc[data.year.le(anchors.year.max())]
             if data.empty:
-                fallback = settings['config']['historical_atb']['missing_series'] if mode == 'atb' else 'error'
-                if fallback == 'error':
-                    raise ValueError(f'No prepared {mode} history for {tech}/{series}/{metric}')
-                if fallback == 'broadcast':
-                    anchor = group.loc[group.t.eq(boundary), metric]
-                    if len(anchor) != 1:
-                        raise ValueError(f'Missing broadcast anchor for {tech}/{series}/{metric}')
-                    result.loc[history, metric] = float(anchor.iloc[0])
-                continue
+                raise ValueError(f'No prepared real history for {tech}/{series}/{metric}')
             values = converted_values(data, settings['dollaryear'], deflator).to_numpy()
             if metric == 'cf_improvement':
                 reference = settings['cf_normalization_bases'][tech]

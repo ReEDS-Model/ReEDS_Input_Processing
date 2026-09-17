@@ -65,10 +65,6 @@ PROVENANCE_COLORS = {
     "Unavailable placeholder": "#999999",
     "Indexed history (ATB level, observed trend)": "#009E73",
     "Indexed anchor (observed O&M)": "#00553F",
-    "ATB history (estimated)": "#7570B3",
-    "Filled ATB history": "#B3A2D0",
-    "Manual history (ATB unavailable)": "#0072B2",
-    "Broadcast history (ATB unavailable)": "#CC79A7",
     "ATB projection (raw)": "#6E6E6E",
     "ATB projection (smoothed)": "#E69F00",
 }
@@ -539,7 +535,6 @@ def provenance_categories(
     )
     boundary = series_boundary(final_group, provenance)
     historical_mode = resolve_historical_mode(metric, final_group, provenance)
-    archived_years = set()
     real_years = set()
     if historical_mode == 'real':
         from historical_data import select_history
@@ -555,16 +550,6 @@ def provenance_categories(
         window = anchors[anchors.between(boundary, provenance['settings']['atbyear'])]
         if not window.empty:
             real_years |= set(selected.loc[selected.year.between(boundary, window.max()), 'year'])
-    if historical_mode == 'atb':
-        from historical_atb import archive_series
-        tech = provenance['technology']
-        identity = next((c for c in ('i', 'type', 'turbine') if c in final_group), None)
-        series = str(final_group[identity].iloc[0]) if identity else '*'
-        if tech == 'wind-ons':
-            series = '*'
-        archived_years = set(archive_series(
-            provenance['settings'], tech, series, metric, boundary
-        ).year)
     final_categories = []
     for year, was_changed in zip(years, changed):
         real_overlap = (historical_mode == 'real'
@@ -586,12 +571,6 @@ def provenance_categories(
                     "Indexed anchor (observed O&M)" if int(year) in index_years
                     else "Indexed history (ATB level, observed trend)"
                 )
-            elif historical_mode == 'atb':
-                if archived_years:
-                    final_categories.append('ATB history (estimated)' if year in archived_years else 'Filled ATB history')
-                else:
-                    fallback = provenance['settings']['config']['historical_atb']['missing_series']
-                    final_categories.append(f'{fallback.capitalize()} history (ATB unavailable)')
             elif historical_mode == "real":
                 if not is_real_history_target(final_group, metric, provenance):
                     raise KeyError(

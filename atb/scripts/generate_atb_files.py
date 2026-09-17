@@ -317,34 +317,6 @@ def merge_historical_atb_data(
         history_stored = manual_history(settings, tech, scenario, deflator)
 
         history_stored_for_output = history_stored
-        smoothing = _technology_smoothing_config(tech, settings)
-        if smoothing and any(
-            'atb' in _metric_modes(smoothing['historical_data'], metric).values()
-            for metric in smoothing['historical_data']
-        ):
-            # Add output slots as the projection boundary advances, without
-            # writing generated years into the hand-maintained source file.
-            additions = []
-            for _, boundary_row in _projection_boundary_rows(current, idcols).iterrows():
-                matching = history_stored
-                for column in idcols:
-                    matching = matching.loc[matching[column].eq(boundary_row[column])]
-                missing = sorted(set(range(settings['reeds_start_year'], int(boundary_row.t)))
-                                 - set(matching.t))
-                if not missing:
-                    continue
-                if matching.empty:
-                    raise ValueError(f'No manual template for new {tech} series; initialize its historical baseline.')
-                class_value = boundary_row.get(tech_settings.get('history_class_column'))
-                if any(_historical_mode_for_metric(smoothing['historical_data'], metric, class_value) == 'manual'
-                       for metric in smoothing['historical_data'] if metric != 'rsc_mult'):
-                    raise ValueError(f'Missing manual years {missing} for {tech}; supply them or select a generated history mode.')
-                for year in missing:
-                    row = matching.loc[(matching.t - year).abs().idxmin()].copy()
-                    row['t'] = year
-                    additions.append(row)
-            if additions:
-                history_stored_for_output = pd.concat([history_stored, pd.DataFrame(additions)], ignore_index=True)
         history_for_output = _select_pre_projection_history(
             history_stored_for_output, current, idcols
         )
@@ -552,7 +524,7 @@ def _selective_smooth_cost_values(
 FUTURE_SMOOTHING_TREATMENTS = (
     'smooth_projection_curve',
 )
-HISTORICAL_DATA_MODES = ('real', 'atb', 'manual', 'broadcast', 'indexed', 'unavailable')
+HISTORICAL_DATA_MODES = ('real', 'manual', 'broadcast', 'indexed', 'unavailable')
 NON_HISTORY_COLUMNS = {'Scenario', 'i', 't', 'turbine', 'type'}
 
 
@@ -1601,7 +1573,7 @@ def main(args):
                            index_col='*Dollar.Year').squeeze()
     if not args.skip_costs:
         from historical_data import load_history
-        for kind in ('real', 'atb', 'manual'):
+        for kind in ('real', 'manual'):
             load_history(settings, kind)
     # load ATB flat file
     atb_data = load_atb_flat_file(settings, args, techs_to_run)

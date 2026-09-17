@@ -1,10 +1,9 @@
 # Raw download cache
 
 - `atb_<year>_flat_file.csv` and `atb_<year>_workbook.xlsx`: current projection
-  inputs downloaded by `scripts/future_atb_scraper.py`.
+  inputs downloaded by `scripts/future_atb_scraper.py`, plus the pinned
+  reference release downloaded by `scripts/historical_data_scraper.py`.
 - `historical_costs/`: observed-source downloads, normalized observations,
-  and their source manifest.
-- `historical_atb/`: archived ATB downloads, release-minus-two estimates,
   and their source manifest.
 - `reeds_source/<ref>/`: ReEDS repository files fetched at the commit pinned in
   `reeds_source.ref` (baseline plant characteristics, `dollaryear.csv`, and the

@@ -6,7 +6,6 @@ raw files or network access. `historical_data_scraper.py` is their only writer.
 | File | Contents |
 | --- | --- |
 | `real.csv` | All scraped observations (`scope=raw`), plus reviewed ReEDS mappings, calculated components, and annual fills (`scope=reeds`). |
-| `atb.csv` | Reviewed ATB release-minus-two anchors, including CSP and offshore adjustments. Missing years are filled during formatting. |
 | `manual.csv` | ReEDS ATB 2024 baseline curves, deflated to the history dollar year, including reference/projection rows needed for retired designs and broadcasting. Any 9999 here is only what ReEDS published; the placeholders in outputs (99999) come from `unavailable_value` and `unavailable_before` in `config.yaml`. |
 
 Each row identifies `technology`, `series`, `metric`, `year`, `value`, `unit`,
@@ -122,12 +121,12 @@ Europe-and-US average remains in `real.csv` as raw rows for reference; select
 it again by pointing the wind-ofs mapping back at `source_id: offshore_wind`.
 Vineyard Wind 1 is added once it declares commercial operation.
 
-`source_type` is `real`, `calculated`, `filled`, `atb`, or `manual`.
+`source_type` is `real`, `calculated`, `filled`, or `manual`.
 `source_file` and `source_url` identify inputs; `sources` contains their SHA256
 checksums, locations, original dollar years, and source notes. `source_years`
 identifies the actual anchors behind a fill. `method` records interpolation,
 endpoint filling, deflation, component splitting, or configuration scaling.
-`atb_year` identifies the release where applicable.
+`atb_year` identifies the ReEDS baseline release on manual rows.
 
 The real table includes observations outside the modeled period and unmapped
 technologies for review. Only `scope=reeds` rows enter outputs. Missing real
@@ -164,45 +163,7 @@ Crescent Dunes remains the mapped cost proxy; the other designs lack a reviewed
 configuration mapping. CSP CF rows describe operating years, not build vintages,
 and remain raw because current CSP outputs have no CF column.
 
-ATB anchor rows always satisfy `year = atb_year - 2`; this relationship does not
-apply to interpolated years in generated outputs. `manual.csv` is a ReEDS
-snapshot, not a claim that every value was observed or published in that year.
-Manual CF values retain their ATB 2024 normalization; real and ATB CF values
-are fractions normalized to the current projection reference at runtime.
-
-ATB 2022-2023 H-frame combined-cycle entries map to ReEDS `Gas-CC_H_2x1`
-and, for 95% capture, `Gas-CC_H_2x1-CCS_mod`. Their workbook assumptions and
-[2023 documentation](https://atb.nlr.gov/electricity/2023/fossil_energy_technologies)
-specify 2x1 plants (992 MW without capture; 877 MW with 95% capture).
-[ATB 2024](https://atb.nlr.gov/electricity/2024/fossil_energy_technologies)
-introduced separate 1x1 plants. Those keep the configured fallback for earlier
-years; 97% capture and retrofit entries are not substituted for new-build 95% CCS.
-
-Mapping coverage was checked against the configured ATB 2015-2024 archives:
-
-| ReEDS series | Historical ATB mapping |
-| --- | --- |
-| Coal-new, Coal-IGCC, Gas-CC, Gas-CT, Nuclear, biopower | Named conventional designs; available anchors start in 2013. |
-| CofireOld, CofireNew | Same-named entries on the older Biopower sheets, mapped into ReEDS coal. |
-| Coal and gas 95% CCS, H-frame 2x1, Nuclear-SMR | Matching designs start with ATB 2022 (2020 anchors). |
-| H-frame 1x1 | Introduced in ATB 2024; no earlier matching anchors. |
-| wind-ons | Class 4 from ATB 2020 onward, including the ATB 2022 name without a technology suffix. |
-| wind-ofs | Fixed Class 1 and floating Class 8 from ATB 2020 onward. |
-| upv | Class 4 from ATB 2021 onward. Earlier city/CF categories are not assumed equivalent. |
-| csp1-4 | Ten-hour CSP reference from ATB 2016 onward, with the documented configuration ratios. |
-| battery_li | Components, VOM, and efficiency from ATB 2020 onward. |
-| ng-fuel-cell | Manual by configuration. |
-
-The [2020 workbook](https://atb-archive.nlr.gov/electricity/2020/data.php)
-supplies overnight costs and heat rates absent from its flat CSV. It also replaces
-the flat CSV's slightly different CSP O&M estimates. Its battery components are
-calculated as `E=(C4-C2)/2` and `P=C2-2*E`; FOM uses the ReEDS 2.5% convention.
-The 2019 battery sheet has no values in its required 2017 column.
-
-Wind mappings preserve resource classes with each vintage's turbine assumptions;
-they do not equate historical turbines with the current 115 m/170 m design.
-Earlier TRGs use different definitions ([land-based](https://atb.nlr.gov/electricity/2022/land-based_wind),
-[offshore](https://atb-archive.nlr.gov/electricity/2020/index.php?t=ow)).
-Old coal designs and aeroderivative gas turbines lack matching archive series.
-Missing cells and parameters remain gaps; later projection years are never
-relabeled as release-minus-two anchors.
+`manual.csv` is a ReEDS snapshot, not a claim that every value was observed or
+published in that year. Manual CF values retain their ATB 2024 normalization;
+real CF values are fractions normalized to the current projection reference at
+runtime.

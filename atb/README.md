@@ -15,13 +15,13 @@ creates plots. It never downloads data or rewrites historical inputs. Use
 
 ## Historical inputs
 
-The three versioned tables in [`historical/`](historical/README.md) are sufficient
+The two versioned tables in [`historical/`](historical/README.md) are sufficient
 for historical processing; users do not need the historical raw downloads.
 The defaults use observed data wherever a reviewed source exists (`real`, or
 `indexed` for O&M), hold the first ATB projection value flat otherwise
 (`broadcast`), and write the ReEDS placeholder before a technology's first
-buildable year (`unavailable`). Archived ATB estimates (`atb`) and the ReEDS
-ATB 2024 baseline (`manual`) remain selectable per metric in `config.yaml`.
+buildable year (`unavailable`). The ReEDS ATB 2024 baseline (`manual`) remains
+selectable per metric in `config.yaml`.
 
 To rebuild history from original sources:
 
@@ -30,9 +30,9 @@ python scripts/historical_data_scraper.py
 ```
 
 Use `--no-download` to rebuild from cached raw files, or `--force` to replace
-cached downloads. Preparation downloads observed sources and historical ATB
-releases, including the configured current release. It writes all three CSVs
-only after extraction and preparation succeed. Review their changes before
+cached downloads. Preparation downloads observed sources and the pinned
+reference release. It writes both CSVs only after extraction and preparation
+succeed. Review their changes before
 committing them. Manual values always come from the ReEDS **ATB 2024** files.
 
 Each metric's history mode is set per technology in `config.yaml`:
@@ -49,21 +49,18 @@ Each metric's history mode is set per technology in `config.yaml`:
   never lives in `manual.csv`. It is a marker, not the barrier: ReEDS blocks
   investment before its own `firstyear`, so the value only needs to be far
   above any real cost (ReEDS's own files use 9999, which is below Vogtle).
-- `atb`, `manual`, `broadcast`: archived ATB estimates, the ReEDS ATB 2024
-  baseline, or the first projection value held flat.
+- `manual`, `broadcast`: the ReEDS ATB 2024 baseline, or the first projection
+  value held flat.
 
 Technologies with only a few builds use plant-level project files under
 `manual_input/` (nuclear, fixed offshore). The scraper writes a coverage table
 into `historical/README.md` showing every metric's mode, source, and anchors.
 
-Archived anchors use exactly `historical year = ATB release year - 2`.
 Formatting interpolates missing years, carries the first anchor backward before
 coverage, and interpolates from the last anchor to the first projection year.
-That last rule matters where ATB omits a technology until 2030 (nuclear,
-nuclear-SMR, floating offshore): the curve rises to meet ATB instead of holding
-flat and then stepping. These fills are estimates, not additional annual ATB
-observations.
-ATB history uses Moderate estimates across output scenarios.
+That last rule matters where ATB omits a technology until 2030 (nuclear): the
+curve runs to meet ATB instead of holding flat and then stepping. These fills
+are estimates, not additional observations.
 
 `processing.smooth_cost_curves.fill_atbstartyear2atbyear_with_real: true`
 also replaces ATB points through the release year for metrics selected as
@@ -74,10 +71,10 @@ smoothing and can be overridden per technology. Plots label the replacement
 sources.
 
 During an annual update, update the configured release, URLs, dollar year and
-technology mappings, download future ATB, then rerun historical preparation to
-add the new release's base year. Previous releases are recovered from the
-prepared table's provenance or the cached manifest. Pipeline runs alone never
-add historical data. ATB schema or technology changes still require review.
+technology mappings, download future ATB, then rerun historical preparation so
+the prepared fills extend to the new base year. The pinned reference release in
+`historical_data.reference_release` moves only when you decide to move it.
+Pipeline runs alone never add historical data. ATB schema or technology changes still require review.
 
 The default projection start follows `atb.year - 2`; individual series retain
 their actual start year. Financial cases can be changed in config without
@@ -106,7 +103,7 @@ year-specific future adjustment files still need the normal annual update.
   `historical_cost_sources.cost_scope_adjustment`; see
   [`historical/README.md`](historical/README.md) for the per-source boundaries
   and the offshore-wind caveat.
-- Real and archived capacity factors remain fractions in the prepared files;
+- Real capacity factors remain fractions in the prepared files;
   formatting divides them by the current ATB reference capacity factor.
 - Battery power and energy costs are estimated from observed total cost and
   cohort duration while preserving ATB reference component proportions.

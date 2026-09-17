@@ -11,10 +11,9 @@ import pandas as pd
 import requests
 
 from atb_config import load_processing_settings, raw_file_path, resolve_atb_path
-from archived_sources import UNITS, scrape as scrape_archive
 from downloads import download_file
 from generate_atb_files import _normalize_reeds_history, get_atb_file_path, load_csp_cost_ratios
-from historical_data import KEYS, MONETARY, load_history
+from historical_data import KEYS, MONETARY, UNITS, load_history
 from observed_sources import scrape as scrape_observations
 from real_history_sources import _observed_values_by_year, _split_battery_history, battery_history_sources
 
@@ -268,67 +267,20 @@ def prepare_real(settings, deflator, deflator_source):
     return pd.DataFrame(rows)
 
 
-def prepare_archive(settings, deflator, deflator_source):
-    settings = reference_settings(settings)
-    config = settings['config']['historical_atb']
-    directory = resolve_atb_path(config['directory'])
-    raw = pd.read_csv(directory / config['normalized_filename'], keep_default_na=False)
-    manifest = pd.read_csv(directory / 'source_manifest.csv', keep_default_na=False).set_index('filename')
-    ratios = load_csp_cost_ratios(settings).set_index('type').ratio.to_dict()
-    offshore_path = resolve_atb_path(f"manual_input/offshore_cost_multipliers_{settings['atbyear']}.csv")
-    offshore = pd.read_csv(offshore_path).set_index('turbine')
-    rows = []
-    for source in raw.itertuples(index=False):
-        reference = dict(file=source.source_file, url=source.source_url,
-                         sha256=manifest.loc[source.source_file, 'sha256'],
-                         format=manifest.loc[source.source_file, 'format'],
-                         location=source.source_location, dollar_year=int(source.dollar_year))
-        references = [reference]
-        value = source.value
-        method = f'ATB {source.atb_year} Moderate base-year estimate; year=release-2. {source.notes}'.strip()
-        if source.metric in MONETARY:
-            value *= deflator[int(source.dollar_year)] / deflator[settings['dollaryear']]
-            references += [deflator_source]
-            method += ' Converted with the ReEDS deflator.'
-        targets = ratios if source.technology == 'csp' else {source.series: 1}
-        if source.technology == 'csp':
-            path = resolve_atb_path(f"manual_input/csp_cost_ratios_{settings['atbyear']}.csv")
-            references += [source_reference(path, 'https://github.com/ReEDS-Model/ReEDS', 'CSP configuration ratios')]
-        if source.technology == 'wind-ofs' and source.metric in ('capcost', 'fom'):
-            multiplier = offshore.loc[source.series, source.metric]
-            value *= multiplier
-            references += [source_reference(offshore_path, 'https://github.com/ReEDS-Model/ReEDS', 'Offshore cost multipliers')]
-            method += f' Offshore multiplier={multiplier}.'
-        for series, ratio in targets.items():
-            scale = ratio if source.metric in MONETARY else 1
-            calculated = (scale != 1 or source.technology == 'wind-ofs' and source.metric in ('capcost', 'fom')
-                          or source.technology == 'battery' and (
-                              source.metric.startswith('fom') or source.notes.startswith('Calculated battery components:')))
-            row = point(source.technology, series, source.metric, source.year, value * scale, settings['dollaryear'],
-                        'calculated' if calculated else 'atb', references,
-                        method + (f' CSP configuration ratio={scale}.' if source.technology == 'csp' else ''))
-            row.update(atb_year=int(source.atb_year), scenario='Moderate')
-            rows.append(row)
-    return pd.DataFrame(rows)
-
-
 def reference_settings(settings):
+    """Point history preparation at the pinned reference release."""
     settings = copy.deepcopy(settings)
     config = settings['config']
-    vintage = config['historical_data']['reference_atb_year']
-    directory = resolve_atb_path(config['historical_atb']['directory'])
-    manifest = pd.read_csv(directory / 'source_manifest.csv')
-    source = manifest.loc[manifest.atb_year.eq(vintage) & manifest['format'].isin(['battery', 'workbook'])]
-    if len(source) != 1:
-        raise ValueError(f'Expected one archived battery reference workbook for ATB {vintage}')
-    settings['atbyear'] = vintage
-    settings['workbook_path'] = str(directory / source.iloc[0].filename)
-    config['raw_data']['workbook']['url'] = source.iloc[0].url
-    flat = manifest.loc[manifest.atb_year.eq(vintage) & manifest['format'].eq('flat')]
-    if len(flat) != 1:
-        raise ValueError(f'Expected one archived flat file for ATB {vintage}')
-    settings['reference_flat_file'] = str(directory / flat.iloc[0].filename)
-    settings['reference_flat_url'] = flat.iloc[0].url
+    release = config['historical_data']['reference_release']
+    directory = resolve_atb_path(config['raw_data']['directory'])
+    settings['atbyear'] = config['historical_data']['reference_atb_year']
+    settings['workbook_path'] = str(directory / release['workbook']['filename'])
+    config['raw_data']['workbook']['url'] = release['workbook']['url']
+    settings['reference_flat_file'] = str(directory / release['flat_file']['filename'])
+    settings['reference_flat_url'] = release['flat_file']['url']
+    for path in (settings['workbook_path'], settings['reference_flat_file']):
+        if not Path(path).is_file():
+            raise FileNotFoundError(f'Missing reference release file {path}; rerun without --no-download.')
     return settings
 
 
@@ -442,8 +394,13 @@ def main():
         for kind in ('flat_file', 'workbook'):
             download_file(config['raw_data'][kind]['url'], raw_file_path(config, kind), force=args.force,
                           allow_insecure_ssl_fallback=config['raw_data'].get('allow_insecure_ssl_fallback', False))
+        release = config['historical_data']['reference_release']
+        for kind in ('flat_file', 'workbook'):
+            download_file(release[kind]['url'],
+                          resolve_atb_path(config['raw_data']['directory']) / release[kind]['filename'],
+                          force=args.force,
+                          allow_insecure_ssl_fallback=config['raw_data'].get('allow_insecure_ssl_fallback', False))
     scrape_observations(config, force=args.force, no_download=args.no_download)
-    scrape_archive(config, force=args.force, no_download=args.no_download)
     settings = copy.deepcopy(settings)
     settings['dollaryear'] = settings['history_dollar_year']
     deflator_relative = 'inputs/financials/deflator.csv'
@@ -452,7 +409,6 @@ def main():
     reference = source_reference(path, reeds_blob_url(config, deflator_relative),
                                  'value_target=value_source*deflator[source_dollar_year]/deflator[target_dollar_year]')
     tables = {'real': prepare_real(settings, deflator, reference),
-              'atb': prepare_archive(settings, deflator, reference),
               'manual': prepare_manual(settings, deflator, reference,
                                        force=args.force, no_download=args.no_download)}
     directory = resolve_atb_path(config['historical_data']['directory'])

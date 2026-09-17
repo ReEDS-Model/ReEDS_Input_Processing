@@ -51,34 +51,6 @@
         "workbook": {"$ref": "#/definitions/downloadArtifact"}
       }
     },
-    "historical_atb": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["directory", "normalized_filename", "missing_series", "releases"],
-      "properties": {
-        "directory": {"type": "string", "minLength": 1},
-        "normalized_filename": {"type": "string", "minLength": 1},
-        "missing_series": {"enum": ["manual", "broadcast", "error"]},
-        "releases": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": ["filename", "url", "dollar_year", "format"],
-              "properties": {
-                "filename": {"type": "string", "minLength": 1},
-                "url": {"type": "string", "format": "uri"},
-                "dollar_year": {"type": "integer", "minimum": 1900},
-                "format": {"enum": ["flat", "workbook", "battery"]}
-              }
-            }
-          }
-        }
-      }
-    },
     "historical_cost_sources": {
       "type": "object",
       "additionalProperties": false,
@@ -224,10 +196,10 @@
       "required": [
         "directory",
         "real_filename",
-        "atb_filename",
         "manual_filename",
         "dollar_year",
-        "reference_atb_year"
+        "reference_atb_year",
+        "reference_release"
       ],
       "properties": {
         "directory": {
@@ -235,10 +207,6 @@
           "minLength": 1
         },
         "real_filename": {
-          "type": "string",
-          "minLength": 1
-        },
-        "atb_filename": {
           "type": "string",
           "minLength": 1
         },
@@ -253,6 +221,15 @@
         "reference_atb_year": {
           "type": "integer",
           "minimum": 2015
+        },
+        "reference_release": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["flat_file", "workbook"],
+          "properties": {
+            "flat_file": {"$ref": "#/definitions/downloadArtifact"},
+            "workbook": {"$ref": "#/definitions/downloadArtifact"}
+          }
         }
       }
     },
@@ -432,10 +409,10 @@
       }
     },
     "historyMode": {
-      "enum": ["real", "atb", "manual", "broadcast", "indexed", "unavailable"]
+      "enum": ["real", "manual", "broadcast", "indexed", "unavailable"]
     },
     "historyModeWithoutReal": {
-      "enum": ["atb", "manual", "broadcast", "unavailable"]
+      "enum": ["manual", "broadcast", "unavailable"]
     },
     "historyModeByTurbineClass": {
       "type": "object",

@@ -229,61 +229,6 @@ historical_cost_sources:
       archive_data_url: https://www.eia.gov/electricity/generatorcosts/archive/{year}/xls/generator_costs_{year}.xlsx
       filename: eia_generator_costs_{year}.xlsx
 
-historical_atb:
-  directory: scraped_input/historical_atb
-  normalized_filename: historical_atb.csv
-  missing_series: broadcast
-  releases:
-    2015:
-      - format: workbook
-        filename: atb_2015_workbook.xlsm
-        dollar_year: 2013
-        url: https://docs.nlr.gov/docs/fy15osti/64077-DA.xlsm
-    2016:
-      - format: workbook
-        filename: atb_2016_workbook.xlsm
-        dollar_year: 2014
-        url: https://docs.nlr.gov/docs/fy16osti/66944-DA.xlsm
-    2017:
-      - format: workbook
-        filename: atb_2017_workbook.xlsm
-        dollar_year: 2015
-        url: https://data.nlr.gov/system/files/71/2017-ATB-data.xlsm
-    2018:
-      - format: workbook
-        filename: atb_2018_workbook.xlsm
-        dollar_year: 2016
-        url: https://data.nlr.gov/system/files/89/2018-ATB-data-interim-geo.xlsm
-    2019:
-      - format: workbook
-        filename: atb_2019_workbook.xlsm
-        dollar_year: 2017
-        url: https://data.nlr.gov/system/files/115/2019-ATB-data.xlsm
-    2020:
-      - format: workbook
-        filename: atb_2020_workbook.xlsm
-        dollar_year: 2018
-        url: https://atb-archive.nlr.gov/electricity/2020/files/2020-ATB-Data.xlsm
-    2021:
-      - format: workbook
-        filename: atb_2021_workbook.xlsm
-        dollar_year: 2019
-        url: https://data.openei.org/files/4129/2021-ATB-Data_Master_new.xlsm
-    2022:
-      - format: workbook
-        filename: atb_2022_workbook.xlsx
-        dollar_year: 2020
-        url: https://data.openei.org/files/5716/2022 v3 Annual Technology Baseline Workbook Mid-year update 2-15-2023.xlsx
-    2023:
-      - format: flat
-        filename: atb_2023_flat_file.csv
-        dollar_year: 2021
-        url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2023/ATBe.csv
-      - format: battery
-        filename: atb_2023_workbook.xlsx
-        dollar_year: 2021
-        url: https://data.openei.org/files/5865/2023-ATB-Data_Master_v9.0.xlsx
-
 processing:
   atb_case: Market
   atb_case_overrides: {}
@@ -315,7 +260,6 @@ processing:
     max_kink_years: 4
     major_step_relative_threshold: 0.1
     minimum_adjustment_relative_threshold: 0.001
-    # Default priority: real, then atb, then broadcast if no archive matches.
     technologies:
       upv:
         historical_data:
@@ -442,10 +386,14 @@ reeds_source:
 historical_data:
   directory: historical
   real_filename: real.csv
-  atb_filename: atb.csv
   manual_filename: manual.csv
   dollar_year: 2022
   reference_atb_year: 2024
+  # Pinned release files, cached under raw_data.directory, for the battery
+  # split and cost-scope components. Unchanged when atb.year moves.
+  reference_release:
+    flat_file: {filename: atb_2024_flat_file.csv, url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2024/v3.0.0/ATBe.csv}
+    workbook: {filename: atb_2024_workbook.xlsx, url: https://data.openei.org/files/6006/2024_v3_Workbook.xlsx}
 
 plotting:
   metrics:
