@@ -1,10 +1,122 @@
-# Overview
-This repo includes scripts to plot CAPEX, FOM, and VOM of different versions of the ATB.
+# ATB inputs for ReEDS
 
-# Required inputs
-Users are required to provide Users have the options to provide the ATBe.csv file for the specific ATB version they want to plot. THere are two options to provide ATBe.csv file:
-- Save the file in the ATB/inputs folder
-- Provide an URL to the ATBe.csv file. If choose URL option, users are prompted to provide the URL.
+Run from `atb/` after checking paths and the ATB release in `config.yaml`:
 
-# Note
-This script was tested on ATB 2024 and 2025 versions only, so they may not work for earlier versions.
+```bash
+python scripts/future_atb_scraper.py
+python scripts/run_pipeline.py
+```
+
+The downloader caches the configured ATB flat file and workbook. The pipeline
+formats projections, joins prepared history, applies configured smoothing, and
+creates plots. It never downloads data or rewrites historical inputs. Use
+`--only format` to generate CSVs without plots. Outputs go to `output/`;
+`processing.copy_to_reeds` controls copying them into ReEDS.
+
+## Historical inputs
+
+The two versioned tables in [`historical/`](historical/README.md) are sufficient
+for historical processing; users do not need the historical raw downloads.
+The defaults use observed data wherever a reviewed source exists (`real`, or
+`indexed` for O&M), hold the first ATB projection value flat otherwise
+(`broadcast`), and write the ReEDS placeholder before a technology's first
+buildable year (`unavailable`). The ReEDS ATB 2024 baseline (`manual`) remains
+selectable per metric in `config.yaml`.
+
+To rebuild history from original sources:
+
+```bash
+python scripts/historical_data_scraper.py
+```
+
+Use `--no-download` to rebuild from cached raw files, or `--force` to replace
+cached downloads. Preparation downloads observed sources and the pinned
+reference release. It writes both CSVs only after extraction and preparation
+succeed. Review their changes before
+committing them. Manual values always come from the ReEDS **ATB 2024** files.
+
+Each metric's history mode is set per technology in `config.yaml`:
+
+- `real`: observed anchors from `historical/real.csv`, interpolated between
+  anchors and carried back before the first.
+- `indexed`: ATB's value at `index_reference_year` scaled by an observed
+  index; used for wind-ons and upv FOM, whose surveys report a partial-scope
+  level but a usable trend.
+- `unavailable`: a placeholder cost (`unavailable_value`, 99999) for years
+  before the technology's first buildable year, declared per technology in
+  `unavailable_before`; used for fuel cells, nuclear-SMR, floating offshore,
+  and CCS. The placeholder is written last, after every dollar-year step, and
+  never lives in `manual.csv`. It is a marker, not the barrier: ReEDS blocks
+  investment before its own `firstyear`, so the value only needs to be far
+  above any real cost (ReEDS's own files use 9999, which is below Vogtle).
+- `manual`, `broadcast`: the ReEDS ATB 2024 baseline, or the first projection
+  value held flat.
+
+Technologies with only a few builds use plant-level project files under
+`manual_input/` (nuclear, fixed offshore). The scraper writes a coverage table
+into `historical/README.md` showing every metric's mode, source, and anchors.
+
+Formatting interpolates missing years, carries the first anchor backward before
+coverage, and interpolates from the last anchor to the first projection year.
+That last rule matters where ATB omits a technology until 2030 (nuclear): the
+curve runs to meet ATB instead of holding flat and then stepping. These fills
+are estimates, not additional observations.
+
+`processing.smooth_cost_curves.fill_atbstartyear2atbyear_with_real: true`
+also replaces ATB points through the release year for metrics selected as
+`real` (2022-2024 for ATB 2024): every year from the series start through the
+last observed or calculated anchor, with years between anchors on the straight
+line between them. ATB resumes only after the last anchor. This runs after
+smoothing and can be overridden per technology. Plots label the replacement
+sources.
+
+During an annual update, update the configured release, URLs, dollar year and
+technology mappings, download future ATB, then rerun historical preparation so
+the prepared fills extend to the new base year. The pinned reference release in
+`historical_data.reference_release` moves only when you decide to move it.
+Pipeline runs alone never add historical data. ATB schema or technology changes still require review.
+
+The default projection start follows `atb.year - 2`; individual series retain
+their actual start year. Financial cases can be changed in config without
+editing `settings.yaml`. To match `yc/25ATB`, use:
+
+```yaml
+processing:
+  atb_case: R&D
+  atb_case_overrides: {upv: Exp, wind-ons: Exp, battery: Exp}
+```
+
+With ATB 2025 configured, the real-data overlap becomes 2023-2025 automatically;
+years without source observations stay ATB. Release URLs, dollar year, and
+year-specific future adjustment files still need the normal annual update.
+
+## Data treatment
+
+- Monetary history is stored in `historical_data.dollar_year` and converted to
+  the output dollar year with the ReEDS deflator. Nonmonetary rows have no
+  dollar year.
+- Observed capital costs are reported on wider boundaries than ReEDS `capcost`,
+  which is the ATB overnight capital cost. Each scraped cost declares a
+  `cost_scope`, and preparation removes the grid connection and, where the source
+  is an as-spent project cost, the construction financing, using ATB components
+  from `historical_data.reference_atb_year`. Configure this under
+  `historical_cost_sources.cost_scope_adjustment`; see
+  [`historical/README.md`](historical/README.md) for the per-source boundaries
+  and the offshore-wind caveat.
+- Real capacity factors remain fractions in the prepared files;
+  formatting divides them by the current ATB reference capacity factor.
+- Battery power and energy costs are estimated from observed total cost and
+  cohort duration while preserving ATB reference component proportions.
+- CSP configuration costs use the same ratio method as projections. Historical
+  reference ratios and the battery split workbook are pinned by
+  `historical_data.reference_atb_year` (2024), independently of future updates.
+- The manual baseline retains complete ReEDS curves for retired designs and
+  broadcast reference values. These are labeled manual, including future
+  reference rows; they are not claimed as measured historical costs.
+
+The scraper pulls ReEDS baseline curves, `dollaryear.csv`, and the financial
+deflator from GitHub at the commit pinned in `reeds_source.ref`, so rebuilding
+history needs no local ReEDS checkout. A local repository is still needed for
+comparison baselines and optional copying. Technology formatting rules are in
+`scripts/settings.yaml`; review year-specific files under `manual_input/`
+when changing the ATB release.

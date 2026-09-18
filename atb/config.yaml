@@ -1,0 +1,571 @@
+# yaml-language-server: $schema=./config.schema.json
+
+workflow:
+  format_reeds_inputs: true
+  make_plots: true
+  make_comparison_plots: true
+
+atb:
+  year: 2024
+  release_version: 3
+  dollar_year: 2022
+
+raw_data:
+  directory: scraped_input
+  allow_insecure_ssl_fallback: true
+  flat_file:
+    filename: atb_2024_flat_file.csv
+    url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2024/v3.0.0/ATBe.csv
+  workbook:
+    filename: atb_2024_workbook.xlsx
+    url: https://data.openei.org/files/6006/2024_v3_Workbook.xlsx
+
+# Scraper inputs and reviewed mappings.
+historical_cost_sources:
+  directory: scraped_input/historical_costs
+  normalized_filename: historical_capital_costs.csv
+  manifest_filename: source_manifest.csv
+  allow_insecure_ssl_fallback: true
+  # Plant-level anchors for technologies with too few builds for a survey.
+  project_files:
+    nuclear_projects: {technology: nuclear, path: manual_input/nuclear_historical_projects.csv}
+    offshore_projects: {technology: wind-ofs, path: manual_input/offshore_historical_projects.csv}
+  # FOM index: mean of these operating years per vintage bin; bins with fewer
+  # available ages are kept raw only (guards partial first-year data).
+  om_index: {ages: [1, 2, 3], minimum_ages: 2}
+  reeds_mappings:
+    nuclear:
+      capcost:
+        filters:
+          source_id: nuclear_projects
+          technology: nuclear
+          metric: capital_cost
+          unit: USD/kW
+    battery:
+      capcost: &battery_total_cost
+        filters:
+          source_id: eia_generator_costs
+          technology: battery
+          metric: capital_cost
+          unit: USD/kW
+          source_table: major_energy_source
+          statistic: capacity_weighted_mean
+      capcost_energy: *battery_total_cost
+    csp:
+      capcost:
+        filters:
+          source_id: utility_pv
+          technology: csp
+          technology_detail: Crescent Dunes
+          metric: capital_cost
+          unit: USD/kW
+          capacity_basis: AC
+          statistic: project
+          geography: United States
+    upv:
+      fom:
+        filters:
+          source_id: utility_pv
+          metric: fixed_om
+          unit: USD/kW-yr
+          capacity_basis: AC
+          statistic: mean
+          geography: United States
+      cf_improvement:
+        filters:
+          source_id: utility_pv
+          metric: capacity_factor
+          unit: fraction
+          capacity_basis: AC
+          statistic: capacity_weighted_cumulative
+          geography: United States
+      capcost:
+        filters:
+          source_id: utility_pv
+          metric: capital_cost
+          unit: USD/kW
+          capacity_basis: AC
+          statistic: capacity_weighted_mean
+          geography: United States
+      fom_index:
+        filters:
+          source_id: utility_pv
+          metric: fixed_om
+          statistic: median_early_age_mean
+    biopower:
+      capcost:
+        filters:
+          source_id: eia_generator_costs
+          metric: capital_cost
+          unit: USD/kW
+          technology_detail: Biomass
+          source_table: major_energy_source
+    gas:
+      capcost:
+        series:
+          - technologies:
+              - Gas-CC
+            filters:
+              source_id: eia_generator_costs
+              metric: capital_cost
+              unit: USD/kW
+              technology_detail: Natural gas combined cycle
+              source_table: natural_gas_technology
+          - technologies:
+              - Gas-CT
+            filters:
+              source_id: eia_generator_costs
+              metric: capital_cost
+              unit: USD/kW
+              technology_detail: Natural gas combustion turbine
+              source_table: natural_gas_technology
+    wind-ofs:
+      capcost:
+        turbine_classes:
+          - fixed
+        filters:
+          source_id: offshore_projects
+          metric: capital_cost
+          unit: USD/kW
+    wind-ons:
+      fom:
+        filters:
+          source_id: land_based_wind
+          metric: fixed_om
+          unit: USD/kW-yr
+          capacity_basis: nameplate
+          statistic: mean
+          geography: United States
+      cf_improvement:
+        filters:
+          source_id: land_based_wind
+          metric: capacity_factor
+          unit: fraction
+          capacity_basis: nameplate
+          statistic: generation_weighted_mean
+          geography: United States
+      capcost:
+        filters:
+          source_id: land_based_wind
+          metric: capital_cost
+          unit: USD/kW
+          capacity_basis: nameplate
+          statistic: capacity_weighted_mean
+          geography: United States
+      fom_index:
+        filters:
+          source_id: land_based_wind
+          metric: fixed_om
+          statistic: median_early_age_mean
+  # Rescale observed capital costs onto ReEDS capcost, the ATB overnight capital
+  # cost: factor = OCC / (OCC + the components each row's cost_scope names).
+  # See historical/README.md for the source boundaries and the offshore caveat.
+  cost_scope_adjustment:
+    reference_year: 2022  # ATB 2024 base year; one ratio covers all history.
+    reference_scenario: Moderate
+    reference_case: Market
+    reference_crpyears: 30
+    scopes:
+      overnight: []
+      overnight_plus_grid: [GCC]
+      installed_with_financing: [GCC, CFC]
+    overrides: {}  # e.g. {wind-ofs: overnight} to keep a reported basis.
+  battery_cost_split:
+    reference_year: 2022
+    reference_scenario: Moderate
+    preferred_cost_filters:
+      source_id: utility_pv
+      technology: battery
+      metric: capital_cost
+      unit: USD/kWh
+      statistic: energy_weighted_mean
+    preferred_duration_filters:
+      source_id: utility_pv
+      technology: battery
+      metric: storage_duration
+      unit: hours
+      statistic: capacity_weighted_cohort
+    duration_filters:
+      source_id: eia860_storage
+      technology: battery
+      metric: storage_duration
+      unit: hours
+      statistic: capacity_weighted_cohort
+  sources:
+    eia860_storage:
+      enabled: true
+      first_year: 2016
+      last_year: 2024
+      first_cohort_year: 2015  # Taken from the 2016 inventory.
+      page_url: https://www.eia.gov/electricity/data/eia860/
+      current_data_url: https://www.eia.gov/electricity/data/eia860/xls/eia8602024.zip
+      archive_data_url: https://www.eia.gov/electricity/data/eia860/archive/xls/eia860{year}.zip
+      filename: eia860_{year}.zip
+    land_based_wind:
+      enabled: true
+      report_year: 2025
+      page_url: https://emp.lbl.gov/publications/land-based-wind-energy-technology
+      data_url: https://eta-publications.lbl.gov/sites/default/files/2025-08/data_file_land-based_wind_energy_technology_update_2025_edition.xlsx
+      filename: lbnl_land_based_wind_2025.xlsx
+    utility_pv:
+      enabled: true
+      report_year: 2025
+      page_url: https://emp.lbl.gov/publications/us-utility-scale-solar-2025-data
+      data_url: https://eta-publications.lbl.gov/sites/default/files/2025-10/2025_utility-scale_solar_data_update.xlsx
+      filename: lbnl_utility_scale_solar_2025.xlsx
+    offshore_wind:
+      enabled: true
+      report_year: 2024
+      last_historical_year: 2023
+      page_url: https://www.nlr.gov/wind/offshore-market-assessment
+      data_url: https://www.nlr.gov/docs/fy24osti/90525data.xlsx
+      filename: nlr_offshore_wind_market_2024.xlsx
+    eia_generator_costs:
+      enabled: true
+      first_year: 2013
+      last_year: 2024
+      page_url: https://www.eia.gov/electricity/generatorcosts/
+      current_data_url: https://www.eia.gov/electricity/generatorcosts/xls/generator_costs.xlsx
+      archive_data_url: https://www.eia.gov/electricity/generatorcosts/archive/{year}/xls/generator_costs_{year}.xlsx
+      filename: eia_generator_costs_{year}.xlsx
+
+processing:
+  atb_case: Market
+  atb_case_overrides: {}
+  reeds_repo: C:/ReEDS/ReEDS
+  output_directory: output
+  copy_to_reeds: false
+  technologies: all
+  update_costs: true
+  update_financials: false
+  sensitivity_name: null
+  reeds_start_year: 2010
+  decimals: 6
+  smooth_cost_curves:
+    enabled: true
+    method: selective
+    columns: all
+    fill_atbstartyear2atbyear_with_real: true
+    index_reference_year: 2022  # ATB year supplying the level for indexed metrics.
+    unavailable_value: 99999  # ReEDS placeholder for years before a technology existed.
+    # First buildable year for every metric using the unavailable mode; earlier
+    # years get unavailable_value in the outputs. manual.csv never carries it.
+    unavailable_before:
+      fuelcell: 2035
+      nuclear-smr: 2030
+      wind-ofs: 2030
+      coal-ccs: 2022
+      gas-ccs: 2022
+    slope_change_threshold: 0.4
+    max_kink_years: 4
+    major_step_relative_threshold: 0.1
+    minimum_adjustment_relative_threshold: 0.001
+    # future_data names where each sub-technology's projection comes from:
+    #   atb    - the current ATB release (settings.yaml DisplayName mapping)
+    #   manual - retained from the ReEDS ATB baseline in historical/manual.csv
+    #            because the current ATB no longer publishes the series
+    # The value is fixed by the settings.yaml mapping and only documents it;
+    # the formatter rejects any other value.
+    technologies:
+      upv:
+        historical_data:
+          capcost: real  # options: real / manual / broadcast / unavailable
+          fom: indexed  # options: real / manual / broadcast / indexed / unavailable
+          vom: broadcast  # options: manual / broadcast / unavailable
+          cf_improvement: real  # options: real / manual / broadcast / unavailable
+        future_data: atb  # options: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      wind-ons:
+        historical_data:
+          capcost:
+            115hh_170rd: real  # options: real / manual / broadcast / unavailable
+          fom:
+            115hh_170rd: indexed  # options: real / manual / broadcast / indexed / unavailable
+          vom:
+            115hh_170rd: broadcast  # options: manual / broadcast / unavailable
+          cf_improvement:
+            115hh_170rd: real  # options: real / manual / broadcast / unavailable
+        future_data:
+          115hh_170rd: atb  # options: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      wind-ofs:
+        historical_data:
+          capcost:
+            fixed: real  # options: real / manual / broadcast / unavailable
+            floating: unavailable  # options: manual / broadcast / unavailable
+          fom:
+            fixed: broadcast  # options: real / manual / broadcast / unavailable
+            floating: broadcast  # options: manual / broadcast / unavailable
+          vom:
+            fixed: broadcast  # options: manual / broadcast / unavailable
+            floating: broadcast  # options: manual / broadcast / unavailable
+          cf_improvement:
+            fixed: broadcast  # options: real / manual / broadcast / unavailable
+            floating: broadcast  # options: manual / broadcast / unavailable
+          rsc_mult:
+            fixed: broadcast  # options: manual / broadcast
+            floating: broadcast  # options: manual / broadcast
+        future_data:
+          fixed: atb  # options: atb
+          floating: atb  # options: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      battery:
+        historical_data:
+          capcost:
+            battery_li: real  # options: real / manual / broadcast / unavailable
+          capcost_energy:
+            battery_li: real  # options: real / manual / broadcast / unavailable
+          fom:
+            battery_li: broadcast  # options: real / manual / broadcast / unavailable
+          fom_energy:
+            battery_li: broadcast  # options: manual / broadcast / unavailable
+          vom:
+            battery_li: broadcast  # options: manual / broadcast / unavailable
+          rte:
+            battery_li: broadcast  # options: manual / broadcast / unavailable
+        future_data:
+          battery_li: atb  # options: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      csp:
+        historical_data:
+          capcost:
+            csp1: real  # options: real / manual / broadcast / unavailable
+            csp2: real  # options: real / manual / broadcast / unavailable
+            csp3: real  # options: real / manual / broadcast / unavailable
+            csp4: real  # options: real / manual / broadcast / unavailable
+          fom:
+            csp1: broadcast  # options: real / manual / broadcast / unavailable
+            csp2: broadcast  # options: real / manual / broadcast / unavailable
+            csp3: broadcast  # options: real / manual / broadcast / unavailable
+            csp4: broadcast  # options: real / manual / broadcast / unavailable
+          vom:
+            csp1: broadcast  # options: manual / broadcast / unavailable
+            csp2: broadcast  # options: manual / broadcast / unavailable
+            csp3: broadcast  # options: manual / broadcast / unavailable
+            csp4: broadcast  # options: manual / broadcast / unavailable
+        # csp1, csp3 and csp4 are scaled from the ATB csp2 series with
+        # manual_input/csp_cost_ratios_<year>.csv, so their source is still atb.
+        future_data:
+          csp1: atb  # options: atb
+          csp2: atb  # options: atb
+          csp3: atb  # options: atb
+          csp4: atb  # options: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      coal:
+        # Coal-new and Coal-IGCC come from ATB. The four other designs are not
+        # in ATB; the pipeline retains them from the ReEDS ATB 2024 baseline in
+        # historical/manual.csv, so manual keeps that baseline for their history
+        # too instead of broadcasting the first projection year backward.
+        historical_data:
+          capcost:
+            Coal-new: broadcast  # options: manual / broadcast / unavailable
+            Coal-IGCC: broadcast  # options: manual / broadcast / unavailable
+            CoalOldScr: manual  # options: manual / broadcast / unavailable
+            CoalOldUns: manual  # options: manual / broadcast / unavailable
+            CofireNew: manual  # options: manual / broadcast / unavailable
+            CofireOld: manual  # options: manual / broadcast / unavailable
+          fom:
+            Coal-new: broadcast  # options: manual / broadcast / unavailable
+            Coal-IGCC: broadcast  # options: manual / broadcast / unavailable
+            CoalOldScr: manual  # options: manual / broadcast / unavailable
+            CoalOldUns: manual  # options: manual / broadcast / unavailable
+            CofireNew: manual  # options: manual / broadcast / unavailable
+            CofireOld: manual  # options: manual / broadcast / unavailable
+          vom:
+            Coal-new: broadcast  # options: manual / broadcast / unavailable
+            Coal-IGCC: broadcast  # options: manual / broadcast / unavailable
+            CoalOldScr: manual  # options: manual / broadcast / unavailable
+            CoalOldUns: manual  # options: manual / broadcast / unavailable
+            CofireNew: manual  # options: manual / broadcast / unavailable
+            CofireOld: manual  # options: manual / broadcast / unavailable
+          heatrate:
+            Coal-new: broadcast  # options: manual / broadcast / unavailable
+            Coal-IGCC: broadcast  # options: manual / broadcast / unavailable
+            CoalOldScr: manual  # options: manual / broadcast / unavailable
+            CoalOldUns: manual  # options: manual / broadcast / unavailable
+            CofireNew: manual  # options: manual / broadcast / unavailable
+            CofireOld: manual  # options: manual / broadcast / unavailable
+        future_data:
+          Coal-new: atb  # options: atb
+          Coal-IGCC: atb  # options: atb
+          CoalOldScr: manual  # options: manual
+          CoalOldUns: manual  # options: manual
+          CofireNew: manual  # options: manual
+          CofireOld: manual  # options: manual
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      coal-ccs:
+        historical_data:
+          capcost:
+            coal-CCS_mod: unavailable  # options: manual / broadcast / unavailable
+          fom:
+            coal-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+          vom:
+            coal-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+          heatrate:
+            coal-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+        future_data:
+          coal-CCS_mod: atb  # options: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      gas:
+        # Gas-CT_aero is not in ATB; the pipeline retains it from the ReEDS ATB
+        # 2024 baseline in historical/manual.csv, so manual keeps that baseline
+        # for its history too.
+        historical_data:
+          capcost:
+            Gas-CC: real  # options: real / manual / broadcast / unavailable
+            Gas-CT: real  # options: real / manual / broadcast / unavailable
+            Gas-CC_H_1x1: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_2x1: broadcast  # options: manual / broadcast / unavailable
+            Gas-CT_aero: manual  # options: manual / broadcast / unavailable
+          fom:
+            Gas-CC: broadcast  # options: real / manual / broadcast / unavailable
+            Gas-CT: broadcast  # options: real / manual / broadcast / unavailable
+            Gas-CC_H_1x1: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_2x1: broadcast  # options: manual / broadcast / unavailable
+            Gas-CT_aero: manual  # options: manual / broadcast / unavailable
+          vom:
+            Gas-CC: broadcast  # options: manual / broadcast / unavailable
+            Gas-CT: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_1x1: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_2x1: broadcast  # options: manual / broadcast / unavailable
+            Gas-CT_aero: manual  # options: manual / broadcast / unavailable
+          heatrate:
+            Gas-CC: broadcast  # options: manual / broadcast / unavailable
+            Gas-CT: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_1x1: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_2x1: broadcast  # options: manual / broadcast / unavailable
+            Gas-CT_aero: manual  # options: manual / broadcast / unavailable
+        future_data:
+          Gas-CC: atb  # options: atb
+          Gas-CT: atb  # options: atb
+          Gas-CC_H_1x1: atb  # options: atb
+          Gas-CC_H_2x1: atb  # options: atb
+          Gas-CT_aero: manual  # options: manual
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      gas-ccs:
+        historical_data:
+          capcost:
+            Gas-CC-CCS_mod: unavailable  # options: manual / broadcast / unavailable
+            Gas-CC_H_1x1-CCS_mod: unavailable  # options: manual / broadcast / unavailable
+            Gas-CC_H_2x1-CCS_mod: unavailable  # options: manual / broadcast / unavailable
+          fom:
+            Gas-CC-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_1x1-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_2x1-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+          vom:
+            Gas-CC-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_1x1-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_2x1-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+          heatrate:
+            Gas-CC-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_1x1-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_2x1-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+        future_data:
+          Gas-CC-CCS_mod: atb  # options: atb
+          Gas-CC_H_1x1-CCS_mod: atb  # options: atb
+          Gas-CC_H_2x1-CCS_mod: atb  # options: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      fuelcell:
+        historical_data:
+          capcost:
+            ng-fuel-cell: unavailable  # options: manual / broadcast / unavailable
+          fom:
+            ng-fuel-cell: broadcast  # options: manual / broadcast / unavailable
+          vom:
+            ng-fuel-cell: broadcast  # options: manual / broadcast / unavailable
+          heatrate:
+            ng-fuel-cell: broadcast  # options: manual / broadcast / unavailable
+        future_data:
+          ng-fuel-cell: atb  # options: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      nuclear:
+        historical_data:
+          capcost:
+            Nuclear: real  # options: real / manual / broadcast / unavailable
+          fom:
+            Nuclear: broadcast  # options: real / manual / broadcast / unavailable
+          vom:
+            Nuclear: broadcast  # options: manual / broadcast / unavailable
+          heatrate:
+            Nuclear: broadcast  # options: manual / broadcast / unavailable
+        future_data:
+          Nuclear: atb  # options: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      nuclear-smr:
+        historical_data:
+          capcost:
+            Nuclear-SMR: unavailable  # options: manual / broadcast / unavailable
+          fom:
+            Nuclear-SMR: broadcast  # options: manual / broadcast / unavailable
+          vom:
+            Nuclear-SMR: broadcast  # options: manual / broadcast / unavailable
+          heatrate:
+            Nuclear-SMR: broadcast  # options: manual / broadcast / unavailable
+        future_data:
+          Nuclear-SMR: atb  # options: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      biopower:
+        historical_data:
+          capcost:
+            biopower: real  # options: real / manual / broadcast / unavailable
+          fom:
+            biopower: broadcast  # options: real / manual / broadcast / unavailable
+          vom:
+            biopower: broadcast  # options: manual / broadcast / unavailable
+          heatrate:
+            biopower: broadcast  # options: manual / broadcast / unavailable
+        future_data:
+          biopower: atb  # options: atb
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+# ReEDS repository files fetched by historical_data_scraper.py. Pinning `ref`
+# makes the manual baseline and the deflator reproducible without a local clone.
+reeds_source:
+  repo: ReEDS-Model/ReEDS
+  ref: db6a1ba95836b649176fca50030e82a6b4cf9bb5
+  cache_directory: scraped_input/reeds_source
+
+# Prepared CSVs consumed by the pipeline.
+historical_data:
+  directory: historical
+  real_filename: real.csv
+  manual_filename: manual.csv
+  dollar_year: 2022
+  reference_atb_year: 2024
+  # Pinned release files, cached under raw_data.directory, for the battery
+  # split and cost-scope components. Unchanged when atb.year moves.
+  reference_release:
+    flat_file: {filename: atb_2024_flat_file.csv, url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2024/v3.0.0/ATBe.csv}
+    workbook: {filename: atb_2024_workbook.xlsx, url: https://data.openei.org/files/6006/2024_v3_Workbook.xlsx}
+
+plotting:
+  metrics:
+    - CAPEX
+    - Fixed O&M
+    - Variable O&M
+  crp_years: 20
+  figure_format: png
+  output_directory: figures
+  smoothing_comparison_directory: comparison/plot_component
+  technologies:
+    - Biopower
+    - Coal_FE
+    - CSP
+    - LandbasedWind
+    - NaturalGas_FE
+    - Nuclear
+    - OffShoreWind
+    - Utility-Scale Battery Storage
+    - UtilityPV

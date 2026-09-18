@@ -1,0 +1,898 @@
+"""Download and normalize observed generator capital costs, O&M, and CF."""
+
+import hashlib
+import math
+import re
+from io import BytesIO
+from pathlib import Path
+from zipfile import ZipFile
+
+import openpyxl
+import pandas as pd
+
+from atb_config import resolve_atb_path
+from downloads import download_file
+
+
+COLUMNS = [
+    "technology",
+    "technology_detail",
+    "year",
+    "metric",
+    "value",
+    "unit",
+    "capacity_basis",
+    "statistic",
+    "geography",
+    "dollar_year",
+    "price_basis",
+    "cost_scope",
+    "sample_count",
+    "source_id",
+    "source_file",
+    "source_sheet",
+    "source_table",
+    "source_page_url",
+    "source_data_url",
+    "notes",
+]
+
+# Cost boundaries an observed capital cost can be reported on; anything wider
+# than the ATB overnight capital cost is rescaled during preparation.
+COST_SCOPES = ('overnight', 'overnight_plus_grid', 'installed_with_financing')
+
+# Only the three mapped tables give national cost by technology; the rest split
+# the same capacity by region, state, size, or panel type. Labels drift between
+# editions ("Solar photovoltaic" -> "Solar PV" -> "Solar"), so every spelling stays.
+EIA_TECHNOLOGY_MAP = {
+    "Solar": ("upv", "Utility-scale solar (all reported solar)"),
+    "Solar PV": ("upv", "Utility-scale solar PV"),
+    "Solar photovoltaic": ("upv", "Utility-scale solar photovoltaic"),
+    "Battery storage": ("battery", "Battery storage"),
+    "Wind": ("wind-ons", "Wind (EIA broad energy-source category)"),
+    "Natural gas": ("gas", "Natural gas (all reported technologies)"),
+    "Petroleum liquids": ("petroleum", "Petroleum liquids"),
+    "Biomass": ("biopower", "Biomass"),
+    "Geothermal": ("geothermal", "Geothermal"),
+    "Hydro": ("hydropower", "Hydroelectric"),
+    "Hydroelectric": ("hydropower", "Hydroelectric"),
+}
+
+# Equipment rather than fuel; the only table with fuel cells. Unmapped on
+# purpose: "Steam turbine" (ambiguous fuel), "... (as part of combined cycle)"
+# (half a plant, whole in the table below), "Internal combustion engine" (gas
+# and oil, no ReEDS counterpart).
+EIA_PRIME_MOVER_MAP = {
+    "Combustion turbine": ("gas", "Natural gas combustion turbine"),
+    "Onshore wind turbine": ("wind-ons", "Onshore wind turbine"),
+    "Photovoltaic": ("upv", "Photovoltaic"),
+    "Energy storage, battery": ("battery", "Battery storage"),
+    "Battery storage": ("battery", "Battery storage"),
+    "Fuel cell": ("fuelcell", "Fuel cell"),
+    "Geothermal turbines": ("geothermal", "Geothermal turbine"),
+    "Hydroelectric turbine": ("hydropower", "Hydroelectric turbine"),
+}
+
+# Whole plants, so combined cycle arrives as one cost rather than split across
+# its turbine halves. Closest observed match to ReEDS Gas-CC and Gas-CT.
+EIA_GAS_TECHNOLOGY_MAP = {
+    "Combined cycle": ("gas", "Natural gas combined cycle"),
+    "Combustion turbine": ("gas", "Natural gas combustion turbine"),
+    "Steam turbine": ("gas", "Natural gas steam turbine"),
+    "Internal combustion engine": ("gas", "Natural gas internal combustion engine"),
+}
+
+# (title fragment, label map, source_table tag), matched against a lowercased
+# table title in column A. Natural gas must precede prime mover so its title wins.
+EIA_TABLES = (
+    ("by major energy source", EIA_TECHNOLOGY_MAP, "major_energy_source"),
+    ("natural gas generators installed", EIA_GAS_TECHNOLOGY_MAP, "natural_gas_technology"),
+    ("by prime mover", EIA_PRIME_MOVER_MAP, "prime_mover"),
+)
+
+
+def _base_row(source_id, source, filename, sheet, metric="capital_cost"):
+    return {
+        "metric": metric,
+        # Cost boundary; set by capital-cost extractors, blank elsewhere.
+        "cost_scope": "",
+        "source_id": source_id,
+        "source_file": filename,
+        "source_sheet": sheet,
+        "source_page_url": source["page_url"],
+        "source_data_url": source.get("data_url", ""),
+    }
+
+
+def _find_header_row(sheet, required_text):
+    required = required_text.lower()
+    for row_number, row in enumerate(sheet.iter_rows(values_only=True), 1):
+        if any(required in str(value).lower() for value in row if value is not None):
+            return row_number
+    raise ValueError(f"Could not find {required_text!r} in sheet {sheet.title!r}")
+
+
+def extract_land_based_wind(path, source):
+    """Extract LBNL's observed annual capacity-weighted installed wind cost."""
+    sheet_name = "CapEx Over Time"
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    sheet = workbook[sheet_name]
+    header = _find_header_row(sheet, "Commercial Operation Date")
+    rows = []
+    for year, value, sample_count in sheet.iter_rows(
+        min_row=header + 1, max_col=3, values_only=True
+    ):
+        if isinstance(year, (int, float)) and isinstance(value, (int, float)):
+            row = _base_row("land_based_wind", source, Path(path).name, sheet_name)
+            row.update(
+                technology="wind-ons",
+                technology_detail="Land-based wind projects",
+                year=int(year),
+                value=float(value),
+                unit="USD/kW",
+                capacity_basis="nameplate",
+                statistic="capacity_weighted_mean",
+                geography="United States",
+                dollar_year=2024,
+                price_basis="real",
+                cost_scope="overnight_plus_grid",
+                sample_count=sample_count,
+                notes=("Observed project CapEx; 2024 COD values are preliminary. "
+                       "Recent years are EIA-sourced; reported project costs cover "
+                       "turbine purchase and installation, balance of plant, and any "
+                       "substation and/or interconnection expenses, and exclude financing."),
+            )
+            rows.append(row)
+    workbook.close()
+    return rows
+
+
+def extract_capacity_factors(path, source, source_id):
+    """Extract reported CF by build vintage, retaining fractions and provenance.
+
+    Wind is the generation-weighted 2024 CF by COD, not the adjacent annual
+    fleet series. PV is cumulative capacity-weighted CF by project vintage.
+    These observations include resource, age, and operating-condition effects.
+    The formatter converts fractions to its ATB-reference multipliers.
+    """
+    if source_id == "land_based_wind":
+        sheet_name = "Capacity Factor in 2024 by COD"
+        technology, basis = "wind-ons", "nameplate"
+        year_col, value_col, count_col = 0, 3, 1
+        statistic = "generation_weighted_mean"
+        header_text = "Generation-"
+        notes = (
+            "Calendar-year 2024 CF by commercial operation date; includes "
+            "repowered projects with their new COD. Grouped pre-2006 vintages "
+            "are excluded. Includes resource, aging, and operating effects."
+        )
+    elif source_id == "utility_pv":
+        sheet_name = "CF by Project Vintage"
+        technology, basis = "upv", "AC"
+        year_col, value_col, count_col = 2, 4, 1
+        statistic = "capacity_weighted_cumulative"
+        header_text = "Capacity-Weighted Cumulative Capacity Factor"
+        notes = (
+            "Cumulative observed CF through 2024 by project vintage; AC basis. "
+            "Includes resource, mounting, ILR, aging, and operating effects."
+        )
+    else:
+        raise ValueError(f"No reviewed CF extraction for {source_id}")
+
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    rows = []
+    try:
+        sheet = workbook[sheet_name]
+        header = _find_header_row(sheet, header_text)
+        for values in sheet.iter_rows(
+            min_row=header + 1, max_col=5, values_only=True
+        ):
+            year, value = values[year_col], values[value_col]
+            if not isinstance(year, (int, float)) or not 1900 <= year <= 2100:
+                continue
+            # PV's next table has years in column A and CF fractions in C.
+            # Its 2024 vintage row has no full-year CF observation yet.
+            if value is None:
+                continue
+            if not isinstance(value, (int, float)) or not 0 < value <= 1:
+                raise ValueError(f"Invalid CF for {year} in {sheet_name}: {value}")
+            row = _base_row(source_id, source, Path(path).name, sheet_name,
+                            "capacity_factor")
+            row.update(
+                technology=technology,
+                technology_detail="Observed projects by vintage",
+                year=int(year), value=float(value), unit="fraction",
+                capacity_basis=basis, statistic=statistic,
+                geography="United States", sample_count=values[count_col],
+                notes=notes,
+            )
+            rows.append(row)
+    finally:
+        workbook.close()
+    if not rows or len({row['year'] for row in rows}) != len(rows):
+        raise ValueError(f"Missing or duplicate CF vintages in {sheet_name}")
+    return rows
+
+
+def extract_land_based_wind_om(path, source):
+    """Average reported project O&M by COD for projects with 2024 O&M data."""
+    sheet_name = "O&M Over Time"
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    by_year = {}
+    try:
+        sheet = workbook[sheet_name]
+        header = _find_header_row(sheet, "Operation")
+        labels = next(sheet.iter_rows(min_row=header, max_row=header,
+                                      max_col=3, values_only=True))
+        if labels[1] != "with 2024" or labels[2] != "with no 2024":
+            raise ValueError(f"Unexpected project sample columns in {sheet_name}")
+        for year, value in sheet.iter_rows(min_row=header + 2, max_col=2,
+                                           values_only=True):
+            if not isinstance(year, (int, float)) or not isinstance(value, (int, float)):
+                continue
+            if not 1900 <= year <= 2024 or not 0 <= value < float('inf'):
+                raise ValueError(f"Invalid wind O&M observation: {year}, {value}")
+            by_year.setdefault(int(year), []).append(float(value))
+    finally:
+        workbook.close()
+    if not by_year:
+        raise ValueError(f"No O&M observations found in {sheet_name}")
+    rows = []
+    for year, values in sorted(by_year.items()):
+        row = _base_row("land_based_wind", source, Path(path).name, sheet_name,
+                        "fixed_om")
+        row.update(
+            technology="wind-ons", technology_detail="Land-based wind projects",
+            year=year, value=sum(values) / len(values), unit="USD/kW-yr",
+            capacity_basis="nameplate", statistic="mean", geography="United States",
+            dollar_year=2024, price_basis="real", sample_count=len(values),
+            notes=(
+                "Unweighted mean by COD of project-average O&M over available "
+                "2000-2024 operating years, for projects reporting 2024 O&M. "
+                "Assumes 2024 dollars; this sheet does not state a dollar year. Includes aging effects; "
+                "not a new-build cost. Assigned wholly to FOM; VOM stays zero."
+            ),
+        )
+        rows.append(row)
+    return rows
+
+
+def extract_utility_pv_om(path, source):
+    """Extract reported annual mean O&M in $/kW-AC-year, not its $/MWh equivalent."""
+    sheet_name = "O&M Cost Time Trend"
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    rows = []
+    try:
+        sheet = workbook[sheet_name]
+        header = _find_header_row(sheet, "Project Count")
+        labels = next(sheet.iter_rows(min_row=header, max_row=header,
+                                      max_col=8, values_only=True))
+        unit = re.fullmatch(r"\$(\d{4})/kW_AC-yr\s+Mean", str(labels[7]))
+        if unit is None:
+            raise ValueError(f"Unexpected PV O&M mean column: {labels[7]!r}")
+        dollar_year = int(unit.group(1))
+        for values in sheet.iter_rows(min_row=header + 1, max_col=8, values_only=True):
+            year, count, mean = values[0], values[1], values[7]
+            if not isinstance(year, (int, float)):
+                continue
+            if not isinstance(mean, (int, float)) or not 0 <= mean < float('inf'):
+                raise ValueError(f"Invalid PV O&M observation: {year}, {mean}")
+            row = _base_row("utility_pv", source, Path(path).name, sheet_name, "fixed_om")
+            row.update(
+                technology="upv", technology_detail="Utility-scale PV projects",
+                year=int(year), value=float(mean), unit="USD/kW-yr",
+                capacity_basis="AC", statistic="mean", geography="United States",
+                dollar_year=dollar_year, price_basis="real", sample_count=count,
+                notes=(
+                    "Reported annual mean O&M from FERC and project owners. "
+                    "Operating-fleet costs, not new-build costs by vintage. "
+                    "Excludes taxes, insurance, royalties and some overhead. "
+                    "Assigned wholly to FOM; the $/MWh column is the same cost, "
+                    "not a separate VOM observation."
+                ),
+            )
+            rows.append(row)
+    finally:
+        workbook.close()
+    if not rows or len({row['year'] for row in rows}) != len(rows):
+        raise ValueError(f"Missing or duplicate O&M years in {sheet_name}")
+    return rows
+
+
+def extract_csp_reference(path, source):
+    """Retain all project costs; identify the existing ten-hour reference."""
+    sheet_name = "CSP CapEx"
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    rows = []
+    try:
+        for n, (technology, capacity, year, value) in enumerate(workbook[sheet_name].iter_rows(
+            max_col=4, values_only=True
+        ), 1):
+            if technology not in ('Tower', 'Trough'):
+                continue
+            reference = (technology, capacity, year) == ("Tower", 110, 2015)
+            if not isinstance(value, (int, float)) or not 0 < value < float('inf'):
+                raise ValueError(f"Invalid CSP reference cost: {value}")
+            row = _base_row("utility_pv", source, Path(path).name, sheet_name)
+            row.update(
+                technology="csp", technology_detail=("Crescent Dunes" if reference else
+                                                      f'{technology}, {capacity:g} MW, {year} COD'),
+                year=int(year), value=float(value) * 1000, unit="USD/kW",
+                capacity_basis="AC", statistic="project", geography="United States",
+                dollar_year=2024, price_basis="real", cost_scope="overnight_plus_grid",
+                sample_count=1,
+                notes=(
+                    "110-MW 2015 tower matched to Crescent Dunes; $/W-AC converted "
+                    "to $/kW-AC. Project identity and 10-hour storage: "
+                    "https://solarpaces.nlr.gov/project/crescent-dunes-solar-energy-project . "
+                    "Used as a csp2 proxy; solar multiple is not given in this "
+                    "workbook. Other years are endpoint-filled and other ReEDS "
+                    "configurations are derived using the CSP cost ratios."
+                ),
+            )
+            if not reference:
+                row['source_table'] = f'D{n}'
+                row['notes'] = ('Reported CSP project cost; 2024 $/W-AC converted to $/kW-AC. '
+                                'Retained as raw: tower/trough and storage configuration have no reviewed ReEDS mapping.')
+            rows.append(row)
+    finally:
+        workbook.close()
+    if sum(row['technology_detail'] == 'Crescent Dunes' for row in rows) != 1:
+        raise ValueError(f"Expected one Crescent Dunes reference in {sheet_name}")
+    return rows
+
+
+def extract_storage_costs(path, source):
+    """Retain storage costs and durations with their weighting and capacity basis."""
+    sheet_name = 'Capex Trend (Storage)'
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    rows = []
+    try:
+        sheet = workbook[sheet_name]
+        header = _find_header_row(sheet, 'Storage COD')
+        dollar_label = sheet.cell(header - 1, 8).value
+        match = re.fullmatch(r'Installed Battery Cost \((\d{4}) \$/kWh\)', str(dollar_label))
+        if match is None:
+            raise ValueError(f'Unexpected battery cost unit: {dollar_label}')
+        statistics = ('energy_weighted_mean', 'median', '20th_percentile', '80th_percentile',
+                      'energy_weighted_mean_lt2h', 'energy_weighted_mean_2to4h', 'energy_weighted_mean_ge4h')
+        for n, values in enumerate(sheet.iter_rows(min_row=header + 1, max_col=14, values_only=True), header + 1):
+            year, count, power, energy = values[:4]
+            if not isinstance(year, (int, float)):
+                continue
+            if not all(isinstance(v, (int, float)) and v > 0 for v in (count, power, energy)):
+                raise ValueError(f'Invalid battery cohort totals for {year}')
+            base = _base_row('utility_pv', source, Path(path).name, sheet_name)
+            base.update(technology='battery', technology_detail='LBNL storage project sample',
+                        year=int(year), geography='United States', sample_count=count)
+            note = ('LBNL storage sample; excludes durations below one hour. '
+                    'Total installed system cost, not an isolated energy component. 2024 data are preliminary.')
+            for col, statistic in enumerate(statistics, 7):
+                value = values[col]
+                if value is None:
+                    continue
+                if not isinstance(value, (int, float)) or not 0 < value < float('inf'):
+                    raise ValueError(f'Invalid battery cost for {year}: {value}')
+                rows.append(dict(base, value=float(value), unit='USD/kWh', capacity_basis='energy',
+                                 statistic=statistic, dollar_year=int(match.group(1)), price_basis='real',
+                                 cost_scope='overnight_plus_grid',
+                                 source_table=f'{openpyxl.utils.get_column_letter(col + 1)}{n}',
+                                 sample_count=count if col < 11 else '', notes=note))
+            for statistic, value, location in (
+                ('capacity_weighted_cohort', energy / power, f'D{n}/C{n}'),
+                ('energy_weighted_mean', values[5], f'F{n}'),
+            ):
+                if not isinstance(value, (int, float)) or not 0 < value < float('inf'):
+                    raise ValueError(f'Invalid battery duration for {year}: {value}')
+                rows.append(dict(base, metric='storage_duration', value=float(value), unit='hours',
+                                 capacity_basis='nameplate', statistic=statistic, source_table=location,
+                                 notes=('Duration=sum(MWh)/sum(MW) from the same cost sample; uses rounded cohort totals.'
+                                        if statistic == 'capacity_weighted_cohort' else
+                                        'Reported energy-weighted duration; not used to convert the cohort cost to $/kW.')))
+    finally:
+        workbook.close()
+    if not rows:
+        raise ValueError(f'No storage observations in {path}')
+    return rows
+
+
+def extract_csp_capacity_factors(path, source):
+    """Retain annual plant CF without treating operating years as build vintages."""
+    sheet_name = 'CF for CSP Plants'
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    rows = []
+    try:
+        sheet = workbook[sheet_name]
+        header = _find_header_row(sheet, 'Crescent Dunes')
+        names = next(sheet.iter_rows(min_row=header, max_row=header, values_only=True))
+        for n, values in enumerate(sheet.iter_rows(min_row=header + 1, values_only=True), header + 1):
+            year = values[0]
+            if not isinstance(year, (int, float)) or not 1900 <= year <= 2100:
+                continue
+            for col, name in enumerate(names[1:], 1):
+                if name is None:
+                    break
+                value = values[col]
+                if not isinstance(name, str) or value is None:
+                    continue
+                if not isinstance(value, (int, float)) or not 0 <= value <= 1:
+                    raise ValueError(f'Invalid CSP CF for {name}/{year}: {value}')
+                row = _base_row('utility_pv', source, Path(path).name, sheet_name, 'capacity_factor')
+                row.update(technology='csp', technology_detail=name, year=int(year), value=float(value),
+                           unit='fraction', capacity_basis='AC', statistic='annual_project',
+                           geography='United States', sample_count=1,
+                           source_table=f'{openpyxl.utils.get_column_letter(col + 1)}{n}',
+                           notes='Observed operating-year CF, solar portion only. Retained as raw; current CSP outputs have no CF column.')
+                rows.append(row)
+    finally:
+        workbook.close()
+    if not rows:
+        raise ValueError(f'No CSP capacity factors in {path}')
+    return rows
+
+
+def extract_utility_pv(path, source):
+    """Extract LBNL's observed PV-only installed costs on AC and DC bases."""
+    sheet_name = "CapEx Trend (PV-only)"
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    sheet = workbook[sheet_name]
+    header = _find_header_row(sheet, "Solar COD")
+    rows = []
+    # Each tuple is (year, count, capacity-weighted mean) for one capacity basis.
+    for basis, year_col, count_col, mean_col in (
+        ("AC", 1, 2, 4),
+        ("DC", 11, 12, 14),
+    ):
+        for values in sheet.iter_rows(min_row=header + 1, values_only=True):
+            year = values[year_col - 1]
+            value = values[mean_col - 1]
+            if not isinstance(year, (int, float)) or not isinstance(value, (int, float)):
+                continue
+            row = _base_row("utility_pv", source, Path(path).name, sheet_name)
+            row.update(
+                technology="upv",
+                technology_detail="Utility-scale PV-only projects",
+                year=int(year),
+                # Source values are $/W; convert to the common $/kW unit.
+                value=float(value) * 1000,
+                unit="USD/kW",
+                capacity_basis=basis,
+                statistic="capacity_weighted_mean",
+                geography="United States",
+                dollar_year=2024,
+                price_basis="real",
+                cost_scope="overnight_plus_grid",
+                sample_count=values[count_col - 1],
+                notes=("Observed PV-only project CapEx; 2024 COD values are preliminary. "
+                       "Sourced primarily from Form EIA-860 Schedule 5B, so the value "
+                       "includes electrical interconnection and excludes financing."),
+            )
+            rows.append(row)
+    workbook.close()
+    return rows
+
+
+def extract_offshore_wind(path, source):
+    """Extract completed-year offshore project CapEx series from NLR Figure 31."""
+    sheet_name = "F31, Project CapEx"
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    sheet = workbook[sheet_name]
+    header = _find_header_row(sheet, "Commercial Operation Date")
+    last_year = int(source["last_historical_year"])
+    series = (
+        (3, "capacity_weighted_mean", "Global"),
+        (5, "capacity_weighted_mean", "Europe and United States"),
+        (7, "capacity_weighted_mean", "Asia"),
+    )
+    rows = []
+    for values in sheet.iter_rows(min_row=header + 1, values_only=True):
+        year = values[1]
+        if not isinstance(year, (int, float)) or int(year) > last_year:
+            continue
+        for column, statistic, geography in series:
+            value = values[column - 1]
+            if not isinstance(value, (int, float)) or value <= 0:
+                continue
+            row = _base_row("offshore_wind", source, Path(path).name, sheet_name)
+            row.update(
+                technology="wind-ofs",
+                technology_detail="Offshore wind projects",
+                year=int(year),
+                value=float(value),
+                unit="USD/kW",
+                capacity_basis="nameplate",
+                statistic=statistic,
+                geography=geography,
+                dollar_year=2023,
+                price_basis="real",
+                cost_scope="overnight_plus_grid",
+                sample_count="",
+                notes=(
+                    "Figure 31 annual project CapEx. The data file omits units; the "
+                    "report's Figure 31 axis reads USD2023/kW and its Section 1.2 "
+                    "data-methods note normalizes all costs to real 2023 USD (FX "
+                    "conversion, then U.S. CPI). Post-2023 pipeline years are excluded. "
+                    "The report defines these CapEx as all expenditures incurred before "
+                    "commercial operation, but also states that export cable and "
+                    "interconnection costs are present in some plotted projects and not "
+                    "others, so the grid-connection share of this average is uncertain."
+                ),
+            )
+            rows.append(row)
+    workbook.close()
+    return rows
+
+
+def _eia_table_for_title(title):
+    """Return (label_map, table_tag) for a table title, or (None, None).
+
+    The combined-cycle breakdown splits one plant across its turbine halves, so
+    it is excluded even though its title matches the natural-gas fragment.
+    """
+    lowered = title.lower()
+    if "at combined-cycle plants" in lowered:
+        return None, None
+    for fragment, label_map, tag in EIA_TABLES:
+        if fragment in lowered:
+            return label_map, tag
+    return None, None
+
+
+def extract_eia(path, source, year, data_url):
+    """Extract every national cost-by-technology table in one EIA workbook."""
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    sheet = workbook[workbook.sheetnames[0]]
+    rows = []
+    label_map = None
+    table_tag = None
+    for values in sheet.iter_rows(values_only=True):
+        label = values[0]
+        value = values[1] if len(values) > 1 else None
+        if isinstance(label, str) and "generators installed" in label.lower():
+            label_map, table_tag = _eia_table_for_title(label)
+            continue
+        if label_map is None or not isinstance(label, str):
+            continue
+        entry = label_map.get(label.strip())
+        if entry is None or not isinstance(value, (int, float)):
+            continue
+        technology, detail = entry
+        row = _base_row("eia_generator_costs", source, Path(path).name, sheet.title)
+        row["source_data_url"] = data_url
+        row.update(
+            technology=technology,
+            technology_detail=detail,
+            year=int(year),
+            value=float(value),
+            unit="USD/kW",
+            capacity_basis="nameplate",
+            statistic="capacity_weighted_mean",
+            geography="United States",
+            dollar_year=int(year),
+            price_basis="nominal",
+            cost_scope="overnight_plus_grid",
+            sample_count="",
+            source_table=table_tag,
+            notes=(
+                "EIA-860 generators installed in this year. Average construction "
+                "cost is total cost divided by total capacity. Categories follow "
+                "EIA definitions and are not one-to-one with ATB technologies. "
+                "Schedule 5 total construction cost includes owner costs with the "
+                "electrical interconnection tie-in to a nearby transmission system, "
+                "and excludes financing, land, grants and tax benefits."
+            ),
+        )
+        rows.append(row)
+    workbook.close()
+    if not rows:
+        raise ValueError(f"No EIA cost rows extracted from {path}")
+    return rows
+
+
+def extract_battery_duration(path, source, report_year, data_url):
+    """Estimate new-installation duration from the annual EIA-860 inventory."""
+    member = f"3_4_Energy_Storage_Y{report_year}.xlsx"
+    with ZipFile(path) as archive:
+        frame = pd.read_excel(BytesIO(archive.read(member)), sheet_name='Operable', header=1)
+    frame = frame.loc[frame['Prime Mover'].eq('BA')].copy()
+    if frame.duplicated(['Plant Code', 'Generator ID']).any():
+        raise ValueError(f"Duplicate battery generator IDs in {member}")
+    for column in ('Operating Year', 'Nameplate Capacity (MW)', 'Nameplate Energy Capacity (MWh)'):
+        frame[column] = pd.to_numeric(frame[column], errors='coerce')
+    # Storage details start in 2016; use that edition for the 2015 cohort too.
+    first_cohort = (int(source['first_cohort_year'])
+                    if report_year == int(source['first_year']) else report_year)
+    rows = []
+    for year in range(first_cohort, report_year + 1):
+        cohort = frame.loc[frame['Operating Year'].eq(year)]
+        power = cohort['Nameplate Capacity (MW)']
+        energy = cohort['Nameplate Energy Capacity (MWh)']
+        valid = power.gt(0) & energy.gt(0) & power.lt(float('inf')) & energy.lt(float('inf'))
+        if not valid.any():
+            raise ValueError(f"No usable battery duration observations for {year} in {member}")
+        duration = float(energy[valid].sum() / power[valid].sum())
+        coverage = float(power[valid].sum() / power[power.gt(0)].sum())
+        row = _base_row('eia860_storage', source, Path(path).name,
+                        f'{member}:Operable', 'storage_duration')
+        row.update(
+            technology='battery', technology_detail='Battery storage', year=year,
+            value=duration, unit='hours', capacity_basis='nameplate',
+            statistic='capacity_weighted_cohort', geography='United States',
+            sample_count=int(valid.sum()), source_data_url=data_url,
+            notes=(
+                f"Sum of nameplate MWh / sum of MW for batteries installed in {year}, "
+                f"as reported in EIA-860 {report_year}; {valid.sum()} of {len(cohort)} "
+                f"generators have positive MW and MWh ({coverage:.2%} of cohort MW). "
+                "Inventory-cohort proxy, not the identifiable cost-reporting sample. "
+                "All battery chemistries; no flywheels or pumped storage."
+            ),
+        )
+        rows.append(row)
+    return rows
+
+def _sha256(path):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+PROJECT_STATISTICS = ('project_proxy', 'project_reconstruction', 'project_reported', 'project_estimate')
+
+
+def extract_projects(path, technology, source_id):
+    """Read plant-level project costs for one technology and calculate USD/kW."""
+    data = pd.read_csv(path, keep_default_na=False)
+    if data.empty or data.year.duplicated().any():
+        raise ValueError(f'{source_id} requires distinct annual anchors')
+    rows = []
+    for project in data.to_dict('records'):
+        total, capacity, per_kw = (project[c] for c in
+                                  ('reported_total_usd', 'capacity_mw', 'reported_usd_per_kw'))
+        if per_kw != '' and total == '' and capacity == '':
+            value = float(per_kw)
+        elif per_kw == '' and total != '' and capacity != '':
+            if not math.isfinite(float(capacity)) or float(capacity) <= 0:
+                raise ValueError(f'{source_id} capacity must be finite and positive')
+            value = float(total) / (float(capacity) * 1000)
+        else:
+            raise ValueError('Supply either project USD and MW or reported USD/kW')
+        if not math.isfinite(value) or value <= 0:
+            raise ValueError(f'{source_id} costs must be finite and positive')
+        if project['statistic'] not in PROJECT_STATISTICS:
+            raise ValueError(f'{source_id} costs must identify their derived cost basis')
+        if project['cost_scope'] not in COST_SCOPES:
+            raise ValueError(f"Unknown {source_id} cost scope: {project['cost_scope']}")
+        for column in ('year', 'dollar_year'):
+            number = float(project[column])
+            if not math.isfinite(number) or not number.is_integer() or number < 1900:
+                raise ValueError(f'Invalid {source_id} {column}')
+        if not project['source_page_url'] or not project['notes']:
+            raise ValueError(f'{source_id} requires source URLs and qualifications')
+        rows.append(dict(
+            technology=technology, technology_detail=project['project'],
+            year=int(project['year']), metric='capital_cost', value=value,
+            unit='USD/kW', capacity_basis=project['capacity_basis'],
+            statistic=project['statistic'], geography='United States',
+            dollar_year=int(project['dollar_year']), price_basis=project['price_basis'],
+            cost_scope=project['cost_scope'],
+            sample_count=project['sample_count'], source_id=source_id,
+            source_file=Path(path).name, source_sheet='',
+            source_table=project['source_location'],
+            source_page_url=project['source_page_url'], source_data_url=project['source_data_url'],
+            notes=project['notes'],
+        ))
+    return rows
+
+
+def _vintage_bin(label):
+    """Return (label, midpoint year) for a '2012-2018' or '2023' vintage label."""
+    match = re.fullmatch(r'(\d{4})(?:-(\d{4}))?', str(label).strip())
+    if match is None:
+        return None
+    first, last = int(match.group(1)), int(match.group(2) or match.group(1))
+    return (f'{first}-{last}' if last != first else str(first)), (first + last) // 2
+
+
+def _om_index_rows(base, bins, index_settings):
+    """Emit per-age medians and one early-age mean per vintage bin.
+
+    ``bins`` maps a vintage label to ``(midpoint, {age: (median, sample_count)})``.
+    The early-age mean over ``ages`` is the FOM index; bins with fewer than
+    ``minimum_ages`` available ages are reported raw only.
+    """
+    ages = [int(a) for a in index_settings.get('ages', [1, 2, 3])]
+    minimum = int(index_settings.get('minimum_ages', 2))
+    rows = []
+    for label, (midpoint, by_age) in bins.items():
+        for age, (value, count) in sorted(by_age.items()):
+            rows.append(dict(base, technology_detail=f'Vintage {label}', year=midpoint,
+                             value=value, statistic=f'median_age_{age}', sample_count=count,
+                             notes=f'Median O&M in operating year {age} for projects with COD {label}; '
+                                   'year is the bin midpoint.'))
+        used = {age: by_age[age][0] for age in ages if age in by_age}
+        if len(used) < minimum:
+            continue
+        counts = [by_age[a][1] for a in used]
+        rows.append(dict(base, technology_detail=f'Vintage {label}', year=midpoint,
+                         value=sum(used.values()) / len(used), statistic='median_early_age_mean',
+                         sample_count=min(counts) if all(c != '' for c in counts) else '',
+                         notes='FOM index: mean of ' + ', '.join(f'age {a}={v:.1f}' for a, v in used.items())
+                               + f' for COD {label}; year is the bin midpoint. Not a full-scope O&M level.'))
+    return rows
+
+
+def extract_wind_om_by_age(path, source, index_settings):
+    """Extract LBNL wind O&M by vintage bin and operating year (rows are bins)."""
+    sheet_name = 'O&M by Project Age'
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    try:
+        sheet = workbook[sheet_name]
+        header = _find_header_row(sheet, 'Years Since')
+        rows = list(sheet.iter_rows(min_row=header + 1, values_only=True))
+        ages = [int(a) for a in rows[0][1:] if isinstance(a, (int, float))]
+        bins = {}
+        for row in rows[1:]:
+            parsed = _vintage_bin(row[0])
+            if parsed is None:
+                continue
+            label, midpoint = parsed
+            if label in bins:
+                break  # a later block on the sheet repeats the bin labels
+            by_age = {age: (float(v), '') for age, v in zip(ages, row[1:])
+                      if isinstance(v, (int, float)) and v > 0}
+            bins[label] = (midpoint, by_age)
+    finally:
+        workbook.close()
+    base = _base_row('land_based_wind', source, Path(path).name, sheet_name, 'fixed_om')
+    base.update(technology='wind-ons', unit='USD/kW-yr', capacity_basis='nameplate',
+                geography='United States', dollar_year=2024, price_basis='real')
+    return _om_index_rows(base, bins, index_settings)
+
+
+def extract_pv_om_by_age(path, source, index_settings):
+    """Extract LBNL PV O&M by vintage bin and operating year (columns are bins)."""
+    sheet_name = 'O&M Cost by Project Age'
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    try:
+        sheet = workbook[sheet_name]
+        header = _find_header_row(sheet, 'Years post COD')
+        rows = list(sheet.iter_rows(min_row=header + 1, values_only=True))
+        labels = []
+        for cell in rows[0][1:]:
+            parsed = _vintage_bin(cell)
+            if parsed is None or parsed in labels:
+                break  # sample-count and capacity blocks repeat the bin labels
+            labels.append(parsed)
+        count_offset = len(labels)
+        bins = {label: (midpoint, {}) for label, midpoint in labels}
+        for row in rows[1:]:
+            if not isinstance(row[0], (int, float)):
+                continue
+            age = int(row[0])
+            for k, (label, _) in enumerate(labels):
+                value, count = row[1 + k], row[1 + count_offset + k]
+                if isinstance(value, (int, float)) and value > 0:
+                    bins[label][1][age] = (float(value), int(count) if isinstance(count, (int, float)) else '')
+    finally:
+        workbook.close()
+    base = _base_row('utility_pv', source, Path(path).name, sheet_name, 'fixed_om')
+    base.update(technology='upv', unit='USD/kW-yr', capacity_basis='AC',
+                geography='United States', dollar_year=2024, price_basis='real')
+    return _om_index_rows(base, bins, index_settings)
+
+
+def _artifact(source_id, source, year=None):
+    if source_id in ("eia_generator_costs", "eia860_storage"):
+        filename = source["filename"].format(year=year)
+        if year == int(source["last_year"]):
+            data_url = source["current_data_url"]
+        else:
+            data_url = source["archive_data_url"].format(year=year)
+    else:
+        filename = source["filename"]
+        data_url = source["data_url"]
+    return filename, data_url
+
+
+def scrape(config, selected="all", force=False, no_download=False):
+    settings = config["historical_cost_sources"]
+    output_dir = resolve_atb_path(settings["directory"])
+    output_dir.mkdir(parents=True, exist_ok=True)
+    allow_insecure = settings.get("allow_insecure_ssl_fallback", False)
+    rows = []
+    manifest = []
+    source_items = settings["sources"].items()
+
+    for source_id, source in source_items:
+        if not source.get("enabled", True):
+            continue
+        selector = {
+            "land_based_wind": "wind",
+            "utility_pv": "solar",
+            "offshore_wind": "offshore",
+            "eia_generator_costs": "eia",
+            "eia860_storage": "eia",
+        }[source_id]
+        if selected not in ("all", selector):
+            continue
+        years = (
+            range(int(source["first_year"]), int(source["last_year"]) + 1)
+            if source_id in ("eia_generator_costs", "eia860_storage")
+            else [None]
+        )
+        for year in years:
+            filename, data_url = _artifact(source_id, source, year)
+            path = output_dir / filename
+            if not no_download:
+                download_file(
+                    data_url,
+                    path,
+                    force=force,
+                    allow_insecure_ssl_fallback=allow_insecure,
+                )
+            elif not path.exists():
+                raise FileNotFoundError(f"Missing local source file: {path}")
+
+            manifest.append(
+                {
+                    "source_id": source_id,
+                    "report_year": year or source.get("report_year", ""),
+                    "page_url": source["page_url"],
+                    "data_url": data_url,
+                    "local_file": filename,
+                    "size_bytes": path.stat().st_size,
+                    "sha256": _sha256(path),
+                }
+            )
+            if source_id == "land_based_wind":
+                rows.extend(extract_land_based_wind(path, source))
+                rows.extend(extract_capacity_factors(path, source, source_id))
+                rows.extend(extract_land_based_wind_om(path, source))
+                rows.extend(extract_wind_om_by_age(path, source, settings.get('om_index', {})))
+            elif source_id == "utility_pv":
+                rows.extend(extract_utility_pv(path, source))
+                rows.extend(extract_capacity_factors(path, source, source_id))
+                rows.extend(extract_utility_pv_om(path, source))
+                rows.extend(extract_pv_om_by_age(path, source, settings.get('om_index', {})))
+                rows.extend(extract_csp_reference(path, source))
+                rows.extend(extract_storage_costs(path, source))
+                rows.extend(extract_csp_capacity_factors(path, source))
+            elif source_id == "offshore_wind":
+                rows.extend(extract_offshore_wind(path, source))
+            elif source_id == "eia860_storage":
+                rows.extend(extract_battery_duration(path, source, year, data_url))
+            else:
+                rows.extend(extract_eia(path, source, year, data_url))
+
+    normalized = pd.DataFrame(rows, columns=COLUMNS).sort_values(
+        ["technology", "metric", "source_id", "capacity_basis", "geography", "year"]
+    )
+    for source_id, spec in settings.get('project_files', {}).items():
+        if selected not in ('all', 'projects', spec['technology']):
+            continue
+        path = resolve_atb_path(spec['path'])
+        projects = pd.DataFrame(extract_projects(path, spec['technology'], source_id), columns=COLUMNS)
+        normalized = pd.concat([normalized, projects], ignore_index=True)
+        manifest.append(dict(
+            source_id=source_id, report_year='',
+            page_url=' | '.join(projects.source_page_url),
+            data_url=' | '.join(projects.source_data_url),
+            local_file=path.name, size_bytes=path.stat().st_size, sha256=_sha256(path),
+        ))
+    normalized_path = output_dir / settings["normalized_filename"]
+    manifest_path = output_dir / settings["manifest_filename"]
+    normalized.to_csv(normalized_path, index=False)
+    pd.DataFrame(manifest).to_csv(manifest_path, index=False)
+    print(f"\nNormalized {len(normalized):,} observations:")
+    print(f"  {normalized_path}")
+    print(f"Recorded {len(manifest):,} source files and checksums:")
+    print(f"  {manifest_path}")
+    if not normalized.empty:
+        summary = normalized.groupby(
+            ["source_id", "technology", "metric"]
+        )["year"].agg(["min", "max", "count"])
+        print("\nCoverage")
+        print(summary.to_string())
+
