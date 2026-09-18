@@ -27,61 +27,114 @@ observed or calculated points before filling.
 | upv | fom | * | indexed | lbnl_utility_scale_solar_2025.xlsx | 2012-2020 (3) | - |
 | upv | vom | * | broadcast | - | - | - |
 | upv | cf_improvement | * | real | lbnl_utility_scale_solar_2025.xlsx | 2010-2023 (14) | - |
-| wind-ons | capcost | * | real | lbnl_land_based_wind_2025.xlsx | 1983-2024 (30) | overnight_plus_grid |
-| wind-ons | fom | * | indexed | lbnl_land_based_wind_2025.xlsx | 2001-2021 (4) | - |
-| wind-ons | vom | * | broadcast | - | - | - |
-| wind-ons | cf_improvement | * | real | lbnl_land_based_wind_2025.xlsx | 2006-2023 (18) | - |
+| wind-ons | capcost | 115hh_170rd | real | - | - | - |
+| wind-ons | fom | 115hh_170rd | indexed | - | - | - |
+| wind-ons | vom | 115hh_170rd | broadcast | - | - | - |
+| wind-ons | cf_improvement | 115hh_170rd | real | - | - | - |
 | wind-ofs | capcost | fixed | real | offshore_historical_projects.csv | 2016-2024 (3) | overnight_plus_grid |
 | wind-ofs | capcost | floating | unavailable | - | - | - |
-| wind-ofs | fom | * | broadcast | - | - | - |
-| wind-ofs | vom | * | broadcast | - | - | - |
-| wind-ofs | cf_improvement | * | broadcast | - | - | - |
-| wind-ofs | rsc_mult | * | broadcast | - | - | - |
-| battery | capcost | * | real | eia860_2016-2017.zip, eia_generator_costs_2015-2017.xlsx, lbnl_utility_scale_solar_2025.xlsx | 2015-2024 (10) | overnight_plus_grid |
-| battery | capcost_energy | * | real | eia860_2016-2017.zip, eia_generator_costs_2015-2017.xlsx, lbnl_utility_scale_solar_2025.xlsx | 2015-2024 (10) | overnight_plus_grid |
-| battery | fom | * | broadcast | - | - | - |
-| battery | fom_energy | * | broadcast | - | - | - |
-| battery | vom | * | broadcast | - | - | - |
-| battery | rte | * | broadcast | - | - | - |
-| csp | capcost | * | real | lbnl_utility_scale_solar_2025.xlsx | 2015-2015 (1) | overnight_plus_grid |
-| csp | fom | * | broadcast | - | - | - |
-| csp | vom | * | broadcast | - | - | - |
-| coal | capcost | * | broadcast | - | - | - |
-| coal | fom | * | broadcast | - | - | - |
-| coal | vom | * | broadcast | - | - | - |
-| coal | heatrate | * | broadcast | - | - | - |
-| coal-ccs | capcost | * | unavailable | - | - | - |
-| coal-ccs | fom | * | broadcast | - | - | - |
-| coal-ccs | vom | * | broadcast | - | - | - |
-| coal-ccs | heatrate | * | broadcast | - | - | - |
+| wind-ofs | fom | fixed | broadcast | - | - | - |
+| wind-ofs | fom | floating | broadcast | - | - | - |
+| wind-ofs | vom | fixed | broadcast | - | - | - |
+| wind-ofs | vom | floating | broadcast | - | - | - |
+| wind-ofs | cf_improvement | fixed | broadcast | - | - | - |
+| wind-ofs | cf_improvement | floating | broadcast | - | - | - |
+| wind-ofs | rsc_mult | fixed | broadcast | - | - | - |
+| wind-ofs | rsc_mult | floating | broadcast | - | - | - |
+| battery | capcost | battery_li | real | - | - | - |
+| battery | capcost_energy | battery_li | real | - | - | - |
+| battery | fom | battery_li | broadcast | - | - | - |
+| battery | fom_energy | battery_li | broadcast | - | - | - |
+| battery | vom | battery_li | broadcast | - | - | - |
+| battery | rte | battery_li | broadcast | - | - | - |
+| csp | capcost | csp1 | real | lbnl_utility_scale_solar_2025.xlsx | 2015-2015 (1) | overnight_plus_grid |
+| csp | capcost | csp2 | real | lbnl_utility_scale_solar_2025.xlsx | 2015-2015 (1) | overnight_plus_grid |
+| csp | capcost | csp3 | real | lbnl_utility_scale_solar_2025.xlsx | 2015-2015 (1) | overnight_plus_grid |
+| csp | capcost | csp4 | real | lbnl_utility_scale_solar_2025.xlsx | 2015-2015 (1) | overnight_plus_grid |
+| csp | fom | csp1 | broadcast | - | - | - |
+| csp | fom | csp2 | broadcast | - | - | - |
+| csp | fom | csp3 | broadcast | - | - | - |
+| csp | fom | csp4 | broadcast | - | - | - |
+| csp | vom | csp1 | broadcast | - | - | - |
+| csp | vom | csp2 | broadcast | - | - | - |
+| csp | vom | csp3 | broadcast | - | - | - |
+| csp | vom | csp4 | broadcast | - | - | - |
+| coal | capcost | Coal-new | broadcast | - | - | - |
+| coal | capcost | Coal-IGCC | broadcast | - | - | - |
+| coal | capcost | CoalOldScr | manual | - | - | - |
+| coal | capcost | CoalOldUns | manual | - | - | - |
+| coal | capcost | CofireNew | manual | - | - | - |
+| coal | capcost | CofireOld | manual | - | - | - |
+| coal | fom | Coal-new | broadcast | - | - | - |
+| coal | fom | Coal-IGCC | broadcast | - | - | - |
+| coal | fom | CoalOldScr | manual | - | - | - |
+| coal | fom | CoalOldUns | manual | - | - | - |
+| coal | fom | CofireNew | manual | - | - | - |
+| coal | fom | CofireOld | manual | - | - | - |
+| coal | vom | Coal-new | broadcast | - | - | - |
+| coal | vom | Coal-IGCC | broadcast | - | - | - |
+| coal | vom | CoalOldScr | manual | - | - | - |
+| coal | vom | CoalOldUns | manual | - | - | - |
+| coal | vom | CofireNew | manual | - | - | - |
+| coal | vom | CofireOld | manual | - | - | - |
+| coal | heatrate | Coal-new | broadcast | - | - | - |
+| coal | heatrate | Coal-IGCC | broadcast | - | - | - |
+| coal | heatrate | CoalOldScr | manual | - | - | - |
+| coal | heatrate | CoalOldUns | manual | - | - | - |
+| coal | heatrate | CofireNew | manual | - | - | - |
+| coal | heatrate | CofireOld | manual | - | - | - |
+| coal-ccs | capcost | coal-CCS_mod | unavailable | - | - | - |
+| coal-ccs | fom | coal-CCS_mod | broadcast | - | - | - |
+| coal-ccs | vom | coal-CCS_mod | broadcast | - | - | - |
+| coal-ccs | heatrate | coal-CCS_mod | broadcast | - | - | - |
 | gas | capcost | Gas-CC | real | eia_generator_costs_2013-2023.xlsx | 2013-2023 (11) | overnight_plus_grid |
+| gas | capcost | Gas-CT | real | eia_generator_costs_2013-2024.xlsx | 2013-2024 (12) | overnight_plus_grid |
 | gas | capcost | Gas-CC_H_1x1 | broadcast | - | - | - |
 | gas | capcost | Gas-CC_H_2x1 | broadcast | - | - | - |
-| gas | capcost | Gas-CT | real | eia_generator_costs_2013-2024.xlsx | 2013-2024 (12) | overnight_plus_grid |
-| gas | capcost | Gas-CT_aero | broadcast | - | - | - |
-| gas | fom | * | broadcast | - | - | - |
-| gas | vom | * | broadcast | - | - | - |
-| gas | heatrate | * | broadcast | - | - | - |
-| gas-ccs | capcost | * | unavailable | - | - | - |
-| gas-ccs | fom | * | broadcast | - | - | - |
-| gas-ccs | vom | * | broadcast | - | - | - |
-| gas-ccs | heatrate | * | broadcast | - | - | - |
-| fuelcell | capcost | * | unavailable | - | - | - |
-| fuelcell | fom | * | broadcast | - | - | - |
-| fuelcell | vom | * | broadcast | - | - | - |
-| fuelcell | heatrate | * | broadcast | - | - | - |
-| nuclear | capcost | * | real | nuclear_historical_projects.csv | 2016-2024 (2) | installed_with_financing, overnight |
-| nuclear | fom | * | broadcast | - | - | - |
-| nuclear | vom | * | broadcast | - | - | - |
-| nuclear | heatrate | * | broadcast | - | - | - |
-| nuclear-smr | capcost | * | unavailable | - | - | - |
-| nuclear-smr | fom | * | broadcast | - | - | - |
-| nuclear-smr | vom | * | broadcast | - | - | - |
-| nuclear-smr | heatrate | * | broadcast | - | - | - |
-| biopower | capcost | * | real | eia_generator_costs_2013-2021.xlsx | 2013-2021 (8) | overnight_plus_grid |
-| biopower | fom | * | broadcast | - | - | - |
-| biopower | vom | * | broadcast | - | - | - |
-| biopower | heatrate | * | broadcast | - | - | - |
+| gas | capcost | Gas-CT_aero | manual | - | - | - |
+| gas | fom | Gas-CC | broadcast | - | - | - |
+| gas | fom | Gas-CT | broadcast | - | - | - |
+| gas | fom | Gas-CC_H_1x1 | broadcast | - | - | - |
+| gas | fom | Gas-CC_H_2x1 | broadcast | - | - | - |
+| gas | fom | Gas-CT_aero | manual | - | - | - |
+| gas | vom | Gas-CC | broadcast | - | - | - |
+| gas | vom | Gas-CT | broadcast | - | - | - |
+| gas | vom | Gas-CC_H_1x1 | broadcast | - | - | - |
+| gas | vom | Gas-CC_H_2x1 | broadcast | - | - | - |
+| gas | vom | Gas-CT_aero | manual | - | - | - |
+| gas | heatrate | Gas-CC | broadcast | - | - | - |
+| gas | heatrate | Gas-CT | broadcast | - | - | - |
+| gas | heatrate | Gas-CC_H_1x1 | broadcast | - | - | - |
+| gas | heatrate | Gas-CC_H_2x1 | broadcast | - | - | - |
+| gas | heatrate | Gas-CT_aero | manual | - | - | - |
+| gas-ccs | capcost | Gas-CC-CCS_mod | unavailable | - | - | - |
+| gas-ccs | capcost | Gas-CC_H_1x1-CCS_mod | unavailable | - | - | - |
+| gas-ccs | capcost | Gas-CC_H_2x1-CCS_mod | unavailable | - | - | - |
+| gas-ccs | fom | Gas-CC-CCS_mod | broadcast | - | - | - |
+| gas-ccs | fom | Gas-CC_H_1x1-CCS_mod | broadcast | - | - | - |
+| gas-ccs | fom | Gas-CC_H_2x1-CCS_mod | broadcast | - | - | - |
+| gas-ccs | vom | Gas-CC-CCS_mod | broadcast | - | - | - |
+| gas-ccs | vom | Gas-CC_H_1x1-CCS_mod | broadcast | - | - | - |
+| gas-ccs | vom | Gas-CC_H_2x1-CCS_mod | broadcast | - | - | - |
+| gas-ccs | heatrate | Gas-CC-CCS_mod | broadcast | - | - | - |
+| gas-ccs | heatrate | Gas-CC_H_1x1-CCS_mod | broadcast | - | - | - |
+| gas-ccs | heatrate | Gas-CC_H_2x1-CCS_mod | broadcast | - | - | - |
+| fuelcell | capcost | ng-fuel-cell | unavailable | - | - | - |
+| fuelcell | fom | ng-fuel-cell | broadcast | - | - | - |
+| fuelcell | vom | ng-fuel-cell | broadcast | - | - | - |
+| fuelcell | heatrate | ng-fuel-cell | broadcast | - | - | - |
+| nuclear | capcost | Nuclear | real | - | - | - |
+| nuclear | fom | Nuclear | broadcast | - | - | - |
+| nuclear | vom | Nuclear | broadcast | - | - | - |
+| nuclear | heatrate | Nuclear | broadcast | - | - | - |
+| nuclear-smr | capcost | Nuclear-SMR | unavailable | - | - | - |
+| nuclear-smr | fom | Nuclear-SMR | broadcast | - | - | - |
+| nuclear-smr | vom | Nuclear-SMR | broadcast | - | - | - |
+| nuclear-smr | heatrate | Nuclear-SMR | broadcast | - | - | - |
+| biopower | capcost | biopower | real | - | - | - |
+| biopower | fom | biopower | broadcast | - | - | - |
+| biopower | vom | biopower | broadcast | - | - | - |
+| biopower | heatrate | biopower | broadcast | - | - | - |
 <!-- coverage:end -->
 
 ## Cost scope
