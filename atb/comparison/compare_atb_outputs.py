@@ -580,10 +580,16 @@ def smoothing_provenance(settings: dict, generated_path: Path) -> dict:
             'target_column': identity if series != '*' else None,
             'targets': {series} if series != '*' else None,
         })
+    if "future_data" not in technology_settings:
+        raise KeyError(
+            f"processing.smooth_cost_curves.technologies.{technology} has no "
+            "future_data section."
+        )
     return {
         "technology": technology,
         "projection_start_year": boundary,
         "historical_data": historical_data,
+        "future_data": technology_settings["future_data"],
         "fill_atbstartyear2atbyear_with_real": technology_settings.get(
             'fill_atbstartyear2atbyear_with_real', smoothing.get('fill_atbstartyear2atbyear_with_real', False)),
         "observed_series": observed_series,
@@ -682,29 +688,24 @@ def is_real_history_target(
 
 
 def series_has_atb_data(final_group: pd.DataFrame, provenance: dict) -> bool:
-    """Return whether the plotted series exists in the current ATB release.
+    """Return whether the plotted series' projection comes from ATB.
 
-    A series is ATB-backed when its label is mapped from an ATB display name,
-    or is a CSP configuration derived from the mapped base type. Anything
-    else (Gas-CT_aero, the old coal designs) is retained from the ReEDS
-    baseline in historical/manual.csv from the boundary year onward.
+    The answer is the technology's ``future_data`` config entry, which the
+    formatter validates against the ATB mapping: ``atb`` series are projected
+    by the current release, ``manual`` ones (Gas-CT_aero, the old coal
+    designs) are retained from the ReEDS baseline in historical/manual.csv.
     """
-    settings = provenance["settings"]
-    tech_settings = settings["techs"][provenance["technology"]]
-    names = tech_settings["DisplayName"]
-    if not isinstance(names, dict):
-        return True
-    identity = next(
-        (c for c in ("i", "type", "turbine") if c in final_group.columns), None
-    )
-    if identity is None:
-        return True
-    atb_labels = set(names.values())
-    if "add_csp_techs" in tech_settings.get("functions", []):
-        from generate_atb_files import load_csp_cost_ratios
-        atb_labels |= set(load_csp_cost_ratios(settings)["type"])
-    values = set(final_group[identity].dropna().unique())
-    return bool(values & atb_labels)
+    future_data = provenance["future_data"]
+    if not isinstance(future_data, dict):
+        return future_data == "atb"
+    class_column = provenance["history_class_column"]
+    values = set(final_group[class_column].dropna().unique())
+    if len(values) != 1:
+        raise KeyError(
+            f"{provenance['technology']} plots classes {sorted(values)} in one "
+            "series; one series must plot one class to have one future_data source."
+        )
+    return future_data[values.pop()] == "atb"
 
 
 def series_boundary(final_group: pd.DataFrame, provenance: dict) -> int:
