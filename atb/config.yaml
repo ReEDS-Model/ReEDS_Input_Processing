@@ -264,6 +264,8 @@ processing:
     #   atb    - the current ATB release (settings.yaml DisplayName mapping)
     #   manual - retained from the ReEDS ATB baseline in historical/manual.csv
     #            because the current ATB no longer publishes the series
+    # The value is fixed by the settings.yaml mapping and only documents it;
+    # the formatter rejects any other value.
     technologies:
       upv:
         historical_data:
@@ -271,7 +273,7 @@ processing:
           fom: indexed  # options: real / manual / broadcast / indexed / unavailable
           vom: broadcast  # options: manual / broadcast / unavailable
           cf_improvement: real  # options: real / manual / broadcast / unavailable
-        future_data: atb  # options: atb / manual
+        future_data: atb  # options: atb
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       wind-ons:
@@ -285,7 +287,7 @@ processing:
           cf_improvement:
             115hh_170rd: real  # options: real / manual / broadcast / unavailable
         future_data:
-          115hh_170rd: atb  # options: atb / manual
+          115hh_170rd: atb  # options: atb
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       wind-ofs:
@@ -306,8 +308,8 @@ processing:
             fixed: broadcast  # options: manual / broadcast
             floating: broadcast  # options: manual / broadcast
         future_data:
-          fixed: atb  # options: atb / manual
-          floating: atb  # options: atb / manual
+          fixed: atb  # options: atb
+          floating: atb  # options: atb
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       battery:
@@ -325,7 +327,7 @@ processing:
           rte:
             battery_li: broadcast  # options: manual / broadcast / unavailable
         future_data:
-          battery_li: atb  # options: atb / manual
+          battery_li: atb  # options: atb
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       csp:
@@ -348,10 +350,10 @@ processing:
         # csp1, csp3 and csp4 are scaled from the ATB csp2 series with
         # manual_input/csp_cost_ratios_<year>.csv, so their source is still atb.
         future_data:
-          csp1: atb  # options: atb / manual
-          csp2: atb  # options: atb / manual
-          csp3: atb  # options: atb / manual
-          csp4: atb  # options: atb / manual
+          csp1: atb  # options: atb
+          csp2: atb  # options: atb
+          csp3: atb  # options: atb
+          csp4: atb  # options: atb
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       coal:
@@ -389,12 +391,12 @@ processing:
             CofireNew: manual  # options: manual / broadcast / unavailable
             CofireOld: manual  # options: manual / broadcast / unavailable
         future_data:
-          Coal-new: atb  # options: atb / manual
-          Coal-IGCC: atb  # options: atb / manual
-          CoalOldScr: manual  # options: atb / manual
-          CoalOldUns: manual  # options: atb / manual
-          CofireNew: manual  # options: atb / manual
-          CofireOld: manual  # options: atb / manual
+          Coal-new: atb  # options: atb
+          Coal-IGCC: atb  # options: atb
+          CoalOldScr: manual  # options: manual
+          CoalOldUns: manual  # options: manual
+          CofireNew: manual  # options: manual
+          CofireOld: manual  # options: manual
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       coal-ccs:
@@ -408,7 +410,7 @@ processing:
           heatrate:
             coal-CCS_mod: broadcast  # options: manual / broadcast / unavailable
         future_data:
-          coal-CCS_mod: atb  # options: atb / manual
+          coal-CCS_mod: atb  # options: atb
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       gas:
@@ -441,11 +443,11 @@ processing:
             Gas-CC_H_2x1: broadcast  # options: manual / broadcast / unavailable
             Gas-CT_aero: manual  # options: manual / broadcast / unavailable
         future_data:
-          Gas-CC: atb  # options: atb / manual
-          Gas-CT: atb  # options: atb / manual
-          Gas-CC_H_1x1: atb  # options: atb / manual
-          Gas-CC_H_2x1: atb  # options: atb / manual
-          Gas-CT_aero: manual  # options: atb / manual
+          Gas-CC: atb  # options: atb
+          Gas-CT: atb  # options: atb
+          Gas-CC_H_1x1: atb  # options: atb
+          Gas-CC_H_2x1: atb  # options: atb
+          Gas-CT_aero: manual  # options: manual
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       gas-ccs:
@@ -467,9 +469,9 @@ processing:
             Gas-CC_H_1x1-CCS_mod: broadcast  # options: manual / broadcast / unavailable
             Gas-CC_H_2x1-CCS_mod: broadcast  # options: manual / broadcast / unavailable
         future_data:
-          Gas-CC-CCS_mod: atb  # options: atb / manual
-          Gas-CC_H_1x1-CCS_mod: atb  # options: atb / manual
-          Gas-CC_H_2x1-CCS_mod: atb  # options: atb / manual
+          Gas-CC-CCS_mod: atb  # options: atb
+          Gas-CC_H_1x1-CCS_mod: atb  # options: atb
+          Gas-CC_H_2x1-CCS_mod: atb  # options: atb
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       fuelcell:
@@ -483,7 +485,7 @@ processing:
           heatrate:
             ng-fuel-cell: broadcast  # options: manual / broadcast / unavailable
         future_data:
-          ng-fuel-cell: atb  # options: atb / manual
+          ng-fuel-cell: atb  # options: atb
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       nuclear:
@@ -497,7 +499,7 @@ processing:
           heatrate:
             Nuclear: broadcast  # options: manual / broadcast / unavailable
         future_data:
-          Nuclear: atb  # options: atb / manual
+          Nuclear: atb  # options: atb
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       nuclear-smr:
@@ -511,7 +513,7 @@ processing:
           heatrate:
             Nuclear-SMR: broadcast  # options: manual / broadcast / unavailable
         future_data:
-          Nuclear-SMR: atb  # options: atb / manual
+          Nuclear-SMR: atb  # options: atb
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       biopower:
@@ -525,7 +527,7 @@ processing:
           heatrate:
             biopower: broadcast  # options: manual / broadcast / unavailable
         future_data:
-          biopower: atb  # options: atb / manual
+          biopower: atb  # options: atb
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
 # ReEDS repository files fetched by historical_data_scraper.py. Pinning `ref`

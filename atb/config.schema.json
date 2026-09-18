@@ -423,10 +423,6 @@
         "smooth_projection_curve": {"type": "boolean"}
       }
     },
-    "futureSource": {
-      "enum": ["atb", "manual"],
-      "description": "atb: projected by the current ATB release; manual: retained from the ReEDS ATB baseline in historical/manual.csv because ATB no longer publishes the series."
-    },
     "technologyConfigBase": {
       "type": "object",
       "additionalProperties": false,
@@ -455,7 +451,7 @@
         {
           "properties": {
             "historical_data": {"$ref": "#/definitions/historyUpv"},
-            "future_data": {"$ref": "#/definitions/futureSource"}
+            "future_data": {"const": "atb"}
           }
         }
       ]
@@ -494,7 +490,7 @@
       "additionalProperties": false,
       "required": ["115hh_170rd"],
       "properties": {
-        "115hh_170rd": {"$ref": "#/definitions/futureSource"}
+        "115hh_170rd": {"const": "atb"}
       }
     },
     "technologyWindOns": {
@@ -545,8 +541,8 @@
       "additionalProperties": false,
       "required": ["fixed", "floating"],
       "properties": {
-        "fixed": {"$ref": "#/definitions/futureSource"},
-        "floating": {"$ref": "#/definitions/futureSource"}
+        "fixed": {"const": "atb"},
+        "floating": {"const": "atb"}
       }
     },
     "technologyWindOfs": {
@@ -596,7 +592,7 @@
       "additionalProperties": false,
       "required": ["battery_li"],
       "properties": {
-        "battery_li": {"$ref": "#/definitions/futureSource"}
+        "battery_li": {"const": "atb"}
       }
     },
     "technologyBattery": {
@@ -649,10 +645,10 @@
       "additionalProperties": false,
       "required": ["csp1", "csp2", "csp3", "csp4"],
       "properties": {
-        "csp1": {"$ref": "#/definitions/futureSource"},
-        "csp2": {"$ref": "#/definitions/futureSource"},
-        "csp3": {"$ref": "#/definitions/futureSource"},
-        "csp4": {"$ref": "#/definitions/futureSource"}
+        "csp1": {"const": "atb"},
+        "csp2": {"const": "atb"},
+        "csp3": {"const": "atb"},
+        "csp4": {"const": "atb"}
       }
     },
     "technologyCsp": {
@@ -696,12 +692,12 @@
       "additionalProperties": false,
       "required": ["Coal-new", "Coal-IGCC", "CoalOldScr", "CoalOldUns", "CofireNew", "CofireOld"],
       "properties": {
-        "Coal-new": {"$ref": "#/definitions/futureSource"},
-        "Coal-IGCC": {"$ref": "#/definitions/futureSource"},
-        "CoalOldScr": {"$ref": "#/definitions/futureSource"},
-        "CoalOldUns": {"$ref": "#/definitions/futureSource"},
-        "CofireNew": {"$ref": "#/definitions/futureSource"},
-        "CofireOld": {"$ref": "#/definitions/futureSource"}
+        "Coal-new": {"const": "atb"},
+        "Coal-IGCC": {"const": "atb"},
+        "CoalOldScr": {"const": "manual"},
+        "CoalOldUns": {"const": "manual"},
+        "CofireNew": {"const": "manual"},
+        "CofireOld": {"const": "manual"}
       }
     },
     "technologyCoal": {
@@ -740,7 +736,7 @@
       "additionalProperties": false,
       "required": ["coal-CCS_mod"],
       "properties": {
-        "coal-CCS_mod": {"$ref": "#/definitions/futureSource"}
+        "coal-CCS_mod": {"const": "atb"}
       }
     },
     "technologyCoalCcs": {
@@ -796,11 +792,11 @@
       "additionalProperties": false,
       "required": ["Gas-CC", "Gas-CT", "Gas-CC_H_1x1", "Gas-CC_H_2x1", "Gas-CT_aero"],
       "properties": {
-        "Gas-CC": {"$ref": "#/definitions/futureSource"},
-        "Gas-CT": {"$ref": "#/definitions/futureSource"},
-        "Gas-CC_H_1x1": {"$ref": "#/definitions/futureSource"},
-        "Gas-CC_H_2x1": {"$ref": "#/definitions/futureSource"},
-        "Gas-CT_aero": {"$ref": "#/definitions/futureSource"}
+        "Gas-CC": {"const": "atb"},
+        "Gas-CT": {"const": "atb"},
+        "Gas-CC_H_1x1": {"const": "atb"},
+        "Gas-CC_H_2x1": {"const": "atb"},
+        "Gas-CT_aero": {"const": "manual"}
       }
     },
     "technologyGas": {
@@ -841,9 +837,9 @@
       "additionalProperties": false,
       "required": ["Gas-CC-CCS_mod", "Gas-CC_H_1x1-CCS_mod", "Gas-CC_H_2x1-CCS_mod"],
       "properties": {
-        "Gas-CC-CCS_mod": {"$ref": "#/definitions/futureSource"},
-        "Gas-CC_H_1x1-CCS_mod": {"$ref": "#/definitions/futureSource"},
-        "Gas-CC_H_2x1-CCS_mod": {"$ref": "#/definitions/futureSource"}
+        "Gas-CC-CCS_mod": {"const": "atb"},
+        "Gas-CC_H_1x1-CCS_mod": {"const": "atb"},
+        "Gas-CC_H_2x1-CCS_mod": {"const": "atb"}
       }
     },
     "technologyGasCcs": {
@@ -882,7 +878,7 @@
       "additionalProperties": false,
       "required": ["ng-fuel-cell"],
       "properties": {
-        "ng-fuel-cell": {"$ref": "#/definitions/futureSource"}
+        "ng-fuel-cell": {"const": "atb"}
       }
     },
     "technologyFuelcell": {
@@ -930,7 +926,7 @@
       "additionalProperties": false,
       "required": ["Nuclear"],
       "properties": {
-        "Nuclear": {"$ref": "#/definitions/futureSource"}
+        "Nuclear": {"const": "atb"}
       }
     },
     "technologyNuclear": {
@@ -969,7 +965,7 @@
       "additionalProperties": false,
       "required": ["Nuclear-SMR"],
       "properties": {
-        "Nuclear-SMR": {"$ref": "#/definitions/futureSource"}
+        "Nuclear-SMR": {"const": "atb"}
       }
     },
     "technologyNuclearSmr": {
@@ -1017,7 +1013,7 @@
       "additionalProperties": false,
       "required": ["biopower"],
       "properties": {
-        "biopower": {"$ref": "#/definitions/futureSource"}
+        "biopower": {"const": "atb"}
       }
     },
     "technologyBiopower": {
