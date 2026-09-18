@@ -611,6 +611,71 @@ def _historical_mode_for_metric(historical_data, metric, class_value=None):
         ) from error
 
 
+FUTURE_DATA_SOURCES = ('atb', 'manual')
+
+
+def atb_backed_classes(tech, settings):
+    """Return the sub-technology labels whose projection comes from ATB.
+
+    These are the labels mapped from ATB display names, plus the CSP
+    configurations scaled from the mapped base type. Any other output series
+    is retained from the ReEDS baseline in historical/manual.csv.
+    """
+    tech_settings = settings['techs'][tech]
+    names = tech_settings['DisplayName']
+    if isinstance(names, dict):
+        labels = set(names.values())
+    else:
+        # One ATB series; its label, if any, is added by addcols
+        # (e.g. turbine: 115hh_170rd for wind-ons).
+        labels = set(tech_settings.get('addcols', {}).values())
+    if 'add_csp_techs' in tech_settings.get('functions', []):
+        labels |= set(load_csp_cost_ratios(settings)['type'])
+    return labels
+
+
+def _validate_future_data_config(tech, future_data, settings):
+    """Check the declared projection source of every sub-technology.
+
+    The section documents the source, so it must agree with what the
+    pipeline does: ``atb`` only for labels mapped from ATB (or scaled from a
+    mapped CSP type) and ``manual`` only for series ATB does not publish.
+    """
+    label = f"processing.smooth_cost_curves.technologies.{tech}.future_data"
+    class_column = settings['techs'][tech].get('history_class_column')
+    if isinstance(future_data, dict):
+        if not class_column:
+            raise KeyError(
+                f"{label} is split by sub-technology, but {tech} declares no "
+                "history_class_column in settings.yaml."
+            )
+        entries = dict(future_data)
+    elif isinstance(future_data, str):
+        if class_column:
+            raise TypeError(
+                f"{label} must list one source per {class_column} value."
+            )
+        entries = {None: future_data}
+    else:
+        raise TypeError(f"{label} must be 'atb', 'manual', or a mapping of sub-technology to source.")
+    invalid = {cls: src for cls, src in entries.items() if src not in FUTURE_DATA_SOURCES}
+    if invalid:
+        raise KeyError(f"Unknown future_data sources in {label}; choose from {list(FUTURE_DATA_SOURCES)}: {invalid}")
+    backed = atb_backed_classes(tech, settings)
+    for cls, source in entries.items():
+        expected = 'atb' if cls is None or cls in backed else 'manual'
+        if source != expected:
+            why = (
+                "is mapped from an ATB display name in settings.yaml" if expected == 'atb'
+                else "is not in the ATB mapping, so it is retained from the ReEDS baseline"
+            )
+            raise ValueError(
+                f"{label}{'.' + cls if cls else ''} says {source!r} but {cls or tech} {why}; "
+                f"expected {expected!r}."
+            )
+    return future_data
+
+
 def _validate_historical_data_config(tech, historical_data, settings):
     """Validate one technology's explicit metric-level history choices."""
     label = (
@@ -735,6 +800,14 @@ def _technology_smoothing_config(tech, settings):
             )
         future_treatments.update(overrides)
     config['future_smoothing_treatments'] = future_treatments
+    if 'future_data' not in technology_overrides:
+        raise KeyError(
+            f"processing.smooth_cost_curves.technologies.{tech} needs a "
+            "future_data section naming each sub-technology's projection source."
+        )
+    config['future_data'] = _validate_future_data_config(
+        tech, technology_overrides['future_data'], settings
+    )
 
     overlap = config.get('fill_atbstartyear2atbyear_with_real', False)
     if not isinstance(overlap, bool):
@@ -900,6 +973,13 @@ def smooth_cost_curve(tech, settings, df):
                     f"historical_data.{column} lists {stale}, but {tech} has no "
                     f"such {class_column} series in its output; present: {sorted(present)}."
                 )
+        declared = set(smoothing['future_data'])
+        if declared != present:
+            raise KeyError(
+                f"processing.smooth_cost_curves.technologies.{tech}.future_data "
+                f"must list exactly the {class_column} series in the output; "
+                f"missing: {sorted(present - declared)}, stale: {sorted(declared - present)}."
+            )
 
     row_series_start = pd.Series(projection_start_year, index=output.index)
     enabled_future_treatments = [

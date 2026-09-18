@@ -60,8 +60,9 @@ placeholder, and filled years do not. "Manual history (ReEDS ATB baseline)" is
 blue and means the value was copied from `historical/manual.csv`, the deflated
 ReEDS ATB baseline scraped from the pinned ReEDS repository. It covers pre-ATB
 years of metrics in `manual` mode, and the boundary year onward of a series
-the current ATB no longer publishes (Gas-CT_aero and the old coal designs),
-which the pipeline retains from that baseline; the earlier years of such a
+whose `future_data` source in `config.yaml` is `manual` (Gas-CT_aero and the
+old coal designs), which the pipeline retains from that baseline because the
+current ATB no longer publishes it; the earlier years of such a
 series follow the configured history mode like any other, and the series adds
 no ATB start line of its own. Future markers show the raw ATB values;
 where a real observation replaces ATB inside the overlap window, only the real
