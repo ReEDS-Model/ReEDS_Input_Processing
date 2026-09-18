@@ -27,7 +27,12 @@ Only plots are written, under `comparison/plot_comparison/`:
 
 - `comparison_overview.png` summarizes file-level validation status;
 - one time-series plot is written per technology, with every scenario
-  (conservative, moderate, advanced) drawn in the same panels.
+  (conservative, moderate, advanced) drawn in the same panels. The figure
+  title names both sides, e.g. "Generated ATB 2025 (2023$) vs. ReEDS ATB
+  2024 (2022$)", with the ReEDS dollar year read from ReEDS' `dollaryear.csv`.
+  Cost axes spell out the dollar year (`2023$/kW`); when ReEDS is in a
+  different dollar year the axis names both (`$/kW; generated 2023$, ReEDS
+  2022$`) because the two sides share the axis without conversion.
 
 Detailed comparison statuses and reverse-coverage gaps are printed to the
 terminal instead of being written as CSV reports. In these local plots, color
