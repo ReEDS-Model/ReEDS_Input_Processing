@@ -74,6 +74,36 @@ PROJECTION_CATEGORIES = {
     "ATB projection (smoothed)",
 }
 
+SCENARIO_ORDER = ["conservative", "moderate", "advanced"]
+
+SCENARIO_COLORS = {
+    "conservative": "#D55E00",
+    "moderate": "#0072B2",
+    "advanced": "#009E73",
+}
+
+# Raw ATB projections in the smoothing plots take one color per scenario.
+# These hues avoid every provenance color so history and projection never
+# share a color; moderate stays near the plain ATB gray.
+PROJECTION_SCENARIO_COLORS = {
+    "conservative": "#7B3294",
+    "moderate": "#4D4D4D",
+    "advanced": "#0F8B8D",
+}
+
+# Round dots stay reserved for historical input values.
+SCENARIO_MARKERS = {
+    "conservative": "v",
+    "moderate": "s",
+    "advanced": "^",
+}
+
+EXTRA_MARKERS = ["D", "P", "X"]
+
+HISTORY_MARKER = "o"
+
+# Sub-technology series (turbine classes, CSP types, plant types) share each
+# panel and are told apart by line style.
 SERIES_LINESTYLES = [
     "-",
     "--",
@@ -292,6 +322,108 @@ def grouped_series(frame: pd.DataFrame, columns: list[str]):
         values_tuple = values if isinstance(values, tuple) else (values,)
         groups.append((series_label(values_tuple, columns), group.sort_values("t")))
     return groups
+
+
+def scenario_groups(generated_files: list[Path]) -> dict[str, dict[str, Path]]:
+    """Group ``<tech>_ATB_<year>_<scenario>.csv`` files by technology.
+
+    Scenarios are ordered conservative, moderate, advanced so the same
+    scenario always gets the same color and line style across plots.
+    """
+    groups: dict[str, dict[str, Path]] = {}
+    for path in generated_files:
+        stem, _, scenario = path.stem.rpartition("_")
+        groups.setdefault(stem, {})[scenario] = path
+    return {
+        stem: dict(sorted(
+            scenarios.items(),
+            key=lambda item: (
+                SCENARIO_ORDER.index(item[0])
+                if item[0] in SCENARIO_ORDER
+                else len(SCENARIO_ORDER),
+                item[0],
+            ),
+        ))
+        for stem, scenarios in groups.items()
+    }
+
+
+def scenario_color(scenario: str, index: int):
+    """Return the fixed color of a known scenario or a fallback color."""
+    return SCENARIO_COLORS.get(scenario, plt.cm.tab10(index % 10))
+
+
+def projection_colors(scenario: str, index: int) -> dict:
+    """Provenance colors with the raw ATB projection colored by scenario."""
+    colors = dict(PROVENANCE_COLORS)
+    colors["ATB projection (raw)"] = PROJECTION_SCENARIO_COLORS.get(
+        scenario, plt.cm.tab10(index % 10)
+    )
+    return colors
+
+
+def scenario_marker(scenario: str, index: int) -> str:
+    """Return the fixed marker of a known scenario or a fallback marker."""
+    return SCENARIO_MARKERS.get(
+        scenario, EXTRA_MARKERS[index % len(EXTRA_MARKERS)]
+    )
+
+
+def ordered_union(lists) -> list:
+    """Concatenate lists while keeping the first occurrence order."""
+    seen = []
+    for items in lists:
+        seen.extend(item for item in items if item not in seen)
+    return seen
+
+
+def panel_grid(title: str, metrics: list[str], series_count: int = 1):
+    """Create one panel per metric, wrapped into up to three columns.
+
+    Four metrics form a 2x2 grid rather than leaving one orphan panel. Panels
+    grow taller with the number of sub-technology series they hold, so
+    stacked series separate better.
+    """
+    columns = 2 if len(metrics) == 4 else min(3, len(metrics))
+    rows = math.ceil(len(metrics) / columns)
+    row_height = min(4.2 + 1.2 * (series_count - 1), 8.0)
+    figure, axes = plt.subplots(
+        rows,
+        columns,
+        figsize=(6.2 * columns, row_height * rows),
+        squeeze=False,
+        constrained_layout=True,
+    )
+    figure.suptitle(title, fontsize=12, fontweight="bold")
+    flat = list(axes.flat)
+    panels = {}
+    for axis, metric in zip(flat, metrics):
+        panels[metric] = axis
+        metric_label = METRIC_LABELS.get(metric, metric)
+        axis.set_title(metric_label)
+        axis.set_xlabel("Year")
+        axis.set_ylabel(metric_label)
+        axis.grid(True, alpha=0.25)
+    for axis in flat[len(metrics):]:
+        axis.remove()
+    return figure, panels
+
+
+def series_handles(labels: list[str], series_styles: dict) -> list:
+    """Legend entries for sub-technology line styles (none for one series)."""
+    if labels == ["all"]:
+        return []
+    return [
+        plt.Line2D(
+            [0],
+            [0],
+            color="0.25",
+            linewidth=2,
+            linestyle=series_styles[label],
+            label=label,
+        )
+        for label in labels
+    ]
 
 
 def output_technology(filename: str, settings: dict) -> str:
@@ -621,16 +753,19 @@ def input_point_categories(
     provenance: dict,
     final_categories: list[str],
 ) -> list[str | None]:
-    """Show selected source anchors; omit filled and broadcast points."""
+    """Show selected source anchors; omit filled and broadcast points.
+
+    ATB markers appear only in years whose final value is an ATB projection,
+    so years inside the ATB range that real history replaced get no ATB dot.
+    """
     years = pd.to_numeric(final_group["t"], errors="raise").astype(int)
-    boundary = series_boundary(final_group, provenance)
     historical_mode = resolve_historical_mode(metric, final_group, provenance)
     categories = []
     for year, category in zip(years, final_categories):
         if category in ('Observed history (real)', 'Split real history', 'Scaled real history',
                         'Calculated project history', 'Indexed anchor (observed O&M)'):
             categories.append(category)
-        elif year >= boundary:
+        elif category in PROJECTION_CATEGORIES:
             categories.append("ATB projection (raw)")
         elif historical_mode == "manual":
             categories.append("Manual history")
@@ -649,11 +784,12 @@ def plot_colored_segments(
     values: np.ndarray,
     categories: list[str],
     linestyle,
+    colors: dict = PROVENANCE_COLORS,
 ) -> None:
-    """Color each interval by its destination, except the history boundary.
+    """Color each interval by the year it ends in.
 
-    The interval that leaves the last historical year keeps the historical
-    color, so the step into the first projection year reads as history.
+    The step from the last historical year into the first projection year is
+    therefore drawn in the projection color.
     """
     if not len(years):
         return
@@ -661,7 +797,7 @@ def plot_colored_segments(
         axis.plot(
             years,
             values,
-            color=PROVENANCE_COLORS[categories[0]],
+            color=colors[categories[0]],
             linestyle=linestyle,
             linewidth=2.0,
             alpha=0.95,
@@ -669,13 +805,7 @@ def plot_colored_segments(
         )
         return
 
-    interval_categories = [
-        source
-        if destination in PROJECTION_CATEGORIES
-        and source not in PROJECTION_CATEGORIES
-        else destination
-        for source, destination in zip(categories[:-1], categories[1:])
-    ]
+    interval_categories = list(categories[1:])
     run_start = 0
     for position in range(1, len(interval_categories) + 1):
         if (
@@ -686,7 +816,7 @@ def plot_colored_segments(
         axis.plot(
             years[run_start:position + 1],
             values[run_start:position + 1],
-            color=PROVENANCE_COLORS[interval_categories[run_start]],
+            color=colors[interval_categories[run_start]],
             linestyle=linestyle,
             linewidth=2.0,
             alpha=0.95,
@@ -696,71 +826,94 @@ def plot_colored_segments(
 
 
 def plot_file_with_provenance(
-    generated_path: Path,
-    reeds_path: Path,
+    stem: str,
+    scenario_paths: dict[str, tuple[Path, Path]],
     plot_dir: Path,
     settings: dict,
 ) -> bool:
-    """Plot a smoothing comparison with color encoding source and treatment."""
-    generated = normalize_frame(pd.read_csv(generated_path))
-    baseline = normalize_frame(pd.read_csv(reeds_path))
-    metrics = metric_columns(generated, baseline)
-    if not metrics or "t" not in generated.columns or "t" not in baseline.columns:
+    """Plot a smoothing comparison with color encoding source and treatment.
+
+    All scenarios and sub-technology series of one technology share each
+    panel. History is identical across scenarios and overlaps; the
+    projections fan out and their input markers take one shape per scenario,
+    while history keeps round dots. Line style identifies the series.
+    """
+    frames = {
+        scenario: (
+            normalize_frame(pd.read_csv(generated_path)),
+            normalize_frame(pd.read_csv(baseline_path)),
+        )
+        for scenario, (generated_path, baseline_path) in scenario_paths.items()
+    }
+    metrics = ordered_union(
+        metric_columns(generated, baseline) for generated, baseline in frames.values()
+    )
+    if not metrics or any(
+        "t" not in generated.columns or "t" not in baseline.columns
+        for generated, baseline in frames.values()
+    ):
         return False
 
-    provenance = smoothing_provenance(settings, generated_path)
-    identifiers = sorted(
+    first_generated_path = next(iter(scenario_paths.values()))[0]
+    provenance = smoothing_provenance(settings, first_generated_path)
+    identifiers = sorted(set().union(*(
         set(series_columns(generated)) | set(series_columns(baseline))
-    )
-    generated_groups = grouped_series(generated, identifiers)
-    baseline_groups = dict(grouped_series(baseline, identifiers))
-    labels = sorted(
-        {label for label, _ in generated_groups}
-        | set(baseline_groups)
-    )
+        for generated, baseline in frames.values()
+    )))
+    scenario_groups_ = {
+        scenario: (
+            grouped_series(generated, identifiers),
+            dict(grouped_series(baseline, identifiers)),
+        )
+        for scenario, (generated, baseline) in frames.items()
+    }
+    labels = sorted(set().union(*(
+        {label for label, _ in generated_groups} | set(baseline_groups)
+        for generated_groups, baseline_groups in scenario_groups_.values()
+    )))
+    scenario_markers = {
+        scenario: scenario_marker(scenario, index)
+        for index, scenario in enumerate(scenario_paths)
+    }
     series_styles = {
         label: SERIES_LINESTYLES[index % len(SERIES_LINESTYLES)]
         for index, label in enumerate(labels)
     }
 
-    columns = min(3, len(metrics))
-    rows = math.ceil(len(metrics) / columns)
-    figure, axes = plt.subplots(
-        rows,
-        columns,
-        figsize=(5.4 * columns, 3.7 * rows),
-        squeeze=False,
-        constrained_layout=True,
-    )
-    figure.suptitle(
-        generated_path.stem,
-        y=1.03,
-        fontsize=12,
-        fontweight="bold",
-    )
+    figure, panels = panel_grid(stem, metrics, len(labels))
 
     present_categories = set()
     points_present = False
-    for axis, metric in zip(axes.flat, metrics):
+    boundaries = set()
+    for index, (scenario, (generated_groups, baseline_groups)) in enumerate(
+        scenario_groups_.items()
+    ):
+        marker = scenario_markers[scenario]
+        colors = projection_colors(scenario, index)
         for label, final_group in generated_groups:
+            boundaries.add(series_boundary(final_group, provenance))
             baseline_group = baseline_groups.get(label)
-            final_categories = provenance_categories(
-                final_group,
-                baseline_group,
-                metric,
-                provenance,
-            )
-            present_categories.update(final_categories)
-            years = final_group["t"].to_numpy()
-            values = final_group[metric].to_numpy()
-            plot_colored_segments(
-                axis,
-                years,
-                values,
-                final_categories,
-                series_styles[label],
-            )
-            if baseline_group is not None:
+            for metric in metrics:
+                axis = panels[metric]
+                final_categories = provenance_categories(
+                    final_group,
+                    baseline_group,
+                    metric,
+                    provenance,
+                )
+                present_categories.update(final_categories)
+                years = final_group["t"].to_numpy()
+                values = final_group[metric].to_numpy()
+                plot_colored_segments(
+                    axis,
+                    years,
+                    values,
+                    final_categories,
+                    series_styles[label],
+                    colors,
+                )
+                if baseline_group is None:
+                    continue
                 point_categories = input_point_categories(
                     final_group,
                     metric,
@@ -783,7 +936,6 @@ def plot_file_with_provenance(
                     'Observed history (real)', 'Split real history', 'Scaled real history',
                     'Calculated project history', 'Indexed anchor (observed O&M)',
                 ])
-                atb_values = point_values.copy()
                 point_values[real_points] = values[real_points]
                 for category in PROVENANCE_COLORS:
                     point_mask = np.asarray([
@@ -796,40 +948,21 @@ def plot_file_with_provenance(
                     axis.scatter(
                         point_years[point_mask],
                         point_values[point_mask],
-                        s=18,
-                        marker="o",
-                        facecolors=PROVENANCE_COLORS[category],
+                        s=26 if category in PROJECTION_CATEGORIES else 18,
+                        marker=(
+                            marker
+                            if category in PROJECTION_CATEGORIES
+                            else HISTORY_MARKER
+                        ),
+                        facecolors=colors[category],
                         edgecolors="none",
                         alpha=0.95,
                         zorder=3,
                     )
-                # Inside the overlap window a real observation replaces ATB's
-                # value; keep showing what ATB said so the replacement is
-                # visible for every technology, not only where years were filled.
-                overlap = (
-                    real_points
-                    & (point_years >= series_boundary(final_group, provenance))
-                    & (point_years <= provenance['settings']['atbyear'])
-                    & np.isfinite(atb_values)
-                )
-                if overlap.any():
-                    points_present = True
-                    present_categories.add("ATB projection (raw)")
-                    axis.scatter(
-                        point_years[overlap],
-                        atb_values[overlap],
-                        s=18,
-                        marker="o",
-                        facecolors=PROVENANCE_COLORS["ATB projection (raw)"],
-                        edgecolors="none",
-                        alpha=0.95,
-                        zorder=3,
-                    )
-        # One line per distinct series start: floating offshore begins in
-        # 2030 while fixed begins in 2022, and a single line would mislabel one.
-        for start_year in sorted({
-            series_boundary(group, provenance) for _, group in generated_groups
-        }):
+    # One line per distinct series start: floating offshore begins in
+    # 2030 while fixed begins in 2022, and a single line would mislabel one.
+    for axis in panels.values():
+        for start_year in sorted(boundaries):
             axis.axvline(
                 start_year,
                 color="0.35",
@@ -837,13 +970,6 @@ def plot_file_with_provenance(
                 linewidth=1.0,
                 alpha=0.7,
             )
-        axis.set_title(METRIC_LABELS.get(metric, metric))
-        axis.set_xlabel("Year")
-        axis.set_ylabel(METRIC_LABELS.get(metric, metric))
-        axis.grid(True, alpha=0.25)
-
-    for axis in axes.flat[len(metrics):]:
-        axis.remove()
 
     category_handles = [
         plt.Line2D(
@@ -854,21 +980,8 @@ def plot_file_with_provenance(
             label=category,
         )
         for category, color in PROVENANCE_COLORS.items()
-        if category in present_categories
+        if category in present_categories and category != "ATB projection (raw)"
     ]
-    series_handles = []
-    if labels != ["all"]:
-        series_handles = [
-            plt.Line2D(
-                [0],
-                [0],
-                color="0.25",
-                linewidth=2,
-                linestyle=series_styles[label],
-                label=label,
-            )
-            for label in labels
-        ]
     point_handles = []
     if points_present:
         point_handles.append(
@@ -877,22 +990,41 @@ def plot_file_with_provenance(
                 [0],
                 color="0.25",
                 linewidth=0,
-                marker="o",
+                marker=HISTORY_MARKER,
                 markerfacecolor="0.25",
                 markeredgewidth=0,
-                label="Input data values",
+                label="Historical input values",
             )
         )
-    handles = category_handles + point_handles + series_handles
+    scenario_handles = [
+        plt.Line2D(
+            [0],
+            [0],
+            color=projection_colors(scenario, index)["ATB projection (raw)"],
+            linewidth=2.5,
+            marker=scenario_markers[scenario],
+            markeredgewidth=0,
+            label=f"ATB projection ({scenario})",
+        )
+        for index, scenario in enumerate(scenario_paths)
+    ]
+    handles = (
+        category_handles
+        + point_handles
+        + scenario_handles
+        + series_handles(labels, series_styles)
+    )
     figure.legend(
         handles=handles,
         loc="outside lower center",
         ncol=min(4, len(handles)),
         fontsize=8,
         frameon=False,
+        handlelength=5.0,
+        columnspacing=2.0,
     )
     figure.savefig(
-        plot_dir / f"{generated_path.stem}.png",
+        plot_dir / f"{stem}.png",
         dpi=160,
         bbox_inches="tight",
     )
@@ -901,100 +1033,118 @@ def plot_file_with_provenance(
 
 
 def plot_file(
-    generated_path: Path,
-    reeds_path: Path,
+    stem: str,
+    scenario_paths: dict[str, tuple[Path, Path]],
     plot_dir: Path,
     solid_label: str = "Generated",
     dashed_label: str = "ReEDS",
-    reference_linestyle: str = "--",
-    reference_marker: str | None = None,
 ) -> bool:
-    """Plot all shared numeric metrics for one generated/ReEDS file pair."""
-    generated = normalize_frame(pd.read_csv(generated_path))
-    reeds = normalize_frame(pd.read_csv(reeds_path))
-    metrics = metric_columns(generated, reeds)
-    if not metrics or "t" not in generated.columns or "t" not in reeds.columns:
+    """Plot all shared numeric metrics for one technology.
+
+    Scenarios and sub-technology series share each panel: color is the
+    scenario, line style is the series. Generated values are thin crisp lines
+    drawn over the ReEDS reference, which is a thick translucent line, so a
+    match shows as a thin line centred in a halo.
+    """
+    frames = {
+        scenario: (
+            normalize_frame(pd.read_csv(generated_path)),
+            normalize_frame(pd.read_csv(reeds_path)),
+        )
+        for scenario, (generated_path, reeds_path) in scenario_paths.items()
+    }
+    metrics = ordered_union(
+        metric_columns(generated, reeds) for generated, reeds in frames.values()
+    )
+    if not metrics or any(
+        "t" not in generated.columns or "t" not in reeds.columns
+        for generated, reeds in frames.values()
+    ):
         return False
 
-    identifiers = sorted(set(series_columns(generated)) | set(series_columns(reeds)))
-    generated_groups = grouped_series(generated, identifiers)
-    reeds_groups = grouped_series(reeds, identifiers)
-    labels = sorted({label for label, _ in generated_groups + reeds_groups})
-    colors = {label: plt.cm.tab10(index % 10) for index, label in enumerate(labels)}
+    identifiers = sorted(set().union(*(
+        set(series_columns(generated)) | set(series_columns(reeds))
+        for generated, reeds in frames.values()
+    )))
+    scenario_groups_ = {
+        scenario: (
+            grouped_series(generated, identifiers),
+            grouped_series(reeds, identifiers),
+        )
+        for scenario, (generated, reeds) in frames.items()
+    }
+    labels = sorted(set().union(*(
+        {label for label, _ in generated_groups + reeds_groups}
+        for generated_groups, reeds_groups in scenario_groups_.values()
+    )))
+    colors = {
+        scenario: scenario_color(scenario, index)
+        for index, scenario in enumerate(scenario_paths)
+    }
+    series_styles = {
+        label: SERIES_LINESTYLES[index % len(SERIES_LINESTYLES)]
+        for index, label in enumerate(labels)
+    }
 
-    columns = min(3, len(metrics))
-    rows = math.ceil(len(metrics) / columns)
-    figure, axes = plt.subplots(
-        rows,
-        columns,
-        figsize=(5.4 * columns, 3.7 * rows),
-        squeeze=False,
-        constrained_layout=True,
-    )
-    figure.suptitle(
-        generated_path.stem,
-        y=1.03,
-        fontsize=12,
-        fontweight="bold",
-    )
+    figure, panels = panel_grid(stem, metrics, len(labels))
 
-    for axis, metric in zip(axes.flat, metrics):
-        for label, group in reeds_groups:
-            axis.plot(
-                group["t"],
-                group[metric],
-                color=colors[label],
-                linestyle=reference_linestyle,
-                marker=reference_marker,
-                markersize=3.2 if reference_marker else None,
-                linewidth=2.0,
-                alpha=0.9,
-            )
-        for label, group in generated_groups:
-            axis.plot(
-                group["t"],
-                group[metric],
-                color=colors[label],
-                linestyle="-",
-                linewidth=1.6,
-                alpha=0.9,
-            )
-        axis.set_title(METRIC_LABELS.get(metric, metric))
-        axis.set_xlabel("Year")
-        axis.set_ylabel(METRIC_LABELS.get(metric, metric))
-        axis.grid(True, alpha=0.25)
-
-    for axis in axes.flat[len(metrics):]:
-        axis.remove()
+    for scenario, (generated_groups, reeds_groups) in scenario_groups_.items():
+        for metric in metrics:
+            for label, group in reeds_groups:
+                if metric not in group.columns:
+                    continue
+                panels[metric].plot(
+                    group["t"],
+                    group[metric],
+                    color=colors[scenario],
+                    linestyle=series_styles[label],
+                    linewidth=5.0,
+                    alpha=0.3,
+                    zorder=1,
+                )
+            for label, group in generated_groups:
+                if metric not in group.columns:
+                    continue
+                panels[metric].plot(
+                    group["t"],
+                    group[metric],
+                    color=colors[scenario],
+                    linestyle=series_styles[label],
+                    linewidth=1.4,
+                    alpha=0.95,
+                    zorder=2,
+                )
 
     source_handles = [
         plt.Line2D(
-            [0], [0], color="0.25", linewidth=2, linestyle="-", label=solid_label
+            [0], [0], color="0.25", linewidth=1.4, linestyle="-", label=solid_label
         ),
         plt.Line2D(
             [0],
             [0],
             color="0.25",
-            linewidth=2,
-            linestyle=reference_linestyle,
-            marker=reference_marker,
-            markersize=4 if reference_marker else None,
+            linewidth=5,
+            alpha=0.3,
+            linestyle="-",
             label=dashed_label,
         ),
     ]
-    series_handles = [
-        plt.Line2D([0], [0], color=colors[label], linewidth=2, label=label)
-        for label in labels
+    scenario_handles = [
+        plt.Line2D([0], [0], color=colors[scenario], linewidth=2, label=scenario)
+        for scenario in scenario_paths
     ]
+    handles = source_handles + scenario_handles + series_handles(labels, series_styles)
     figure.legend(
-        handles=source_handles + series_handles,
+        handles=handles,
         loc="outside lower center",
-        ncol=min(4, len(source_handles + series_handles)),
+        ncol=min(6, len(handles)),
         fontsize=8,
         frameon=False,
+        handlelength=5.0,
+        columnspacing=2.0,
     )
     figure.savefig(
-        plot_dir / f"{generated_path.stem}.png",
+        plot_dir / f"{stem}.png",
         dpi=160,
         bbox_inches="tight",
     )
@@ -1080,11 +1230,12 @@ def write_plots(
     solid_label: str = "Generated",
     dashed_label: str = "ReEDS",
     include_overview: bool = True,
-    reference_linestyle: str = "--",
-    reference_marker: str | None = None,
     provenance_settings: dict | None = None,
 ) -> int:
-    """Generate the overview and all available file-level comparison plots."""
+    """Generate the overview and one technology-level plot per file group.
+
+    All scenario files of a technology are drawn together in one figure.
+    """
     plot_dir.mkdir(parents=True, exist_ok=True)
     for old_plot in plot_dir.glob("*.png"):
         old_plot.unlink()
@@ -1095,30 +1246,33 @@ def write_plots(
 
     plotted = 0
     skipped = []
-    for generated_path in generated_files:
-        reeds_path = reeds_dir / reeds_filename(generated_path.name)
-        if reeds_path.exists():
-            if provenance_settings is None:
-                wrote_plot = plot_file(
-                    generated_path,
-                    reeds_path,
-                    plot_dir,
-                    solid_label=solid_label,
-                    dashed_label=dashed_label,
-                    reference_linestyle=reference_linestyle,
-                    reference_marker=reference_marker,
-                )
-            else:
-                wrote_plot = plot_file_with_provenance(
-                    generated_path,
-                    reeds_path,
-                    plot_dir,
-                    provenance_settings,
-                )
-            if wrote_plot:
-                plotted += 1
-            else:
-                skipped.append(generated_path.name)
+    for stem, scenarios in scenario_groups(generated_files).items():
+        scenario_paths = {}
+        for scenario, generated_path in scenarios.items():
+            reeds_path = reeds_dir / reeds_filename(generated_path.name)
+            if reeds_path.exists():
+                scenario_paths[scenario] = (generated_path, reeds_path)
+        if not scenario_paths:
+            continue
+        if provenance_settings is None:
+            wrote_plot = plot_file(
+                stem,
+                scenario_paths,
+                plot_dir,
+                solid_label=solid_label,
+                dashed_label=dashed_label,
+            )
+        else:
+            wrote_plot = plot_file_with_provenance(
+                stem,
+                scenario_paths,
+                plot_dir,
+                provenance_settings,
+            )
+        if wrote_plot:
+            plotted += 1
+        else:
+            skipped.append(stem)
     if skipped:
         raise RuntimeError(
             "Could not plot generated/ReEDS file pairs because they have no "
@@ -1205,7 +1359,7 @@ def main() -> None:
         solid_label="Generated",
         dashed_label="ReEDS",
     )
-    print(f"\nWrote overview and {plotted} file-level plots to {plot_dir}")
+    print(f"\nWrote overview and {plotted} technology-level plots to {plot_dir}")
     print(summary["status"].value_counts().to_string())
     print(
         f"ReEDS files without a generated counterpart: {len(reeds_only_files)}"
@@ -1232,8 +1386,6 @@ def main() -> None:
             solid_label="After smoothing",
             dashed_label="Before smoothing",
             include_overview=False,
-            reference_linestyle="None",
-            reference_marker="o",
             provenance_settings=settings,
         )
         print(
