@@ -85,6 +85,9 @@ techs:
       - Scenario
       - t
       - turbine
+    # column naming the sub-technology, so config.yaml can give each
+    # sub-technology its own historical_data mode
+    history_class_column: turbine
     cols:
       - turbine
       - t
@@ -186,6 +189,9 @@ techs:
       - Scenario
       - t
       - i
+    # column naming the sub-technology, so config.yaml can give each
+    # sub-technology its own historical_data mode
+    history_class_column: i
     cols:
       - i
       - t
@@ -214,6 +220,9 @@ techs:
       - Scenario
       - t
       - type
+    # column naming the sub-technology, so config.yaml can give each
+    # sub-technology its own historical_data mode
+    history_class_column: type
     cols:
       - type 
       - t
@@ -240,6 +249,9 @@ techs:
       - Scenario
       - i
       - t
+    # column naming the sub-technology, so config.yaml can give each plant
+    # design its own historical_data mode
+    history_class_column: i
     cols:
       - i
       - t
@@ -262,6 +274,9 @@ techs:
       - Scenario
       - i
       - t
+    # column naming the sub-technology, so config.yaml can give each
+    # sub-technology its own historical_data mode
+    history_class_column: i
     cols:
       - i
       - t
@@ -315,6 +330,9 @@ techs:
       - Scenario
       - i
       - t
+    # column naming the sub-technology, so config.yaml can give each
+    # sub-technology its own historical_data mode
+    history_class_column: i
     cols:
       - i
       - t
@@ -337,6 +355,9 @@ techs:
       - Scenario
       - i
       - t
+    # column naming the sub-technology, so config.yaml can give each
+    # sub-technology its own historical_data mode
+    history_class_column: i
     cols:
       - i
       - t
@@ -359,6 +380,9 @@ techs:
       - Scenario
       - i
       - t
+    # column naming the sub-technology, so config.yaml can give each
+    # sub-technology its own historical_data mode
+    history_class_column: i
     cols:
       - i
       - t
@@ -381,6 +405,9 @@ techs:
       - Scenario
       - i
       - t
+    # column naming the sub-technology, so config.yaml can give each
+    # sub-technology its own historical_data mode
+    history_class_column: i
     cols:
       - i
       - t
@@ -403,6 +430,9 @@ techs:
       - Scenario
       - i
       - t
+    # column naming the sub-technology, so config.yaml can give each
+    # sub-technology its own historical_data mode
+    history_class_column: i
     cols:
       - i
       - t

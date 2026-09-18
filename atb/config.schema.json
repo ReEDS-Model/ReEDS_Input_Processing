@@ -415,142 +415,6 @@
     "historyModeWithoutReal": {
       "enum": ["manual", "broadcast", "unavailable"]
     },
-    "historyModeByTurbineClass": {
-      "type": "object",
-      "additionalProperties": false,
-      "minProperties": 1,
-      "description": "One history mode per turbine class. Use when an observed series describes only some classes; each class selecting real must match the mapping's turbine_classes. Only fixed offers real: the offshore project file holds completed US fixed-bottom projects, and no floating project has been completed in the US.",
-      "properties": {
-        "fixed": {"$ref": "#/definitions/historyMode"},
-        "floating": {"$ref": "#/definitions/historyModeWithoutReal"}
-      }
-    },
-    "historyModeOrByTurbineClass": {
-      "oneOf": [
-        {"$ref": "#/definitions/historyMode"},
-        {"$ref": "#/definitions/historyModeByTurbineClass"}
-      ]
-    },
-    "historyModeByGasPlant": {
-      "type": "object",
-      "additionalProperties": false,
-      "minProperties": 1,
-      "description": "One history mode per gas plant configuration. EIA reports only 'combined cycle' and 'combustion turbine', so just Gas-CC and Gas-CT offer real; the H-Frame and aeroderivative variants have no observation and must generate their own history.",
-      "properties": {
-        "Gas-CC": {"$ref": "#/definitions/historyMode"},
-        "Gas-CT": {"$ref": "#/definitions/historyMode"},
-        "Gas-CC_H_1x1": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "Gas-CC_H_2x1": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "Gas-CT_aero": {"$ref": "#/definitions/historyModeWithoutReal"}
-      }
-    },
-    "historyModeOrByGasPlant": {
-      "oneOf": [
-        {"$ref": "#/definitions/historyMode"},
-        {"$ref": "#/definitions/historyModeByGasPlant"}
-      ]
-    },
-    "historyObservedCapcostWithCf": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["capcost", "fom", "vom", "cf_improvement"],
-      "properties": {
-        "capcost": {"$ref": "#/definitions/historyMode"},
-        "fom": {"$ref": "#/definitions/historyMode"},
-        "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "cf_improvement": {"$ref": "#/definitions/historyMode"}
-      }
-    },
-    "historyObservedCapcostWithCfAndRsc": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "capcost",
-        "fom",
-        "vom",
-        "cf_improvement",
-        "rsc_mult"
-      ],
-      "properties": {
-        "capcost": {"$ref": "#/definitions/historyModeOrByTurbineClass"},
-        "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "cf_improvement": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "rsc_mult": {"enum": ["manual", "broadcast"]}
-      }
-    },
-    "historyObservedCapcost": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["capcost", "fom", "vom", "heatrate"],
-      "properties": {
-        "capcost": {"$ref": "#/definitions/historyModeOrByGasPlant"},
-        "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "heatrate": {"$ref": "#/definitions/historyModeWithoutReal"}
-      }
-    },
-    "historyBattery": {
-      "type": "object",
-      "additionalProperties": false,
-      "allOf": [
-        {
-          "if": {"properties": {"capcost": {"const": "real"}}},
-          "then": {"properties": {"capcost_energy": {"const": "real"}}}
-        },
-        {
-          "if": {"properties": {"capcost_energy": {"const": "real"}}},
-          "then": {"properties": {"capcost": {"const": "real"}}}
-        }
-      ],
-      "required": [
-        "capcost",
-        "capcost_energy",
-        "fom",
-        "fom_energy",
-        "vom",
-        "rte"
-      ],
-      "properties": {
-        "capcost": {"$ref": "#/definitions/historyMode"},
-        "capcost_energy": {"$ref": "#/definitions/historyMode"},
-        "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "fom_energy": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "rte": {"$ref": "#/definitions/historyModeWithoutReal"}
-      }
-    },
-    "historyCsp": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["capcost", "fom", "vom"],
-      "properties": {
-        "capcost": {"$ref": "#/definitions/historyMode"},
-        "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "vom": {"$ref": "#/definitions/historyModeWithoutReal"}
-      }
-    },
-    "historyCosts": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["capcost", "fom", "vom"],
-      "properties": {
-        "capcost": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "vom": {"$ref": "#/definitions/historyModeWithoutReal"}
-      }
-    },
-    "historyCostsWithHeatrate": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["capcost", "fom", "vom", "heatrate"],
-      "properties": {
-        "capcost": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "fom": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "heatrate": {"$ref": "#/definitions/historyModeWithoutReal"}
-      }
-    },
     "futureTreatments": {
       "type": "object",
       "additionalProperties": false,
@@ -569,35 +433,138 @@
         "future_smoothing_treatments": {"$ref": "#/definitions/futureTreatments"}
       }
     },
-    "technologyObservedCapcost": {
+    "historyUpv": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom", "cf_improvement"],
+      "properties": {
+        "capcost": {"$ref": "#/definitions/historyMode"},
+        "fom": {"$ref": "#/definitions/historyMode"},
+        "vom": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "cf_improvement": {"$ref": "#/definitions/historyMode"}
+      }
+    },
+    "technologyUpv": {
       "allOf": [
         {"$ref": "#/definitions/technologyConfigBase"},
         {
           "properties": {
-            "historical_data": {"$ref": "#/definitions/historyObservedCapcost"}
+            "historical_data": {"$ref": "#/definitions/historyUpv"}
           }
         }
       ]
     },
-    "technologyObservedCapcostWithCf": {
+    "historyModeByWindOns": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per wind-ons sub-technology; classes without an observed series cannot select real.",
+      "properties": {
+        "115hh_170rd": {"$ref": "#/definitions/historyMode"}
+      }
+    },
+    "historyModeByWindOnsNoReal": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per wind-ons sub-technology; used by metrics that never offer real.",
+      "properties": {
+        "115hh_170rd": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyWindOns": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom", "cf_improvement"],
+      "properties": {
+        "capcost": {"oneOf": [{"$ref": "#/definitions/historyMode"}, {"$ref": "#/definitions/historyModeByWindOns"}]},
+        "fom": {"oneOf": [{"$ref": "#/definitions/historyMode"}, {"$ref": "#/definitions/historyModeByWindOns"}]},
+        "vom": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByWindOnsNoReal"}]},
+        "cf_improvement": {"oneOf": [{"$ref": "#/definitions/historyMode"}, {"$ref": "#/definitions/historyModeByWindOns"}]}
+      }
+    },
+    "technologyWindOns": {
       "allOf": [
         {"$ref": "#/definitions/technologyConfigBase"},
         {
           "properties": {
-            "historical_data": {"$ref": "#/definitions/historyObservedCapcostWithCf"}
+            "historical_data": {"$ref": "#/definitions/historyWindOns"}
           }
         }
       ]
     },
-    "technologyObservedCapcostWithCfAndRsc": {
+    "historyModeByWindOfs": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per wind-ofs sub-technology; classes without an observed series cannot select real.",
+      "properties": {
+        "fixed": {"$ref": "#/definitions/historyMode"},
+        "floating": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyModeByWindOfsNoReal": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per wind-ofs sub-technology; used by metrics that never offer real.",
+      "properties": {
+        "fixed": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "floating": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyWindOfs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom", "cf_improvement", "rsc_mult"],
+      "properties": {
+        "capcost": {"oneOf": [{"$ref": "#/definitions/historyMode"}, {"$ref": "#/definitions/historyModeByWindOfs"}]},
+        "fom": {"oneOf": [{"$ref": "#/definitions/historyMode"}, {"$ref": "#/definitions/historyModeByWindOfs"}]},
+        "vom": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByWindOfsNoReal"}]},
+        "cf_improvement": {"oneOf": [{"$ref": "#/definitions/historyMode"}, {"$ref": "#/definitions/historyModeByWindOfs"}]},
+        "rsc_mult": {"oneOf": [{"enum": ["manual", "broadcast"]}, {"$ref": "#/definitions/historyModeByWindOfsNoReal"}]}
+      }
+    },
+    "technologyWindOfs": {
       "allOf": [
         {"$ref": "#/definitions/technologyConfigBase"},
         {
           "properties": {
-            "historical_data": {"$ref": "#/definitions/historyObservedCapcostWithCfAndRsc"}
+            "historical_data": {"$ref": "#/definitions/historyWindOfs"}
           }
         }
       ]
+    },
+    "historyModeByBattery": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per battery sub-technology; classes without an observed series cannot select real.",
+      "properties": {
+        "battery_li": {"$ref": "#/definitions/historyMode"}
+      }
+    },
+    "historyModeByBatteryNoReal": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per battery sub-technology; used by metrics that never offer real.",
+      "properties": {
+        "battery_li": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyBattery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "capcost_energy", "fom", "fom_energy", "vom", "rte"],
+      "properties": {
+        "capcost": {"oneOf": [{"$ref": "#/definitions/historyMode"}, {"$ref": "#/definitions/historyModeByBattery"}]},
+        "capcost_energy": {"oneOf": [{"$ref": "#/definitions/historyMode"}, {"$ref": "#/definitions/historyModeByBattery"}]},
+        "fom": {"oneOf": [{"$ref": "#/definitions/historyMode"}, {"$ref": "#/definitions/historyModeByBattery"}]},
+        "fom_energy": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByBatteryNoReal"}]},
+        "vom": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByBatteryNoReal"}]},
+        "rte": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByBatteryNoReal"}]}
+      }
     },
     "technologyBattery": {
       "allOf": [
@@ -609,6 +576,40 @@
         }
       ]
     },
+    "historyModeByCsp": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per csp sub-technology; classes without an observed series cannot select real.",
+      "properties": {
+        "csp1": {"$ref": "#/definitions/historyMode"},
+        "csp2": {"$ref": "#/definitions/historyMode"},
+        "csp3": {"$ref": "#/definitions/historyMode"},
+        "csp4": {"$ref": "#/definitions/historyMode"}
+      }
+    },
+    "historyModeByCspNoReal": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per csp sub-technology; used by metrics that never offer real.",
+      "properties": {
+        "csp1": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "csp2": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "csp3": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "csp4": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyCsp": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom"],
+      "properties": {
+        "capcost": {"oneOf": [{"$ref": "#/definitions/historyMode"}, {"$ref": "#/definitions/historyModeByCsp"}]},
+        "fom": {"oneOf": [{"$ref": "#/definitions/historyMode"}, {"$ref": "#/definitions/historyModeByCsp"}]},
+        "vom": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByCspNoReal"}]}
+      }
+    },
     "technologyCsp": {
       "allOf": [
         {"$ref": "#/definitions/technologyConfigBase"},
@@ -619,22 +620,284 @@
         }
       ]
     },
-    "technologyCosts": {
+    "historyModeByCoalNoReal": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per coal sub-technology; used by metrics that never offer real.",
+      "properties": {
+        "Coal-new": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "Coal-IGCC": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "CoalOldScr": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "CoalOldUns": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "CofireNew": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "CofireOld": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyCoal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom", "heatrate"],
+      "properties": {
+        "capcost": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByCoalNoReal"}]},
+        "fom": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByCoalNoReal"}]},
+        "vom": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByCoalNoReal"}]},
+        "heatrate": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByCoalNoReal"}]}
+      }
+    },
+    "technologyCoal": {
       "allOf": [
         {"$ref": "#/definitions/technologyConfigBase"},
         {
           "properties": {
-            "historical_data": {"$ref": "#/definitions/historyCosts"}
+            "historical_data": {"$ref": "#/definitions/historyCoal"}
           }
         }
       ]
     },
-    "technologyCostsWithHeatrate": {
+    "historyModeByCoalCcsNoReal": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per coal-ccs sub-technology; used by metrics that never offer real.",
+      "properties": {
+        "coal-CCS_mod": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyCoalCcs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom", "heatrate"],
+      "properties": {
+        "capcost": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByCoalCcsNoReal"}]},
+        "fom": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByCoalCcsNoReal"}]},
+        "vom": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByCoalCcsNoReal"}]},
+        "heatrate": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByCoalCcsNoReal"}]}
+      }
+    },
+    "technologyCoalCcs": {
       "allOf": [
         {"$ref": "#/definitions/technologyConfigBase"},
         {
           "properties": {
-            "historical_data": {"$ref": "#/definitions/historyCostsWithHeatrate"}
+            "historical_data": {"$ref": "#/definitions/historyCoalCcs"}
+          }
+        }
+      ]
+    },
+    "historyModeByGas": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per gas sub-technology; classes without an observed series cannot select real.",
+      "properties": {
+        "Gas-CC": {"$ref": "#/definitions/historyMode"},
+        "Gas-CT": {"$ref": "#/definitions/historyMode"},
+        "Gas-CC_H_1x1": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "Gas-CC_H_2x1": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "Gas-CT_aero": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyModeByGasNoReal": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per gas sub-technology; used by metrics that never offer real.",
+      "properties": {
+        "Gas-CC": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "Gas-CT": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "Gas-CC_H_1x1": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "Gas-CC_H_2x1": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "Gas-CT_aero": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyGas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom", "heatrate"],
+      "properties": {
+        "capcost": {"oneOf": [{"$ref": "#/definitions/historyMode"}, {"$ref": "#/definitions/historyModeByGas"}]},
+        "fom": {"oneOf": [{"$ref": "#/definitions/historyMode"}, {"$ref": "#/definitions/historyModeByGas"}]},
+        "vom": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByGasNoReal"}]},
+        "heatrate": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByGasNoReal"}]}
+      }
+    },
+    "technologyGas": {
+      "allOf": [
+        {"$ref": "#/definitions/technologyConfigBase"},
+        {
+          "properties": {
+            "historical_data": {"$ref": "#/definitions/historyGas"}
+          }
+        }
+      ]
+    },
+    "historyModeByGasCcsNoReal": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per gas-ccs sub-technology; used by metrics that never offer real.",
+      "properties": {
+        "Gas-CC-CCS_mod": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "Gas-CC_H_1x1-CCS_mod": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "Gas-CC_H_2x1-CCS_mod": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyGasCcs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom", "heatrate"],
+      "properties": {
+        "capcost": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByGasCcsNoReal"}]},
+        "fom": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByGasCcsNoReal"}]},
+        "vom": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByGasCcsNoReal"}]},
+        "heatrate": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByGasCcsNoReal"}]}
+      }
+    },
+    "technologyGasCcs": {
+      "allOf": [
+        {"$ref": "#/definitions/technologyConfigBase"},
+        {
+          "properties": {
+            "historical_data": {"$ref": "#/definitions/historyGasCcs"}
+          }
+        }
+      ]
+    },
+    "historyModeByFuelcellNoReal": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per fuelcell sub-technology; used by metrics that never offer real.",
+      "properties": {
+        "ng-fuel-cell": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyFuelcell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom", "heatrate"],
+      "properties": {
+        "capcost": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByFuelcellNoReal"}]},
+        "fom": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByFuelcellNoReal"}]},
+        "vom": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByFuelcellNoReal"}]},
+        "heatrate": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByFuelcellNoReal"}]}
+      }
+    },
+    "technologyFuelcell": {
+      "allOf": [
+        {"$ref": "#/definitions/technologyConfigBase"},
+        {
+          "properties": {
+            "historical_data": {"$ref": "#/definitions/historyFuelcell"}
+          }
+        }
+      ]
+    },
+    "historyModeByNuclear": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per nuclear sub-technology; classes without an observed series cannot select real.",
+      "properties": {
+        "Nuclear": {"$ref": "#/definitions/historyMode"}
+      }
+    },
+    "historyModeByNuclearNoReal": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per nuclear sub-technology; used by metrics that never offer real.",
+      "properties": {
+        "Nuclear": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyNuclear": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom", "heatrate"],
+      "properties": {
+        "capcost": {"oneOf": [{"$ref": "#/definitions/historyMode"}, {"$ref": "#/definitions/historyModeByNuclear"}]},
+        "fom": {"oneOf": [{"$ref": "#/definitions/historyMode"}, {"$ref": "#/definitions/historyModeByNuclear"}]},
+        "vom": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByNuclearNoReal"}]},
+        "heatrate": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByNuclearNoReal"}]}
+      }
+    },
+    "technologyNuclear": {
+      "allOf": [
+        {"$ref": "#/definitions/technologyConfigBase"},
+        {
+          "properties": {
+            "historical_data": {"$ref": "#/definitions/historyNuclear"}
+          }
+        }
+      ]
+    },
+    "historyModeByNuclearSmrNoReal": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per nuclear-smr sub-technology; used by metrics that never offer real.",
+      "properties": {
+        "Nuclear-SMR": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyNuclearSmr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom", "heatrate"],
+      "properties": {
+        "capcost": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByNuclearSmrNoReal"}]},
+        "fom": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByNuclearSmrNoReal"}]},
+        "vom": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByNuclearSmrNoReal"}]},
+        "heatrate": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByNuclearSmrNoReal"}]}
+      }
+    },
+    "technologyNuclearSmr": {
+      "allOf": [
+        {"$ref": "#/definitions/technologyConfigBase"},
+        {
+          "properties": {
+            "historical_data": {"$ref": "#/definitions/historyNuclearSmr"}
+          }
+        }
+      ]
+    },
+    "historyModeByBiopower": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per biopower sub-technology; classes without an observed series cannot select real.",
+      "properties": {
+        "biopower": {"$ref": "#/definitions/historyMode"}
+      }
+    },
+    "historyModeByBiopowerNoReal": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "One history mode per biopower sub-technology; used by metrics that never offer real.",
+      "properties": {
+        "biopower": {"$ref": "#/definitions/historyModeWithoutReal"}
+      }
+    },
+    "historyBiopower": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom", "heatrate"],
+      "properties": {
+        "capcost": {"oneOf": [{"$ref": "#/definitions/historyMode"}, {"$ref": "#/definitions/historyModeByBiopower"}]},
+        "fom": {"oneOf": [{"$ref": "#/definitions/historyMode"}, {"$ref": "#/definitions/historyModeByBiopower"}]},
+        "vom": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByBiopowerNoReal"}]},
+        "heatrate": {"oneOf": [{"$ref": "#/definitions/historyModeWithoutReal"}, {"$ref": "#/definitions/historyModeByBiopowerNoReal"}]}
+      }
+    },
+    "technologyBiopower": {
+      "allOf": [
+        {"$ref": "#/definitions/technologyConfigBase"},
+        {
+          "properties": {
+            "historical_data": {"$ref": "#/definitions/historyBiopower"}
           }
         }
       ]
@@ -713,19 +976,19 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "upv": {"$ref": "#/definitions/technologyObservedCapcostWithCf"},
-            "wind-ons": {"$ref": "#/definitions/technologyObservedCapcostWithCf"},
-            "wind-ofs": {"$ref": "#/definitions/technologyObservedCapcostWithCfAndRsc"},
+            "upv": {"$ref": "#/definitions/technologyUpv"},
+            "wind-ons": {"$ref": "#/definitions/technologyWindOns"},
+            "wind-ofs": {"$ref": "#/definitions/technologyWindOfs"},
             "battery": {"$ref": "#/definitions/technologyBattery"},
             "csp": {"$ref": "#/definitions/technologyCsp"},
-            "coal": {"$ref": "#/definitions/technologyCostsWithHeatrate"},
-            "coal-ccs": {"$ref": "#/definitions/technologyCostsWithHeatrate"},
-            "gas": {"$ref": "#/definitions/technologyObservedCapcost"},
-            "gas-ccs": {"$ref": "#/definitions/technologyCostsWithHeatrate"},
-            "fuelcell": {"$ref": "#/definitions/technologyCostsWithHeatrate"},
-            "nuclear": {"$ref": "#/definitions/technologyObservedCapcost"},
-            "nuclear-smr": {"$ref": "#/definitions/technologyCostsWithHeatrate"},
-            "biopower": {"$ref": "#/definitions/technologyObservedCapcost"}
+            "coal": {"$ref": "#/definitions/technologyCoal"},
+            "coal-ccs": {"$ref": "#/definitions/technologyCoalCcs"},
+            "gas": {"$ref": "#/definitions/technologyGas"},
+            "gas-ccs": {"$ref": "#/definitions/technologyGasCcs"},
+            "fuelcell": {"$ref": "#/definitions/technologyFuelcell"},
+            "nuclear": {"$ref": "#/definitions/technologyNuclear"},
+            "nuclear-smr": {"$ref": "#/definitions/technologyNuclearSmr"},
+            "biopower": {"$ref": "#/definitions/technologyBiopower"}
           }
         }
       }

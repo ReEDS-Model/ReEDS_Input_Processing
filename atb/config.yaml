@@ -271,10 +271,14 @@ processing:
           smooth_projection_curve: false  # options: true / false
       wind-ons:
         historical_data:
-          capcost: real  # options: real / manual / broadcast / unavailable
-          fom: indexed  # options: real / manual / broadcast / indexed / unavailable
-          vom: broadcast  # options: manual / broadcast / unavailable
-          cf_improvement: real  # options: real / manual / broadcast / unavailable
+          capcost:
+            115hh_170rd: real  # options: real / manual / broadcast / unavailable
+          fom:
+            115hh_170rd: indexed  # options: real / manual / broadcast / indexed / unavailable
+          vom:
+            115hh_170rd: broadcast  # options: manual / broadcast / unavailable
+          cf_improvement:
+            115hh_170rd: real  # options: real / manual / broadcast / unavailable
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       wind-ofs:
@@ -282,99 +286,202 @@ processing:
           capcost:
             fixed: real  # options: real / manual / broadcast / unavailable
             floating: unavailable  # options: manual / broadcast / unavailable
-          fom: broadcast  # options: manual / broadcast / unavailable
-          vom: broadcast  # options: manual / broadcast / unavailable
-          cf_improvement: broadcast  # options: manual / broadcast / unavailable
-          rsc_mult: broadcast  # options: manual / broadcast
+          fom:
+            fixed: broadcast  # options: real / manual / broadcast / unavailable
+            floating: broadcast  # options: manual / broadcast / unavailable
+          vom:
+            fixed: broadcast  # options: manual / broadcast / unavailable
+            floating: broadcast  # options: manual / broadcast / unavailable
+          cf_improvement:
+            fixed: broadcast  # options: real / manual / broadcast / unavailable
+            floating: broadcast  # options: manual / broadcast / unavailable
+          rsc_mult:
+            fixed: broadcast  # options: manual / broadcast
+            floating: broadcast  # options: manual / broadcast
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       battery:
         historical_data:
-          capcost: real  # options: real / manual / broadcast / unavailable
-          capcost_energy: real  # options: real / manual / broadcast / unavailable
-          fom: broadcast  # options: manual / broadcast / unavailable
-          fom_energy: broadcast  # options: manual / broadcast / unavailable
-          vom: broadcast  # options: manual / broadcast / unavailable
-          rte: broadcast  # options: manual / broadcast / unavailable
+          capcost:
+            battery_li: real  # options: real / manual / broadcast / unavailable
+          capcost_energy:
+            battery_li: real  # options: real / manual / broadcast / unavailable
+          fom:
+            battery_li: broadcast  # options: real / manual / broadcast / unavailable
+          fom_energy:
+            battery_li: broadcast  # options: manual / broadcast / unavailable
+          vom:
+            battery_li: broadcast  # options: manual / broadcast / unavailable
+          rte:
+            battery_li: broadcast  # options: manual / broadcast / unavailable
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       csp:
         historical_data:
-          capcost: real  # options: real / manual / broadcast / unavailable
-          fom: broadcast  # options: manual / broadcast / unavailable
-          vom: broadcast  # options: manual / broadcast / unavailable
+          capcost:
+            csp1: real  # options: real / manual / broadcast / unavailable
+            csp2: real  # options: real / manual / broadcast / unavailable
+            csp3: real  # options: real / manual / broadcast / unavailable
+            csp4: real  # options: real / manual / broadcast / unavailable
+          fom:
+            csp1: broadcast  # options: real / manual / broadcast / unavailable
+            csp2: broadcast  # options: real / manual / broadcast / unavailable
+            csp3: broadcast  # options: real / manual / broadcast / unavailable
+            csp4: broadcast  # options: real / manual / broadcast / unavailable
+          vom:
+            csp1: broadcast  # options: manual / broadcast / unavailable
+            csp2: broadcast  # options: manual / broadcast / unavailable
+            csp3: broadcast  # options: manual / broadcast / unavailable
+            csp4: broadcast  # options: manual / broadcast / unavailable
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       coal:
+        # Coal-new and Coal-IGCC come from ATB. The four other designs are not
+        # in ATB; the pipeline retains them from the ReEDS ATB 2024 baseline in
+        # historical/manual.csv, so manual keeps that baseline for their history
+        # too instead of broadcasting the first projection year backward.
         historical_data:
-          capcost: broadcast  # options: manual / broadcast / unavailable
-          fom: broadcast  # options: manual / broadcast / unavailable
-          vom: broadcast  # options: manual / broadcast / unavailable
-          heatrate: broadcast  # options: manual / broadcast / unavailable
+          capcost:
+            Coal-new: broadcast  # options: manual / broadcast / unavailable
+            Coal-IGCC: broadcast  # options: manual / broadcast / unavailable
+            CoalOldScr: manual  # options: manual / broadcast / unavailable
+            CoalOldUns: manual  # options: manual / broadcast / unavailable
+            CofireNew: manual  # options: manual / broadcast / unavailable
+            CofireOld: manual  # options: manual / broadcast / unavailable
+          fom:
+            Coal-new: broadcast  # options: manual / broadcast / unavailable
+            Coal-IGCC: broadcast  # options: manual / broadcast / unavailable
+            CoalOldScr: manual  # options: manual / broadcast / unavailable
+            CoalOldUns: manual  # options: manual / broadcast / unavailable
+            CofireNew: manual  # options: manual / broadcast / unavailable
+            CofireOld: manual  # options: manual / broadcast / unavailable
+          vom:
+            Coal-new: broadcast  # options: manual / broadcast / unavailable
+            Coal-IGCC: broadcast  # options: manual / broadcast / unavailable
+            CoalOldScr: manual  # options: manual / broadcast / unavailable
+            CoalOldUns: manual  # options: manual / broadcast / unavailable
+            CofireNew: manual  # options: manual / broadcast / unavailable
+            CofireOld: manual  # options: manual / broadcast / unavailable
+          heatrate:
+            Coal-new: broadcast  # options: manual / broadcast / unavailable
+            Coal-IGCC: broadcast  # options: manual / broadcast / unavailable
+            CoalOldScr: manual  # options: manual / broadcast / unavailable
+            CoalOldUns: manual  # options: manual / broadcast / unavailable
+            CofireNew: manual  # options: manual / broadcast / unavailable
+            CofireOld: manual  # options: manual / broadcast / unavailable
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       coal-ccs:
         historical_data:
-          capcost: unavailable  # options: manual / broadcast / unavailable
-          fom: broadcast  # options: manual / broadcast / unavailable
-          vom: broadcast  # options: manual / broadcast / unavailable
-          heatrate: broadcast  # options: manual / broadcast / unavailable
+          capcost:
+            coal-CCS_mod: unavailable  # options: manual / broadcast / unavailable
+          fom:
+            coal-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+          vom:
+            coal-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+          heatrate:
+            coal-CCS_mod: broadcast  # options: manual / broadcast / unavailable
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       gas:
+        # Gas-CT_aero is not in ATB; the pipeline retains it from the ReEDS ATB
+        # 2024 baseline in historical/manual.csv, so manual keeps that baseline
+        # for its history too.
         historical_data:
           capcost:
             Gas-CC: real  # options: real / manual / broadcast / unavailable
+            Gas-CT: real  # options: real / manual / broadcast / unavailable
             Gas-CC_H_1x1: broadcast  # options: manual / broadcast / unavailable
             Gas-CC_H_2x1: broadcast  # options: manual / broadcast / unavailable
-            Gas-CT: real  # options: real / manual / broadcast / unavailable
-            Gas-CT_aero: broadcast  # options: manual / broadcast / unavailable
-          fom: broadcast  # options: manual / broadcast / unavailable
-          vom: broadcast  # options: manual / broadcast / unavailable
-          heatrate: broadcast  # options: manual / broadcast / unavailable
+            Gas-CT_aero: manual  # options: manual / broadcast / unavailable
+          fom:
+            Gas-CC: broadcast  # options: real / manual / broadcast / unavailable
+            Gas-CT: broadcast  # options: real / manual / broadcast / unavailable
+            Gas-CC_H_1x1: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_2x1: broadcast  # options: manual / broadcast / unavailable
+            Gas-CT_aero: manual  # options: manual / broadcast / unavailable
+          vom:
+            Gas-CC: broadcast  # options: manual / broadcast / unavailable
+            Gas-CT: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_1x1: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_2x1: broadcast  # options: manual / broadcast / unavailable
+            Gas-CT_aero: manual  # options: manual / broadcast / unavailable
+          heatrate:
+            Gas-CC: broadcast  # options: manual / broadcast / unavailable
+            Gas-CT: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_1x1: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_2x1: broadcast  # options: manual / broadcast / unavailable
+            Gas-CT_aero: manual  # options: manual / broadcast / unavailable
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       gas-ccs:
         historical_data:
-          capcost: unavailable  # options: manual / broadcast / unavailable
-          fom: broadcast  # options: manual / broadcast / unavailable
-          vom: broadcast  # options: manual / broadcast / unavailable
-          heatrate: broadcast  # options: manual / broadcast / unavailable
+          capcost:
+            Gas-CC-CCS_mod: unavailable  # options: manual / broadcast / unavailable
+            Gas-CC_H_1x1-CCS_mod: unavailable  # options: manual / broadcast / unavailable
+            Gas-CC_H_2x1-CCS_mod: unavailable  # options: manual / broadcast / unavailable
+          fom:
+            Gas-CC-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_1x1-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_2x1-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+          vom:
+            Gas-CC-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_1x1-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_2x1-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+          heatrate:
+            Gas-CC-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_1x1-CCS_mod: broadcast  # options: manual / broadcast / unavailable
+            Gas-CC_H_2x1-CCS_mod: broadcast  # options: manual / broadcast / unavailable
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       fuelcell:
         historical_data:
-          capcost: unavailable  # options: manual / broadcast / unavailable
-          fom: broadcast  # options: manual / broadcast / unavailable
-          vom: broadcast  # options: manual / broadcast / unavailable
-          heatrate: broadcast  # options: manual / broadcast / unavailable
+          capcost:
+            ng-fuel-cell: unavailable  # options: manual / broadcast / unavailable
+          fom:
+            ng-fuel-cell: broadcast  # options: manual / broadcast / unavailable
+          vom:
+            ng-fuel-cell: broadcast  # options: manual / broadcast / unavailable
+          heatrate:
+            ng-fuel-cell: broadcast  # options: manual / broadcast / unavailable
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       nuclear:
         historical_data:
-          capcost: real  # options: real / manual / broadcast / unavailable
-          fom: broadcast  # options: manual / broadcast / unavailable
-          vom: broadcast  # options: manual / broadcast / unavailable
-          heatrate: broadcast  # options: manual / broadcast / unavailable
+          capcost:
+            Nuclear: real  # options: real / manual / broadcast / unavailable
+          fom:
+            Nuclear: broadcast  # options: real / manual / broadcast / unavailable
+          vom:
+            Nuclear: broadcast  # options: manual / broadcast / unavailable
+          heatrate:
+            Nuclear: broadcast  # options: manual / broadcast / unavailable
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       nuclear-smr:
         historical_data:
-          capcost: unavailable  # options: manual / broadcast / unavailable
-          fom: broadcast  # options: manual / broadcast / unavailable
-          vom: broadcast  # options: manual / broadcast / unavailable
-          heatrate: broadcast  # options: manual / broadcast / unavailable
+          capcost:
+            Nuclear-SMR: unavailable  # options: manual / broadcast / unavailable
+          fom:
+            Nuclear-SMR: broadcast  # options: manual / broadcast / unavailable
+          vom:
+            Nuclear-SMR: broadcast  # options: manual / broadcast / unavailable
+          heatrate:
+            Nuclear-SMR: broadcast  # options: manual / broadcast / unavailable
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       biopower:
         historical_data:
-          capcost: real  # options: real / manual / broadcast / unavailable
-          fom: broadcast  # options: manual / broadcast / unavailable
-          vom: broadcast  # options: manual / broadcast / unavailable
-          heatrate: broadcast  # options: manual / broadcast / unavailable
+          capcost:
+            biopower: real  # options: real / manual / broadcast / unavailable
+          fom:
+            biopower: broadcast  # options: real / manual / broadcast / unavailable
+          vom:
+            biopower: broadcast  # options: manual / broadcast / unavailable
+          heatrate:
+            biopower: broadcast  # options: manual / broadcast / unavailable
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
-
 # ReEDS repository files fetched by historical_data_scraper.py. Pinning `ref`
 # makes the manual baseline and the deflator reproducible without a local clone.
 reeds_source:

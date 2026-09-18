@@ -88,8 +88,13 @@ def reeds_dollar_years(reeds_dir: Path) -> dict[str, int]:
     frame = pd.read_csv(table)
     return dict(zip(frame["Scenario"], frame["Dollar.Year"].astype(int)))
 
+# Values copied from historical/manual.csv, the deflated ReEDS ATB baseline
+# scraped from the pinned ReEDS repository. Pre-ATB years in "manual" mode use
+# it, and so do whole series the current ATB no longer publishes.
+MANUAL_CATEGORY = "Manual history (ReEDS ATB baseline)"
+
 PROVENANCE_COLORS = {
-    "Manual history": "#0072B2",
+    MANUAL_CATEGORY: "#0072B2",
     "Observed history (real)": "#009E73",
     "Calculated project history": "#117A65",
     "Scaled real history": "#A6761D",
@@ -676,6 +681,32 @@ def is_real_history_target(
     return False
 
 
+def series_has_atb_data(final_group: pd.DataFrame, provenance: dict) -> bool:
+    """Return whether the plotted series exists in the current ATB release.
+
+    A series is ATB-backed when its label is mapped from an ATB display name,
+    or is a CSP configuration derived from the mapped base type. Anything
+    else (Gas-CT_aero, the old coal designs) is retained from the ReEDS
+    baseline in historical/manual.csv from the boundary year onward.
+    """
+    settings = provenance["settings"]
+    tech_settings = settings["techs"][provenance["technology"]]
+    names = tech_settings["DisplayName"]
+    if not isinstance(names, dict):
+        return True
+    identity = next(
+        (c for c in ("i", "type", "turbine") if c in final_group.columns), None
+    )
+    if identity is None:
+        return True
+    atb_labels = set(names.values())
+    if "add_csp_techs" in tech_settings.get("functions", []):
+        from generate_atb_files import load_csp_cost_ratios
+        atb_labels |= set(load_csp_cost_ratios(settings)["type"])
+    values = set(final_group[identity].dropna().unique())
+    return bool(values & atb_labels)
+
+
 def series_boundary(final_group: pd.DataFrame, provenance: dict) -> int:
     """Return the first ATB year for the series being plotted."""
     label = None
@@ -700,6 +731,10 @@ def provenance_categories(
 ) -> list[str]:
     """Label each final point by its exclusive data source or treatment."""
     years = pd.to_numeric(final_group["t"], errors="raise").astype(int)
+    # A series the current ATB no longer publishes keeps the ReEDS baseline
+    # from historical/manual.csv for every year at or after the boundary; its
+    # earlier years still follow the configured history mode like any other.
+    reeds_only = not series_has_atb_data(final_group, provenance)
     final_values = pd.to_numeric(final_group[metric], errors="coerce")
     if baseline_group is None:
         baseline_values = pd.Series(np.nan, index=final_group.index)
@@ -745,7 +780,7 @@ def provenance_categories(
                         and year in real_years)
         if year < boundary or real_overlap:
             if historical_mode == "manual":
-                final_categories.append("Manual history")
+                final_categories.append(MANUAL_CATEGORY)
             elif historical_mode == "broadcast":
                 final_categories.append("Broadcast history")
             elif historical_mode == "unavailable":
@@ -793,6 +828,8 @@ def provenance_categories(
                     f"Unknown historical mode for "
                     f"{provenance['technology']}.{metric}: {historical_mode!r}"
                 )
+        elif reeds_only:
+            final_categories.append(MANUAL_CATEGORY)
         else:
             final_categories.append(
                 "ATB projection (smoothed)"
@@ -822,8 +859,8 @@ def input_point_categories(
             categories.append(category)
         elif category in PROJECTION_CATEGORIES:
             categories.append("ATB projection (raw)")
-        elif historical_mode == "manual":
-            categories.append("Manual history")
+        elif category == MANUAL_CATEGORY or historical_mode == "manual":
+            categories.append(MANUAL_CATEGORY)
         elif historical_mode == "real" and is_observed_history_point(
             final_group, metric, int(year), provenance
         ):
@@ -952,7 +989,8 @@ def plot_file_with_provenance(
         marker = scenario_markers[scenario]
         colors = projection_colors(scenario, index)
         for label, final_group in generated_groups:
-            boundaries.add(series_boundary(final_group, provenance))
+            if series_has_atb_data(final_group, provenance):
+                boundaries.add(series_boundary(final_group, provenance))
             baseline_group = baseline_groups.get(label)
             for metric in metrics:
                 axis = panels[metric]

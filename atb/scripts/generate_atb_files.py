@@ -57,6 +57,55 @@ def subset_atb_rows(subset_rows, atb_data_in):
             atb_data = atb_data.loc[atb_data[sr] == subset_rows[sr]]
     return atb_data, atb_col_vals
 
+def report_atb_changes(settings, atb_data):
+    """Print technologies and display names added or removed since last ATB.
+
+    Only differences are reported, so names the mapping ignores on purpose
+    stay quiet while a new ATB technology or sub-technology is called out for
+    the person updating settings.yaml and config.yaml.
+    """
+    year = int(settings['atbyear'])
+    current_path = settings['flat_file_path']
+    previous_path = current_path.replace(str(year), str(year - 1))
+    if previous_path == current_path or not os.path.isfile(previous_path):
+        print(f"ATB change check skipped: no ATB {year - 1} flat file next to {current_path}.")
+        return
+    previous = pd.read_csv(previous_path, low_memory=False).rename(columns=ATBE_COLUMN_MAPPING)
+
+    def names(frame):
+        rows = frame.loc[frame['DisplayName'].ne('*'), ['Technology', 'DisplayName']].drop_duplicates()
+        return {tech: set(group['DisplayName']) for tech, group in rows.groupby('Technology')}
+
+    now, before = names(atb_data), names(previous)
+    mapped_techs = {c['Technology'] for c in settings['techs'].values()}
+    mapped_names = set()
+    for c in settings['techs'].values():
+        display = c.get('DisplayName')
+        mapped_names |= set(display) if isinstance(display, dict) else {display}
+
+    print(f"ATB change check: ATB {year} vs ATB {year - 1}")
+    changes = False
+    for tech in sorted(set(now) - set(before)):
+        changes = True
+        note = "" if tech in mapped_techs else "  <- not mapped in settings.yaml"
+        print(f"  NEW technology: {tech}{note}")
+    for tech in sorted(set(before) - set(now)):
+        changes = True
+        note = "  <- still mapped in settings.yaml" if tech in mapped_techs else ""
+        print(f"  REMOVED technology: {tech}{note}")
+    for tech in sorted(set(now) & set(before)):
+        for name in sorted(now[tech] - before[tech]):
+            changes = True
+            note = "" if name in mapped_names else "  <- not mapped in settings.yaml"
+            print(f"  NEW display name: {tech}: {name}{note}")
+        for name in sorted(before[tech] - now[tech]):
+            changes = True
+            note = "  <- still mapped in settings.yaml" if name in mapped_names else ""
+            print(f"  REMOVED display name: {tech}: {name}{note}")
+    if not changes:
+        print("  no technology or display-name changes")
+
+
 def load_atb_flat_file(settings, args, techs_to_run):
     """
     load ATB flat file with all inputs for specified techs
@@ -80,6 +129,7 @@ def load_atb_flat_file(settings, args, techs_to_run):
     atb_data_in = pd.read_csv(filepath, low_memory=False)
     # Apply the same mapping for downloaded ATBe files and canonical flat files.
     atb_data_in = atb_data_in.rename(columns=ATBE_COLUMN_MAPPING)
+    report_atb_changes(settings, atb_data_in)
 
     if args.debug:
         breakpoint()
@@ -570,11 +620,13 @@ def _validate_historical_data_config(tech, historical_data, settings):
         raise TypeError(
             f"{label} must be a mapping with one entry for every modeled metric."
         )
-    if tech == 'battery' and any(
-        historical_data.get(metric) == 'real' for metric in ('capcost', 'capcost_energy')
-    ):
-        if not all(historical_data.get(metric) == 'real'
-                   for metric in ('capcost', 'capcost_energy')):
+    if tech == 'battery':
+        # Both battery components are split from one observed total, so a
+        # class may select real for both or for neither.
+        power = _metric_modes(historical_data, 'capcost')
+        energy = _metric_modes(historical_data, 'capcost_energy')
+        if any((mode == 'real') != (energy.get(cls) == 'real')
+               for cls, mode in power.items()):
             raise ValueError("Battery capcost and capcost_energy must select real together.")
     valid_metrics = set(settings['techs'][tech]['cols']) - NON_HISTORY_COLUMNS
     unknown = sorted(set(historical_data) - valid_metrics)
@@ -831,6 +883,23 @@ def smooth_cost_curve(tech, settings, df):
     output[columns] = output[columns].astype(float)
     original_values = output[columns].copy()
     groups = output.groupby(groupcols, dropna=False, sort=False).groups
+
+    # A class named in config but absent from the output would be skipped
+    # silently, so a retired design or a typo must be removed or fixed.
+    if class_column:
+        present = {
+            dict(zip(groupcols, values if isinstance(values, tuple) else (values,)))[class_column]
+            for values in groups
+        }
+        for column in mode_columns:
+            configured = set(_metric_modes(historical_data, column)) - {None}
+            stale = sorted(configured - present)
+            if stale:
+                raise KeyError(
+                    f"processing.smooth_cost_curves.technologies.{tech}."
+                    f"historical_data.{column} lists {stale}, but {tech} has no "
+                    f"such {class_column} series in its output; present: {sorted(present)}."
+                )
 
     row_series_start = pd.Series(projection_start_year, index=output.index)
     enabled_future_treatments = [
