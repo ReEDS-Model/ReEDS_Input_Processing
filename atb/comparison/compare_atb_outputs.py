@@ -42,17 +42,51 @@ REEDS_COLUMN_MAP = {
 
 PREFERRED_KEYS = ["i", "type", "turbine", "t", "rsc_mult"]
 
+# ``{d}`` is replaced by the output dollar year, e.g. "2023$/kW".
 METRIC_LABELS = {
-    "capcost": "Capital cost ($/kW)",
-    "capcost_energy": "Energy capital cost ($/kWh)",
-    "fom": "Fixed O&M ($/kW-year)",
-    "fom_energy": "Energy fixed O&M ($/kWh-year)",
-    "vom": "Variable O&M ($/MWh)",
+    "capcost": "Capital cost ({d}$/kW)",
+    "capcost_energy": "Energy capital cost ({d}$/kWh)",
+    "fom": "Fixed O&M ({d}$/kW-year)",
+    "fom_energy": "Energy fixed O&M ({d}$/kWh-year)",
+    "vom": "Variable O&M ({d}$/MWh)",
     "heatrate": "Heat rate (MMBtu/MWh)",
     "cf_improvement": "Capacity-factor multiplier",
     "rte": "Round-trip efficiency",
     "rsc_mult": "Resource-supply-curve multiplier",
 }
+
+
+def metric_label(metric: str, dollar_year, reference_dollar_year=None) -> str:
+    """Return the axis label for a metric with the dollar year spelled out.
+
+    When the ReEDS reference is in a different dollar year, a cost axis names
+    both, e.g. "Capital cost ($/kW; generated 2023$, ReEDS 2022$)", because
+    the two sides share the axis without conversion.
+    """
+    template = METRIC_LABELS.get(metric, metric)
+    if "{d}" not in template:
+        return template
+    if reference_dollar_year is None or reference_dollar_year == dollar_year:
+        return template.format(d="" if dollar_year is None else dollar_year)
+    base = template.format(d="")
+    return (
+        f"{base[:-1]}; generated {dollar_year}$, "
+        f"ReEDS {reference_dollar_year}$)"
+    )
+
+
+def escape_dollars(text: str) -> str:
+    """Escape ``$`` so matplotlib does not read paired signs as math."""
+    return text.replace("$", r"\$")
+
+
+def reeds_dollar_years(reeds_dir: Path) -> dict[str, int]:
+    """Read ReEDS' per-file dollar years (``dollaryear.csv``) if present."""
+    table = reeds_dir / "dollaryear.csv"
+    if not table.is_file():
+        return {}
+    frame = pd.read_csv(table)
+    return dict(zip(frame["Scenario"], frame["Dollar.Year"].astype(int)))
 
 PROVENANCE_COLORS = {
     "Manual history": "#0072B2",
@@ -116,12 +150,19 @@ SERIES_LINESTYLES = [
 ]
 
 
-def reeds_filename(generated_name: str) -> str:
-    """Map a generated filename to its ReEDS filename."""
+def reeds_filename(generated_name: str, atb_year=None, reeds_year=None) -> str:
+    """Map a generated filename to its ReEDS filename.
+
+    ReEDS may still carry an earlier ATB vintage than the one generated, so the
+    year token is swapped when ``reeds_year`` differs from ``atb_year``.
+    """
+    name = generated_name
+    if reeds_year is not None and atb_year is not None and reeds_year != atb_year:
+        name = name.replace(f"_ATB_{atb_year}_", f"_ATB_{reeds_year}_")
     for generated_prefix, reeds_prefix in FILENAME_PREFIX_MAP.items():
-        if generated_name.startswith(generated_prefix):
-            return reeds_prefix + generated_name[len(generated_prefix):]
-    return generated_name
+        if name.startswith(generated_prefix):
+            return reeds_prefix + name[len(generated_prefix):]
+    return name
 
 
 def normalize_frame(frame: pd.DataFrame) -> pd.DataFrame:
@@ -377,7 +418,13 @@ def ordered_union(lists) -> list:
     return seen
 
 
-def panel_grid(title: str, metrics: list[str], series_count: int = 1):
+def panel_grid(
+    title: str,
+    metrics: list[str],
+    series_count: int = 1,
+    dollar_year=None,
+    reference_dollar_year=None,
+):
     """Create one panel per metric, wrapped into up to three columns.
 
     Four metrics form a 2x2 grid rather than leaving one orphan panel. Panels
@@ -394,15 +441,23 @@ def panel_grid(title: str, metrics: list[str], series_count: int = 1):
         squeeze=False,
         constrained_layout=True,
     )
-    figure.suptitle(title, fontsize=12, fontweight="bold")
+    figure.suptitle(escape_dollars(title), fontsize=12, fontweight="bold")
     flat = list(axes.flat)
     panels = {}
     for axis, metric in zip(flat, metrics):
         panels[metric] = axis
-        metric_label = METRIC_LABELS.get(metric, metric)
-        axis.set_title(metric_label)
+        label = escape_dollars(
+            metric_label(metric, dollar_year, reference_dollar_year)
+        )
+        axis.set_title(label)
         axis.set_xlabel("Year")
-        axis.set_ylabel(metric_label)
+        # A two-dollar-year label is too long for the rotated axis, so the
+        # dollar-year note wraps onto a second line there.
+        if "; " in label:
+            unit, note = label.split("; ", 1)
+            axis.set_ylabel(f"{unit})\n{note[:-1]}")
+        else:
+            axis.set_ylabel(label)
         axis.grid(True, alpha=0.25)
     for axis in flat[len(metrics):]:
         axis.remove()
@@ -880,7 +935,13 @@ def plot_file_with_provenance(
         for index, label in enumerate(labels)
     }
 
-    figure, panels = panel_grid(stem, metrics, len(labels))
+    dollar_year = settings["dollaryear"]
+    figure, panels = panel_grid(
+        f"{stem}: final output vs. input data ({dollar_year}$)",
+        metrics,
+        len(labels),
+        dollar_year,
+    )
 
     present_categories = set()
     points_present = False
@@ -1036,6 +1097,9 @@ def plot_file(
     stem: str,
     scenario_paths: dict[str, tuple[Path, Path]],
     plot_dir: Path,
+    title: str,
+    dollar_year=None,
+    reference_dollar_year=None,
     solid_label: str = "Generated",
     dashed_label: str = "ReEDS",
 ) -> bool:
@@ -1086,7 +1150,9 @@ def plot_file(
         for index, label in enumerate(labels)
     }
 
-    figure, panels = panel_grid(stem, metrics, len(labels))
+    figure, panels = panel_grid(
+        title, metrics, len(labels), dollar_year, reference_dollar_year
+    )
 
     for scenario, (generated_groups, reeds_groups) in scenario_groups_.items():
         for metric in metrics:
@@ -1227,15 +1293,19 @@ def write_plots(
     reeds_dir: Path,
     plot_dir: Path,
     atb_year: int,
+    reeds_year: int | None = None,
     solid_label: str = "Generated",
     dashed_label: str = "ReEDS",
     include_overview: bool = True,
     provenance_settings: dict | None = None,
+    dollar_year=None,
 ) -> int:
     """Generate the overview and one technology-level plot per file group.
 
-    All scenario files of a technology are drawn together in one figure.
+    All scenario files of a technology are drawn together in one figure. The
+    figure title names both sides of the comparison and their dollar years.
     """
+    reference_dollar_years = reeds_dollar_years(reeds_dir)
     plot_dir.mkdir(parents=True, exist_ok=True)
     for old_plot in plot_dir.glob("*.png"):
         old_plot.unlink()
@@ -1249,18 +1319,34 @@ def write_plots(
     for stem, scenarios in scenario_groups(generated_files).items():
         scenario_paths = {}
         for scenario, generated_path in scenarios.items():
-            reeds_path = reeds_dir / reeds_filename(generated_path.name)
+            reeds_path = reeds_dir / reeds_filename(generated_path.name, atb_year, reeds_year)
             if reeds_path.exists():
                 scenario_paths[scenario] = (generated_path, reeds_path)
         if not scenario_paths:
             continue
         if provenance_settings is None:
+            reference_years = {
+                reference_dollar_years.get(reeds_path.stem)
+                for _, reeds_path in scenario_paths.values()
+            } - {None}
+            reference_dollar_year = (
+                reference_years.pop() if len(reference_years) == 1 else None
+            )
+            reference = dashed_label
+            if reference_dollar_year is not None:
+                reference = f"{dashed_label} ({reference_dollar_year}$)"
+            generated = solid_label
+            if dollar_year is not None:
+                generated = f"{solid_label} ({dollar_year}$)"
             wrote_plot = plot_file(
                 stem,
                 scenario_paths,
                 plot_dir,
-                solid_label=solid_label,
-                dashed_label=dashed_label,
+                f"{stem}: {generated} vs. {reference}",
+                dollar_year,
+                reference_dollar_year,
+                solid_label=generated,
+                dashed_label=reference,
             )
         else:
             wrote_plot = plot_file_with_provenance(
@@ -1320,6 +1406,9 @@ def main() -> None:
     )
     plot_dir = args.plot_dir.resolve()
     atb_year = int(settings['atbyear'])
+    reeds_year = int(settings['config']['processing'].get('reeds_atb_year', atb_year))
+    if reeds_year != atb_year:
+        print(f"Comparing ATB {atb_year} outputs against ReEDS ATB {reeds_year} files.")
 
     generated_files = sorted(generated_dir.glob(f"*_ATB_{atb_year}_*.csv"))
     if not generated_files:
@@ -1331,7 +1420,7 @@ def main() -> None:
 
     results = []
     for generated_path in generated_files:
-        reeds_path = reeds_dir / reeds_filename(generated_path.name)
+        reeds_path = reeds_dir / reeds_filename(generated_path.name, atb_year, reeds_year)
         result = compare_file(
             generated_path,
             reeds_path,
@@ -1344,10 +1433,10 @@ def main() -> None:
         )
 
     summary = pd.DataFrame(results)
-    expected_reeds_names = {reeds_filename(path.name) for path in generated_files}
+    expected_reeds_names = {reeds_filename(path.name, atb_year, reeds_year) for path in generated_files}
     reeds_only_files = sorted(
         path.name
-        for path in reeds_dir.glob(f"*_ATB_{atb_year}_*.csv")
+        for path in reeds_dir.glob(f"*_ATB_{reeds_year}_*.csv")
         if path.name not in expected_reeds_names
     )
     plotted = write_plots(
@@ -1356,8 +1445,10 @@ def main() -> None:
         reeds_dir,
         plot_dir,
         atb_year,
-        solid_label="Generated",
-        dashed_label="ReEDS",
+        reeds_year=reeds_year,
+        solid_label=f"Generated ATB {atb_year}",
+        dashed_label=f"ReEDS ATB {reeds_year}",
+        dollar_year=int(settings["dollaryear"]),
     )
     print(f"\nWrote overview and {plotted} technology-level plots to {plot_dir}")
     print(summary["status"].value_counts().to_string())

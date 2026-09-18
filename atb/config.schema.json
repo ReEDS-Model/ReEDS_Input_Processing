@@ -151,6 +151,7 @@
         "smooth_cost_curves"
       ],
       "properties": {
+        "reeds_atb_year": {"type": "integer", "minimum": 2015, "description": "ReEDS plant_characteristics ATB vintage used for comparison plots when it differs from atb.year."},
         "reeds_repo": {"type": "string", "minLength": 1},
         "atb_case": {"type": "string", "minLength": 1},
         "atb_case_overrides": {
