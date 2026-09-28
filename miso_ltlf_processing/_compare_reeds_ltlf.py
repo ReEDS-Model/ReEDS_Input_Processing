@@ -956,11 +956,11 @@ def make_plots(df, scenario):
     if df is None or df.empty:
         return
 
-    for kind, ylabel, ltlf_col, reeds_col in [
+    for kind, ylabel, ltlf_col, reeds_col, scale in [
         ('energy', 'Annual Energy (TWh)',
-         'ltlf_energy_TWh', 'reeds_energy_TWh_mean'),
-        ('peak', 'Annual Coincident Peak (MW)',
-         'ltlf_peak_MW', 'reeds_peak_MW_mean'),
+         'ltlf_energy_TWh', 'reeds_energy_TWh_mean', 1.0),
+        ('peak', 'Annual Coincident Peak (GW)',
+         'ltlf_peak_MW', 'reeds_peak_MW_mean', 1e-3),
     ]:
         fig, axes = plt.subplots(2, 2, figsize=(12, 8), sharex=True)
         axes = axes.flatten()
@@ -969,8 +969,9 @@ def make_plots(df, scenario):
             if d.empty:
                 ax.set_title(f"{sub} (no data)")
                 continue
-            ax.plot(d['year'], d[ltlf_col], marker='o', label='LTLF')
-            ax.plot(d['year'], d[reeds_col], marker='s', label='ReEDS (adj)')
+            ax.plot(d['year'], d[ltlf_col] * scale, marker='o', label='LTLF')
+            ax.plot(d['year'], d[reeds_col] * scale, marker='s',
+                    label='ReEDS (adj)')
             ax.set_title(sub)
             ax.set_ylabel(ylabel)
             ax.grid(True, alpha=0.3)
