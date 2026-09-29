@@ -28,7 +28,6 @@
 # so no loss-factor adjustment is applied.
 #
 # Outputs (per scenario found under REEDS_RUN_ROOT):
-#   Outputs/ltlf_comparison_{scenario}.csv
 #   Outputs/ltlf_comparison_energy_{scenario}.png
 #   Outputs/ltlf_comparison_peak_{scenario}.png
 
@@ -39,6 +38,7 @@ import h5py
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
@@ -65,34 +65,12 @@ COMPARE_YEARS = [2030, 2035, 2040, 2045]
 # Ordered subregion labels for output tables and plots.
 SUBREGION_ORDER = ['North', 'Central', 'South', 'MISO_Total']
 
-# Subregions to break down by BA for diagnostic purposes (energy + peak per
-# BA per year, mean across weather years). Written to
-# 'ltlf_comparison_{scenario}_by_ba.csv' and printed to stdout.
-DIAGNOSTIC_SUBREGIONS = ['South']
-
-# Base-year diagnostic configuration. Two independent comparisons:
-#   Table A (state-level):  ReEDS load.h5 model-year `y` per state (all BAs,
-#     summed) vs `EIA_loadbystate.csv` for that state, for y in
-#     BASE_YEARS_STATE. Comparison is gross (no DPV or direct-use
-#     subtraction) because EIA_loadbystate values include both BTM PV and
-#     direct-use per its downstream use.
-#   Table B (subregion-level): ReEDS at LTLF_BASE_YEAR, DPV-subtracted and
-#     direct-use-stripped (per-state fraction), vs MISO LTLF workbook
-#     absolute values at the same year. Matches the main-loop pipeline.
-EIA_LOADBYSTATE_PATH = (
-    r'C:\Users\challora\reeds-trees\miso-ltlf-2026\inputs\load'
-    r'\EIA_loadbystate.csv'
-)
-BASE_YEARS_STATE = [2010, 2024]     # 2010 = hourlize anchor; 2024 = latest EIA
-LTLF_BASE_YEAR = 2026               # LTLF workbook anchor year
-
 # Direct-use (on-site industrial cogen consumed behind the meter) is not
 # grid-served, so MISO LTLF Net Load excludes it. ReEDS load.h5 inherits
 # a direct-use share from the historical hourlize base timeseries, which
 # then scales with loadmult(y). To compare against LTLF we subtract a
 # constant per-state direct-use fraction (measured at the hourlize anchor
-# year) from load.h5 in the main year loop and Table B. Table A stays
-# gross because EIA_loadbystate.csv also includes direct-use.
+# year) from load.h5 in the main year loop.
 DIRECT_USE_ANCHOR_YEAR = 2010
 
 OUTPUT_DIR = os.path.join(SCRIPT_DIR, 'Outputs')
@@ -396,14 +374,9 @@ def read_recf_dpv(scenario, miso_bas):
     return df[list(miso_bas)]
 
 
-def read_load_all(scenario, miso_bas, return_full=False):
+def read_load_all(scenario, miso_bas):
     """Read hourly BA load from load.h5. Returns a DataFrame with MultiIndex
-    (model_year, weather_datetime) and columns = miso_bas.
-
-    If `return_full=True`, returns `(load_miso, load_full)` where `load_full`
-    contains all BAs (not just MISO). Both frames share the same normalized
-    year-int MultiIndex; datetime coercion for the second level is left to
-    the caller (they normalize once and the change propagates)."""
+    (model_year, weather_datetime) and columns = miso_bas."""
     p = run_path(scenario, 'load.h5')
     print("    Reading load.h5 (may take a moment)...")
     df = _read_reeds_h5(p)
@@ -435,33 +408,7 @@ def read_load_all(scenario, miso_bas, return_full=False):
             f"MISO BAs missing from load.h5 columns "
             f"(first 10): {missing[:10]}"
         )
-    load_miso = df[list(miso_bas)]
-    if return_full:
-        return load_miso, df
-    return load_miso
-
-
-def read_eia_state_load(year):
-    """Return a Series (index=state abbrev, values=TWh) of annual load for
-    `year` from `EIA_LOADBYSTATE_PATH`. Raises if the file or year is missing.
-
-    Note: EIA_loadbystate.csv values are in MWh and represent state total
-    end-use load (retail sales + BTM PV self-consumption), matching how the
-    ReEDS load scaling pipeline consumes them downstream.
-    """
-    if not os.path.exists(EIA_LOADBYSTATE_PATH):
-        raise FileNotFoundError(
-            f"EIA_loadbystate.csv not found: {EIA_LOADBYSTATE_PATH}"
-        )
-    df = pd.read_csv(EIA_LOADBYSTATE_PATH)
-    sub = df.loc[df['year'] == year]
-    if sub.empty:
-        available = sorted(df['year'].unique())
-        raise ValueError(
-            f"Year {year} not present in {EIA_LOADBYSTATE_PATH}. "
-            f"Available: {available[0]}..{available[-1]}"
-        )
-    return (sub.set_index('st')['MWh'] / 1e6).astype(float)
+    return df[list(miso_bas)]
 
 
 def fetch_state_direct_use_fraction(anchor_year=DIRECT_USE_ANCHOR_YEAR):
@@ -557,16 +504,10 @@ def fetch_state_direct_use_fraction(anchor_year=DIRECT_USE_ANCHOR_YEAR):
 
 ### Per-scenario processing
 
-def compute_scenario_metrics(scenario, ba_map, hierarchy, ltlf_energy):
-    """Return `(subregion_df, per_ba_df, state_base_df, subregion_base_df)`
-    for this scenario, or all-`None` if the run folder is absent/incomplete.
-
-    - `subregion_df`: long-form energy/peak metrics per (year, subregion).
-    - `per_ba_df`: energy/peak metrics per (year, subregion, ba), restricted
-      to subregions listed in `DIAGNOSTIC_SUBREGIONS`.
-    - `state_base_df`: state-level ReEDS-vs-EIA base-year comparison (Table A).
-    - `subregion_base_df`: subregion-level ReEDS-vs-LTLF LTLF_BASE_YEAR
-      comparison (Table B).
+def compute_scenario_metrics(scenario, ba_map, hierarchy):
+    """Return `subregion_df` (long-form energy/peak metrics per (year,
+    subregion)) for this scenario, or `None` if the run folder is absent
+    or incomplete.
     """
     run_dir = os.path.join(
         REEDS_RUN_ROOT, RUN_TEMPLATE.format(scenario=scenario),
@@ -574,7 +515,7 @@ def compute_scenario_metrics(scenario, ba_map, hierarchy, ltlf_energy):
     if not os.path.isdir(run_dir):
         print(f"[skip] Run folder not found for scenario '{scenario}': "
               f"{run_dir}")
-        return None, None, None, None
+        return None
 
     # Skip gracefully if the run hasn't finished producing all required
     # inputs_case files yet (e.g. run still in progress).
@@ -585,18 +526,15 @@ def compute_scenario_metrics(scenario, ba_map, hierarchy, ltlf_energy):
     if missing:
         print(f"[skip] Scenario '{scenario}' run is incomplete "
               f"(missing in inputs_case: {missing}).")
-        return None, None, None, None
+        return None
 
     print(f"\n=== Scenario: {scenario} ===")
 
     miso_bas = ba_map['r'].tolist()
     print(f"  {len(miso_bas)} MISO BAs to analyze.")
 
-    # DPV target years include LTLF_BASE_YEAR so Table B can DPV-adjust its
-    # base-year ReEDS load consistently with the main comparison pipeline.
-    dpv_target_years = sorted(set(COMPARE_YEARS + [LTLF_BASE_YEAR]))
     print("  Reading distpvcap.csv (linear interpolation to target years)...")
-    dpv_cap = read_distpvcap(scenario, dpv_target_years, miso_bas)
+    dpv_cap = read_distpvcap(scenario, COMPARE_YEARS, miso_bas)
 
     print("  Reading recf.h5 DPV hourly CF...")
     dpv_cf = read_recf_dpv(scenario, miso_bas)
@@ -609,27 +547,23 @@ def compute_scenario_metrics(scenario, ba_map, hierarchy, ltlf_energy):
                 f"{dpv_cf.index[:3].tolist()} ({err})"
             ) from err
 
-    # Read full BA load frame once; downstream we use `load_all` (MISO only)
-    # for the main pipeline and `load_full` (all BAs) for Table A state
-    # aggregation.
-    _, load_full = read_load_all(scenario, miso_bas, return_full=True)
-    load_datetime_level = load_full.index.get_level_values(1)
+    load_all = read_load_all(scenario, miso_bas)
+    load_datetime_level = load_all.index.get_level_values(1)
     if not isinstance(load_datetime_level, pd.DatetimeIndex):
         try:
             new_idx = pd.MultiIndex.from_arrays([
-                load_full.index.get_level_values(0),
+                load_all.index.get_level_values(0),
                 pd.to_datetime(load_datetime_level),
-            ], names=load_full.index.names)
-            load_full.index = new_idx
+            ], names=load_all.index.names)
+            load_all.index = new_idx
         except (ValueError, TypeError) as err:
             raise ValueError(
                 f"load.h5 datetime level is not datetime-like: "
                 f"{load_datetime_level[:3].tolist()} ({err})"
             ) from err
-    load_all = load_full[list(miso_bas)]
 
-    # State map (BA -> USPS state); used both for Table A aggregation and
-    # for the per-BA direct-use multiplier applied to load.h5 below.
+    # State map (BA -> USPS state); used for the per-BA direct-use
+    # multiplier applied to load.h5 below.
     state_map = dict(zip(hierarchy['r'], hierarchy['st']))
 
     # Direct-use is not grid-served (excluded from MISO LTLF Net Load) but is
@@ -664,7 +598,6 @@ def compute_scenario_metrics(scenario, ba_map, hierarchy, ltlf_energy):
     print(f"    Full list: {available_years}")
 
     rows = []
-    per_ba_rows = []
     for year in COMPARE_YEARS:
         load = load_all.xs(year, level=0)   # index=datetime, cols=BA
         common_ts = load.index.intersection(dpv_cf.index)
@@ -733,170 +666,7 @@ def compute_scenario_metrics(scenario, ba_map, hierarchy, ltlf_energy):
                 'n_bas': len(bas),
             })
 
-            # Per-BA diagnostic breakdown for selected subregions.
-            if sub_name in DIAGNOSTIC_SUBREGIONS:
-                for ba in bas:
-                    ba_hourly = adjusted[ba]
-                    ba_energy_wy = ba_hourly.groupby(wy).sum() / 1e6
-                    ba_peak_wy = ba_hourly.groupby(wy).max()
-                    ba_dpv_wy = dpv_gen[ba].groupby(wy).sum() / 1e6
-                    ba_direct_wy = direct_gen[ba].groupby(wy).sum() / 1e6
-                    per_ba_rows.append({
-                        'scenario': scenario,
-                        'year': year,
-                        'subregion': sub_name,
-                        'ba': ba,
-                        'reeds_energy_TWh_mean': ba_energy_wy.mean(),
-                        'reeds_energy_TWh_min': ba_energy_wy.min(),
-                        'reeds_energy_TWh_max': ba_energy_wy.max(),
-                        'reeds_peak_MW_mean': ba_peak_wy.mean(),
-                        'reeds_peak_MW_min': ba_peak_wy.min(),
-                        'reeds_peak_MW_max': ba_peak_wy.max(),
-                        'dpv_energy_TWh_mean': ba_dpv_wy.mean(),
-                        'direct_use_energy_TWh_mean': ba_direct_wy.mean(),
-                    })
-
-    # --- Table A: state-level base-year comparison (ReEDS vs EIA) ---
-    # Compute state totals from `load_full` (all BAs, not just MISO) for each
-    # year in BASE_YEARS_STATE. Aggregate BA->state via `hierarchy`. Compare to
-    # EIA_loadbystate values. Comparison is gross-of-DPV on both sides.
-    #
-    # If a target base year is not present in load.h5 (only solve years are
-    # stored), snap to the nearest available year. This is semantically valid
-    # because ReEDS's state multiplier is flat between adjacent solve years
-    # for the historical anchor period.
-    miso_states = sorted(ba_map['st'].unique())
-    # Per-state BA counts, computed once.
-    n_bas_state = hierarchy.groupby('st')['r'].count().to_dict()
-    n_bas_miso = ba_map.groupby('st')['r'].count().to_dict()
-
-    def _nearest_year(target, avail):
-        return int(min(avail, key=lambda y: abs(y - target)))
-
-    state_rows = {st: {'st': st,
-                       'n_bas_state': int(n_bas_state.get(st, 0)),
-                       'n_bas_miso': int(n_bas_miso.get(st, 0))}
-                  for st in miso_states}
-    for by in BASE_YEARS_STATE:
-        if by in available_years:
-            by_reeds = by
-        else:
-            by_reeds = _nearest_year(by, available_years)
-            print(f"  [note] Table A: {by} not in load.h5; using "
-                  f"load.h5({by_reeds}) as ReEDS proxy for target {by}.")
-        # Sum load across weather years, take mean across weather years.
-        load_by = load_full.xs(by_reeds, level=0)
-        wy_by = load_by.index.year
-        ba_energy_by_wy = load_by.groupby(wy_by).sum() / 1e6   # TWh per BA/wy
-        ba_energy_mean = ba_energy_by_wy.mean()                # Series over BAs
-        ba_states = ba_energy_mean.index.to_series().map(state_map)
-        unmapped_mask = ba_states.isna()
-        if unmapped_mask.any():
-            unmapped_bas = ba_energy_mean.index[unmapped_mask].tolist()
-            print(f"  [warn] Year {by_reeds}: {int(unmapped_mask.sum())} BAs "
-                  f"in load.h5 have no hierarchy state (excluded): "
-                  f"{unmapped_bas[:5]}"
-                  + ("..." if len(unmapped_bas) > 5 else ""))
-            ba_energy_mean = ba_energy_mean[~unmapped_mask]
-            ba_states = ba_states[~unmapped_mask]
-        reeds_state_totals = ba_energy_mean.groupby(ba_states).sum()
-        # EIA lookup uses the ORIGINAL target year (semantics: load.h5 at
-        # by_reeds encodes loadmult(target) via ReEDS's flat-carry-forward
-        # for post-history years).
-        try:
-            eia_state_totals = read_eia_state_load(by)
-        except (FileNotFoundError, ValueError) as err:
-            print(f"  [warn] Table A EIA lookup for {by}: {err}")
-            eia_state_totals = pd.Series(dtype=float)
-        for st in miso_states:
-            reeds_v = float(reeds_state_totals.get(st, float('nan')))
-            eia_v = float(eia_state_totals.get(st, float('nan')))
-            diff_pct = (100.0 * (reeds_v - eia_v) / eia_v
-                        if (pd.notna(eia_v) and eia_v) else float('nan'))
-            state_rows[st][f'reeds_{by}_TWh'] = reeds_v
-            state_rows[st][f'eia_{by}_TWh'] = eia_v
-            state_rows[st][f'diff_{by}_pct'] = diff_pct
-
-    # Order columns: identifiers, then per-year triplets in BASE_YEARS_STATE order.
-    col_order = ['st', 'n_bas_state', 'n_bas_miso']
-    for by in BASE_YEARS_STATE:
-        col_order.extend([f'reeds_{by}_TWh', f'eia_{by}_TWh', f'diff_{by}_pct'])
-    state_base_df = pd.DataFrame(
-        [state_rows[st] for st in miso_states]
-    )[col_order]
-
-    # --- Table B: subregion base-year comparison (ReEDS vs LTLF) ---
-    # Same DPV-subtraction pipeline as the main year loop, applied at
-    # LTLF_BASE_YEAR (snapped to nearest available load.h5 year if needed).
-    # LTLF workbook lookup uses the ORIGINAL LTLF_BASE_YEAR since the ReEDS
-    # multiplier at LTLF_BASE_YEAR anchors ratio=1.0 to that same year.
-    subregion_base_rows = []
-    if LTLF_BASE_YEAR in available_years:
-        ltlf_year_reeds = LTLF_BASE_YEAR
-    else:
-        ltlf_year_reeds = _nearest_year(LTLF_BASE_YEAR, available_years)
-        print(f"  [note] Table B: LTLF_BASE_YEAR {LTLF_BASE_YEAR} not in "
-              f"load.h5; using load.h5({ltlf_year_reeds}) as ReEDS proxy.")
-
-    load_by = load_all.xs(ltlf_year_reeds, level=0)
-    common_ts = load_by.index.intersection(dpv_cf.index)
-    if len(common_ts) == 0:
-        print(f"  [warn] No overlapping timestamps between load.h5 model "
-              f"year {ltlf_year_reeds} and DPV CF; skipping Table B.")
-    else:
-        load_by = load_by.loc[common_ts]
-        cf_by = dpv_cf.loc[common_ts]
-        # DPV capacity is only computed for dpv_target_years; use the closest
-        # available column to ltlf_year_reeds.
-        if ltlf_year_reeds in dpv_cap.columns:
-            dpv_year_col = ltlf_year_reeds
-        else:
-            dpv_year_col = _nearest_year(
-                ltlf_year_reeds, list(dpv_cap.columns),
-            )
-        cap_row_by = dpv_cap[dpv_year_col].reindex(miso_bas).fillna(0.0)
-        dpv_gen_by = cf_by.multiply(cap_row_by, axis=1)
-        pre_direct_by = load_by - dpv_gen_by
-        # Strip direct-use with the same per-BA state fraction used in the
-        # main year loop; keeps Table B semantics aligned with LTLF Net Load.
-        adjusted_by = pre_direct_by.mul(ba_direct_multiplier, axis=1)
-        wy_by = adjusted_by.index.year
-        ltlf_at_base = ltlf_energy[
-            (ltlf_energy['scenario'] == scenario)
-            & (ltlf_energy['year'] == LTLF_BASE_YEAR)
-        ]
-        for sub_name in SUBREGION_ORDER:
-            if sub_name == 'MISO_Total':
-                bas = miso_bas
-            else:
-                bas = ba_map.loc[ba_map['subregion'] == sub_name,
-                                 'r'].tolist()
-            if not bas:
-                continue
-            sub_hourly = adjusted_by[bas].sum(axis=1)
-            energy_by_wy = sub_hourly.groupby(wy_by).sum() / 1e6
-            reeds_val = float(energy_by_wy.mean())
-            ltlf_v = ltlf_at_base[
-                ltlf_at_base['subregion'] == sub_name
-            ]['ltlf_energy_TWh']
-            ltlf_val = float(ltlf_v.iloc[0]) if len(ltlf_v) else float('nan')
-            diff_pct = (100.0 * (reeds_val - ltlf_val) / ltlf_val
-                        if (pd.notna(ltlf_val) and ltlf_val)
-                        else float('nan'))
-            subregion_base_rows.append({
-                'scenario': scenario,
-                'reeds_year': ltlf_year_reeds,
-                'ltlf_year': LTLF_BASE_YEAR,
-                'subregion': sub_name,
-                'ltlf_TWh': ltlf_val,
-                'reeds_TWh_mean': reeds_val,
-                'diff_TWh': reeds_val - ltlf_val,
-                'diff_pct': diff_pct,
-            })
-    subregion_base_df = pd.DataFrame(subregion_base_rows)
-
-    return (pd.DataFrame(rows), pd.DataFrame(per_ba_rows),
-            state_base_df, subregion_base_df)
+    return pd.DataFrame(rows)
 
 
 def merge_with_ltlf(reeds, ltlf_energy, ltlf_peak):
@@ -956,33 +726,42 @@ def make_plots(df, scenario):
     if df is None or df.empty:
         return
 
-    for kind, ylabel, ltlf_col, reeds_col, scale in [
+    for kind, ylabel, ltlf_col, reeds_col, reeds_min_col, reeds_max_col, scale in [
         ('energy', 'Annual Energy (TWh)',
-         'ltlf_energy_TWh', 'reeds_energy_TWh_mean', 1.0),
-        ('peak', 'Annual Coincident Peak (GW)',
-         'ltlf_peak_MW', 'reeds_peak_MW_mean', 1e-3),
+         'ltlf_energy_TWh', 'reeds_energy_TWh_mean',
+         'reeds_energy_TWh_min', 'reeds_energy_TWh_max', 1.0),
+        ('peak', 'Coincident Peak (GW)',
+         'ltlf_peak_MW', 'reeds_peak_MW_mean',
+         'reeds_peak_MW_min', 'reeds_peak_MW_max', 1e-3),
     ]:
-        fig, axes = plt.subplots(2, 2, figsize=(12, 8), sharex=True)
+        fig, axes = plt.subplots(2, 2, figsize=(9, 4), sharex=True)
         axes = axes.flatten()
         for ax, sub in zip(axes, SUBREGION_ORDER):
             d = df[df['subregion'] == sub].sort_values('year')
             if d.empty:
                 ax.set_title(f"{sub} (no data)")
                 continue
-            ax.plot(d['year'], d[ltlf_col] * scale, marker='o', label='LTLF')
+            ax.plot(d['year'], d[ltlf_col] * scale, marker='o', 
+                    label=f'MISO LTLF {scenario}', c='#db9728')
             ax.plot(d['year'], d[reeds_col] * scale, marker='s',
-                    label='ReEDS (adj)')
+                    label=f'ReEDS (adj) {scenario} mean', c='#0079C2')
+            ax.fill_between(
+                d['year'],
+                d[reeds_min_col] * scale,
+                d[reeds_max_col] * scale,
+                color='#0079C2', alpha=0.2, linewidth=0,
+                label='ReEDS weather-year range',
+            )
             ax.set_title(sub)
             ax.set_ylabel(ylabel)
             ax.grid(True, alpha=0.3)
-            ax.legend()
-        fig.suptitle(f"MISO {kind.capitalize()} — scenario '{scenario}'",
-                     fontsize=14)
+            ax.xaxis.set_major_locator(ticker.MultipleLocator(5))
+        plt.legend(loc='lower center', bbox_to_anchor=(0.5, -0.12), ncol=3)
         fig.tight_layout()
         out = os.path.join(
             OUTPUT_DIR, f'ltlf_comparison_{kind}_{scenario}.png',
         )
-        fig.savefig(out, dpi=150)
+        fig.savefig(out, dpi=300, bbox_inches='tight')
         plt.close(fig)
         print(f"  Wrote {out}")
 
@@ -1024,9 +803,7 @@ def main():
     print(f"  Total MISO BAs analyzed: {len(ba_map)}")
 
     for scenario in scenarios:
-        reeds, per_ba, state_base, sub_base = compute_scenario_metrics(
-            scenario, ba_map, hierarchy, ltlf_energy,
-        )
+        reeds = compute_scenario_metrics(scenario, ba_map, hierarchy)
         if reeds is None:
             continue
         merged = merge_with_ltlf(reeds, ltlf_energy, ltlf_peak)
@@ -1044,59 +821,6 @@ def main():
             )
             print(f"  DPV share of MISO gross energy in {int(row['year'])}: "
                   f"{dpv_share:.1f}%")
-
-        # Per-BA breakdown for diagnostic subregions.
-        if per_ba is not None and len(per_ba):
-            for sub_name in DIAGNOSTIC_SUBREGIONS:
-                sub_ba = per_ba[per_ba['subregion'] == sub_name]
-                if not len(sub_ba):
-                    continue
-                print(f"\n--- Per-BA breakdown: {scenario} / {sub_name} ---")
-                show = sub_ba[[
-                    'year', 'ba',
-                    'reeds_energy_TWh_mean',
-                    'reeds_peak_MW_mean',
-                    'dpv_energy_TWh_mean',
-                    'direct_use_energy_TWh_mean',
-                ]].copy()
-                show = show.sort_values(['year', 'ba']).reset_index(drop=True)
-                print(show.round(2).to_string(index=False))
-
-            ba_csv = os.path.join(
-                OUTPUT_DIR, f'ltlf_comparison_{scenario}_by_ba.csv',
-            )
-            per_ba.to_csv(ba_csv, index=False)
-            print(f"\n  Wrote {ba_csv}")
-
-        # Table A: state-level base-year comparison (ReEDS vs EIA_loadbystate)
-        if state_base is not None and len(state_base):
-            years_str = ", ".join(str(y) for y in BASE_YEARS_STATE)
-            print(f"\n--- Base year(s) {years_str}: ReEDS vs EIA state "
-                  f"loads (MISO-touching states), {scenario} ---")
-            with pd.option_context('display.max_rows', None,
-                                   'display.max_columns', None,
-                                   'display.width', 220):
-                print(state_base.round(2).to_string(index=False))
-            state_csv = os.path.join(
-                OUTPUT_DIR, f'ltlf_baseyear_state_{scenario}.csv',
-            )
-            state_base.to_csv(state_csv, index=False)
-            print(f"  Wrote {state_csv}")
-
-        # Table B: subregion base-year comparison (ReEDS vs LTLF workbook)
-        if sub_base is not None and len(sub_base):
-            print(f"\n--- Base year {LTLF_BASE_YEAR}: ReEDS "
-                  f"(DPV + direct-use adj) vs LTLF MISO subregion, "
-                  f"{scenario} ---")
-            with pd.option_context('display.max_rows', None,
-                                   'display.max_columns', None,
-                                   'display.width', 200):
-                print(sub_base.round(2).to_string(index=False))
-            sub_csv = os.path.join(
-                OUTPUT_DIR, f'ltlf_baseyear_subregion_{scenario}.csv',
-            )
-            sub_base.to_csv(sub_csv, index=False)
-            print(f"  Wrote {sub_csv}")
 
         # Large-diff warning
         big = merged[
