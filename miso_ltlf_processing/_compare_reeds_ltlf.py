@@ -736,6 +736,7 @@ def make_plots(df, scenario):
     ]:
         fig, axes = plt.subplots(2, 2, figsize=(9, 4), sharex=True)
         axes = axes.flatten()
+        legend_handles, legend_labels = None, None
         for ax, sub in zip(axes, SUBREGION_ORDER):
             d = df[df['subregion'] == sub].sort_values('year')
             if d.empty:
@@ -756,8 +757,16 @@ def make_plots(df, scenario):
             ax.set_ylabel(ylabel)
             ax.grid(True, alpha=0.3)
             ax.xaxis.set_major_locator(ticker.MultipleLocator(5))
-        plt.legend(loc='lower center', bbox_to_anchor=(0.5, -0.12), ncol=3)
+            if legend_handles is None:
+                legend_handles, legend_labels = ax.get_legend_handles_labels()
         fig.tight_layout()
+        if legend_handles:
+            fig.legend(
+                legend_handles, legend_labels,
+                loc='lower center', bbox_to_anchor=(0.5, 0),
+                ncol=len(legend_handles), frameon=False,
+            )
+            fig.subplots_adjust(bottom=0.18)
         out = os.path.join(
             OUTPUT_DIR, f'ltlf_comparison_{kind}_{scenario}.png',
         )
