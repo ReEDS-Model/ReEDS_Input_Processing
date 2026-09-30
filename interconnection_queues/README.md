@@ -8,8 +8,15 @@ This repo includes scripts and inputs to preprocess interconnection queues that 
     - First year (`t_1`) cumulative queues: `q_status = ‘active’` and `IA_status_clean = ‘IA Executed’`
     - Final year (`t_2`) cumulative queues: `q_status = ‘active’` regardless of `IA_status_clean` status
     - Cumulative values for all the years in between `t_1` and `t_2` are interpolated from these two years' values
-    - To run the script, a filename of the most recent data version, its data year (`version`) and `t_1` and `t_2` are required
-![interconnection queue inputs](interconnection_queue_inputs.png)
+    - To run the script, the input filenames, the data year (`version`) and `t_1` and `t_2` are set at the top of the script:
+
+| Parameter | Current value | Description |
+|---|---|---|
+| `filename` | `LBNL_Ix_Queue_Data_File_thru2025.xlsx` | Most recent LBNL queue data file |
+| `filename_other` | `queues_other_forNLR_2025.xlsx` | LBNL supplement with the detailed types behind `Other`/`Other Storage` |
+| `version` | 2025 | Data year (matches the year in the LBNL filenames) |
+| `t_1` | 2028 | First year to calculate queue |
+| `t_2` | 2031 | Last year to calculate queue |
 
 # Input files and params to run process_interconnection_queues.py
 All the input files to run the scripts are located in `inputs` folder, including original queue data from LBNL (most recently `LBNL_Ix_Queue_Data_File_thru2025.xlsx`), the supplement `queues_other_forNLR_2025.xlsx` and `county_state.csv` (read from the `inputs/zones` folder of the ReEDS repo) to match ReEDS counties to appropriate bas. Set `REEDS_PATH` to your ReEDS checkout.
@@ -24,5 +31,3 @@ The 2025 supplement restores pumped-storage and biofuel/biomass types grouped un
 # Comparison figures
 - Interconnection queue figures are generated from `process_interconnection_queues.py` for the current vintage (`version`) and its difference from the previous vintage, using `outputs/interconnection_queues_<version-1>.csv`. Update the input filenames, data year `version` (the year in the LBNL filename), and `t_1`/`t_2` for a new vintage; comparison years are selected automatically.
 - Years present in only one vintage are plotted against zero for the difference calculation; this does not mean the missing vintage imposed a zero-capacity limit.
-
-![comparing two versions of interconnection queue](comparing_interconnection_queue_versions.png)
