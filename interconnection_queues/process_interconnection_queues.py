@@ -31,22 +31,15 @@ year_range_str = [str(x) for x in year_range]
 
 ###################################################
 
-# Resource types LBNL folded into aggregated categories from the 2025 vintage on, mapped to the
-# category each was folded into. Only types with a matching ReEDS tech group are listed.
-folded2aggregated = {
-    'pumped storage': 'Other Storage',
-    'biofuel': 'Other',
-    'biomass': 'Other',
-}
-
-def add_detailed_types(queue_data, filename_other, type_cols):
+def add_detailed_types(queue_data, filename_other, type_cols, folded2aggregated):
     """Relabel the aggregated LBNL resource types using the detailed types from LBNL's supplement.
 
     Hybrid (co-located) requests name their detailed types in a different order than the public
     file's type columns, so each is matched to the aggregated category it was folded into rather
     than by position. A request with the same aggregated category in two type columns is skipped,
     since there is no way to tell which slot the detailed type belongs to. Capacities always come
-    from the public file.
+    from the public file. folded2aggregated maps each detailed type (lowercase) to the aggregated
+    category LBNL folded it into.
     """
     other = pd.read_excel(os.path.join(dir,'inputs',filename_other))
     detailed_by_request = {}
@@ -94,8 +87,16 @@ def main():
     queue_data.columns = queue_data.iloc[0]
     queue_data = queue_data[1:]
 
+    # The LBNL queue data aggregates biofuel and biomass into technology type 'Other' and pumped
+    # storage into 'Other Storage'. Here we map these technologies to their aggregated categories
+    # so the detailed types can be restored from LBNL's supplement.
+    folded2aggregated = {
+        'pumped storage': 'Other Storage',
+        'biofuel': 'Other',
+        'biomass': 'Other',
+    }
     queue_data = add_detailed_types(
-        queue_data, filename_other, ['type_'+str(item+1) for item in range(type_no)])
+        queue_data, filename_other, ['type_'+str(item+1) for item in range(type_no)], folded2aggregated)
 
     # County-to-FIPS mapping from the ReEDS repo
     county_state = pd.read_csv(os.path.join(reeds_path,'inputs','zones','county_state.csv'))
