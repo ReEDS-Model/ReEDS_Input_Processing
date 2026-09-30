@@ -85,7 +85,11 @@ def add_detailed_types(queue_data, filename_other, type_cols):
 # Number of technology type (as specified in the queue data file)
 type_no = 3
 queue_data = pd.read_excel(os.path.join(dir,'inputs',filename), sheet_name='03. Complete Queue Data')
-# The first row is empty, so remove it
+# First row is a title row; check the real header is in the second row before using it
+if 'q_id' in queue_data.columns:
+    raise ValueError(f'{filename}: header is already in the first row; remove the row-skipping below')
+if 'q_id' not in queue_data.iloc[0].values:
+    raise ValueError(f'{filename}: expected header row (q_id, ...) in the second row of the sheet')
 queue_data.columns = queue_data.iloc[0]
 queue_data = queue_data[1:]
 
