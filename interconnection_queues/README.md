@@ -8,7 +8,7 @@ This repo includes scripts and inputs to preprocess interconnection queues that 
     - First year (`t_1`) cumulative queues: `q_status = ‘active’` and `IA_status_clean = ‘IA Executed’`
     - Final year (`t_2`) cumulative queues: `q_status = ‘active’` regardless of `IA_status_clean` status
     - Cumulative values for all the years in between `t_1` and `t_2` are interpolated from these two years' values
-    - To run the script, a filename of the most recent data version, version release year and `t_1` and `t_2` are required
+    - To run the script, a filename of the most recent data version, its data year (`version`) and `t_1` and `t_2` are required
 ![interconnection queue inputs](interconnection_queue_inputs.png)
 
 # Input files and params to run process_interconnection_queues.py
@@ -22,7 +22,7 @@ The 2025 supplement restores pumped-storage and biofuel/biomass types grouped un
 - Previous version files are also kept there
 
 # Comparison figures
-- Interconnection queue figures are generated from `process_interconnection_queues.py` for the current vintage (`version-1`) and its difference from the previous vintage, using `outputs/interconnection_queues_<version-2>.csv`. Update the input filenames, release year `version`, and `t_1`/`t_2` for a new vintage; comparison years are selected automatically.
+- Interconnection queue figures are generated from `process_interconnection_queues.py` for the current vintage (`version`) and its difference from the previous vintage, using `outputs/interconnection_queues_<version-1>.csv`. Update the input filenames, data year `version` (the year in the LBNL filename), and `t_1`/`t_2` for a new vintage; comparison years are selected automatically.
 - Years present in only one vintage are plotted against zero for the difference calculation; this does not mean the missing vintage imposed a zero-capacity limit.
 
 ![comparing two versions of interconnection queue](comparing_interconnection_queue_versions.png)

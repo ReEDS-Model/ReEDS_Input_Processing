@@ -23,7 +23,7 @@ dir = os.getcwd()
 filename = 'LBNL_Ix_Queue_Data_File_thru2025.xlsx'
 # LBNL supplement with the detailed types behind "Other"/"Other Storage"
 filename_other = 'queues_other_forNLR_2025.xlsx'
-version = 2026              # release year
+version = 2025              # data year (matches the year in the LBNL filenames)
 t_1 = 2028                  # first year to calculate queue
 t_2 = 2031                  # last year to calculate queue
 year_range = list(range(t_1-1, t_2+1))
@@ -203,7 +203,7 @@ active_queue_county_filtered = active_queue_county_filtered.rename(columns={'FIP
 active_queue_county_filtered = active_queue_county_filtered.merge(csp_queue, on=['r','tg'], how='outer').fillna(0)
 
 ##################### SAVE OUTPUTS ######################
-active_queue_county_filtered.to_csv(os.path.join(dir,'outputs','interconnection_queues_'+str(version-1)+'.csv'),index=False)
+active_queue_county_filtered.to_csv(os.path.join(dir,'outputs','interconnection_queues_'+str(version)+'.csv'),index=False)
 active_queue_county_filtered.to_csv(os.path.join(dir,'outputs','interconnection_queues.csv'),index=False)
 #########################################################
 
@@ -237,13 +237,13 @@ chart = alt.Chart(queue_plot).mark_bar(size=30).encode(
                 ).configure_legend(labelFontSize=15, titleFontSize=15).properties(width=200, height=350).properties(
     width=500,
     height=300,
-    title='Interconnection Queue Version ' + str(version-1)
+    title='Interconnection Queue Version ' + str(version)
 )
 
-chart.save(os.path.join(dir,'outputs','figures','queue_versions_'+str(version-1)+'.html'))
+chart.save(os.path.join(dir,'outputs','figures','queue_versions_'+str(version)+'.html'))
 
 ############### COMPARISON PLOT #######################
-queue_previous = pd.read_csv(os.path.join(dir,'outputs','interconnection_queues_'+str(version-2)+'.csv'))
+queue_previous = pd.read_csv(os.path.join(dir,'outputs','interconnection_queues_'+str(version-1)+'.csv'))
 previous_years = [col for col in queue_previous.columns if col.isdigit()]
 queue_previous = pd.melt(queue_previous, id_vars=['r','tg'], value_vars=previous_years,
                          var_name='year', value_name='cap_previous')
@@ -256,7 +256,7 @@ queue_compare['idx'] = queue_compare['tg'].map(resource_order_idx)
 
 chart_compare = chart.properties(
     data=queue_compare,
-    title='Interconnection Queue Difference (Version ' + str(version-1) + ' - Version ' + str(version-2) + ')'
+    title='Interconnection Queue Difference (Version ' + str(version) + ' - Version ' + str(version-1) + ')'
 ).encode(
     x=alt.X('year:N', title=None, sort=sorted(set(previous_years + year_range_str), key=int)),
     y=alt.Y('sum(cap_diff):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), sort=status_cat)
