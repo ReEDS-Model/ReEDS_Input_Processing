@@ -11,7 +11,18 @@
 # ReEDS BA in the z90 hierarchy:
 #   - MISO BAs pick up the growth ratio of their MISO subregion (North /
 #     Central / South) from the MISO LTLF Annual_Energy_TWh totals, normalized
-#     so ltlf_first_year = 1.0.
+#     against a first-principles ReEDS-implied subregion energy at
+#     ltlf_first_year:
+#         ltlf_ratio(sub, year) = LTLF_energy(sub, year)
+#                               / reeds_implied_2026(sub)
+#     where
+#         reeds_implied_2026(sub) = sum over MISO BAs in sub of
+#             (state_2010_sales * loadmult(st, lastyear)
+#              * BA_pop_share_in_state)
+#     This absolute LTLF anchor rebases the ReEDS 2026 level toward LTLF
+#     2026 (so the MISO subregion comparison matches at the anchor year
+#     without requiring a prior ReEDS run), while LTLF year-over-year
+#     growth drives the trajectory from 2026 onward.
 #   - Non-MISO BAs pick up the growth ratio of their state from
 #     aeo_updates/Outputs/demand_AEO_{AEO_year}_{scenario}.csv, backed out by
 #     dividing the AEO state multiplier by the state loadmult.
@@ -213,14 +224,27 @@ def build_ba_population_weights(hierarchy):
     return ba_pop[['r', 'st', 'weight']].copy()
 
 
-def read_ltlf_ratios():
+def read_ltlf_ratios(reeds_implied_2026):
     """Read LTLF Annual_Energy_TWh subregion totals per scenario and return
-    ratios normalized so ltlf_first_year = 1.0.
+    ratios normalized against the ReEDS-implied 2026 subregion energy.
+
+    For each (subregion, scenario, year >= ltlf_first_year):
+        ltlf_ratio = LTLF_energy_TWh / reeds_implied_2026[subregion]
+
+    `reeds_implied_2026` is a mapping / Series {subregion -> TWh} produced by
+    `compute_reeds_implied_2026_by_subregion()`. It represents what the
+    uncorrected ReEDS inputs (loadmult * historical state energy * BA pop
+    share) would project for each MISO subregion at `ltlf_first_year`, so
+    dividing LTLF by it rebases the LTLF curve onto an absolute ReEDS-level
+    anchor. The result: when the state ratio hits 2026, the LTLF ratio is
+    k = LTLF_2026 / ReEDS_implied_2026 (not 1.0), pulling the ReEDS 2026
+    absolute level toward LTLF.
 
     Returns [scenario, subregion, year, ltlf_ratio] covering every year in
-    projection_years; pre-anchor years (2010-2025) are filled with 1.0 (linear
-    interpolation between ratio_lastyear=1.0 and ratio_ltlf_first_year=1.0
-    reduces to 1.0)."""
+    projection_years. Pre-anchor years (2010 - ltlf_first_year - 1) are
+    filled with 1.0 so historical loadmult carries the full projection
+    through 2025; the step at 2025 -> 2026 (1.0 -> k) is the correction
+    itself. Post-horizon years inherit the final published ratio."""
     df = pd.read_excel(LTLF_WORKBOOK, sheet_name=LTLF_SHEET)
     id_cols = ['LOAD_TYPE', 'TRAJECTORY', 'ZONE/REGION', 'DATA_TYPE', 'DRIVER']
     missing = [c for c in id_cols if c not in df.columns]
@@ -259,14 +283,27 @@ def read_ltlf_ratios():
             f"LTLF long-form has {dup} duplicate (scenario, subregion, year) rows"
         )
 
-    base = long.loc[long['year'] == ltlf_first_year,
-                    ['scenario', 'subregion', 'energy_TWh']].rename(
-        columns={'energy_TWh': 'base_TWh'},
+    # Absolute LTLF anchor: divide LTLF energy by the per-subregion
+    # ReEDS-implied 2026 energy (scenario-independent). This replaces the
+    # self-normalization where every scenario had ltlf_ratio = 1.0 at 2026.
+    implied = pd.Series(reeds_implied_2026, name='implied_2026_TWh')
+    implied.index.name = 'subregion'
+    missing_sub = set(MISO_SUBREGIONS) - set(implied.index)
+    if missing_sub:
+        raise ValueError(
+            f"reeds_implied_2026 is missing subregion(s): {sorted(missing_sub)}"
+        )
+    nonpos = implied[implied <= 0]
+    if len(nonpos):
+        raise ValueError(
+            f"reeds_implied_2026 has non-positive values: {nonpos.to_dict()}"
+        )
+    long = long.merge(
+        implied.reset_index(), on='subregion', how='left',
     )
-    long = long.merge(base, on=['scenario', 'subregion'])
-    long['ltlf_ratio'] = long['energy_TWh'] / long['base_TWh']
+    long['ltlf_ratio'] = long['energy_TWh'] / long['implied_2026_TWh']
 
-    # Expand to cover 2010-2050. Missing years (pre-2026) get 1.0.
+    # Expand to cover 2010-2050. Missing years (pre-ltlf_first_year) get 1.0.
     combos = long[['scenario', 'subregion']].drop_duplicates().assign(_k=1)
     grid = (
         pd.DataFrame({'year': list(projection_years)}).assign(_k=1)
@@ -276,7 +313,9 @@ def read_ltlf_ratios():
         long[['scenario', 'subregion', 'year', 'ltlf_ratio']],
         on=['scenario', 'subregion', 'year'], how='left',
     )
-    # Pre-anchor (year < ltlf_first_year) missing values -> 1.0.
+    # Pre-anchor (year < ltlf_first_year) missing values -> 1.0 so the
+    # historical loadmult chain carries the projection unchanged through
+    # 2025; the 2025 -> 2026 step is the LTLF-anchor correction.
     # Post-horizon (year > last LTLF year) missing values -> hold last LTLF
     # ratio flat (extrapolate the final published year forward through 2050).
     ltlf_last_year = int(long['year'].max())
@@ -291,7 +330,102 @@ def read_ltlf_ratios():
           f"holding final ratio flat for {ltlf_last_year + 1}..{projection_years[-1]}"
           if post_mask.any() else
           f"    LTLF horizon: {int(long['year'].min())}..{ltlf_last_year}")
+
+    # Print the absolute anchor factors at ltlf_first_year for visibility.
+    anchor_rows = ratios[ratios['year'] == ltlf_first_year][
+        ['scenario', 'subregion', 'ltlf_ratio']
+    ].sort_values(['subregion', 'scenario'])
+    print(f"    LTLF-absolute anchor factors at {ltlf_first_year} "
+          f"(k = LTLF / ReEDS_implied):")
+    for _, r in anchor_rows.iterrows():
+        k = r['ltlf_ratio']
+        print(f"      {r['subregion']:<8} {r['scenario']:<9} k = {k:.4f}  "
+              f"({(k - 1) * 100:+.2f}%)")
+
     return ratios[['scenario', 'subregion', 'year', 'ltlf_ratio']].copy()
+
+
+def compute_reeds_implied_2026_by_subregion(hierarchy, ba_weights, loadmult):
+    """Estimate each MISO subregion's uncorrected ReEDS 2026 annual energy
+    from first principles (no prior ReEDS run required).
+
+    For each state ``st``:
+        state_2026_TWh = state_2010_sales_GWh * loadmult(st, lastyear) / 1000
+
+    Then each MISO BA contributes its share of the state's projected 2026
+    energy, where the share is the BA's population weight within the state
+    (the ReEDS-canonical GSw_LoadAllocationMethod='population' assumption).
+    Finally, BA contributions are summed by MISO subregion:
+
+        reeds_implied_2026[sub] = sum over MISO BAs in sub of
+            (state_2026_TWh * ba_pop_weight_in_state)
+
+    This correctly captures that for mixed-MISO states (e.g., TX where
+    TX_MISO is a small share of ERCOT-dominated TX), only the MISO portion
+    of the state's energy is counted toward the MISO subregion total. Units
+    are TWh so the result is directly comparable to LTLF Annual_Energy_TWh.
+
+    Returns a pandas Series indexed by subregion name ('North', 'Central',
+    'South'), values in TWh.
+    """
+    # 2010 retail sales (million kWh = GWh) per state, matching the DC->MD
+    # convention used in fetch_eia_state_loadmult.
+    url_retail = create_EIA_url(
+        api_key, 'retail-sales', ['sales'], {'sectorid': ['ALL']},
+        freq='annual', start=2010, end=2010,
+    )
+    df_retail = retrieve_EIA_data(url_retail)
+    df_retail = df_retail[['stateid', 'sales']].copy()
+    df_retail['sales'] = pd.to_numeric(
+        df_retail['sales'], errors='coerce',
+    ).fillna(0)
+    df_retail.loc[df_retail['stateid'] == 'DC', 'stateid'] = 'MD'
+    df_retail = df_retail.groupby('stateid', as_index=False)['sales'].sum()
+    df_retail = df_retail.rename(
+        columns={'stateid': 'st', 'sales': 'sales_GWh_2010'},
+    )
+
+    # loadmult is held flat at lastyear through 2050; pick the lastyear value
+    # as the projection to ltlf_first_year (2026).
+    lm_last = loadmult[loadmult['year'] == lastyear][['st', 'loadmult']].rename(
+        columns={'loadmult': 'loadmult_last'},
+    )
+    proj = df_retail.merge(lm_last, on='st', how='inner')
+    proj['state_2026_TWh'] = (
+        proj['sales_GWh_2010'] * proj['loadmult_last'] / 1000.0
+    )
+
+    # Each MISO BA contributes (state_2026_TWh * BA pop share in state).
+    miso = hierarchy[hierarchy['transreg'] == 'MISO'].copy()
+    miso['subregion'] = miso['st'].map(MISO_STATE_TO_SUBREGION)
+    missing_sub = miso[miso['subregion'].isna()][['r', 'st']]
+    if len(missing_sub):
+        raise ValueError(
+            f"MISO BAs missing from MISO_STATE_TO_SUBREGION:\n"
+            f"{missing_sub.drop_duplicates()}"
+        )
+    miso = miso.merge(ba_weights[['r', 'weight']], on='r', how='left')
+    if miso['weight'].isna().any():
+        bad = miso.loc[miso['weight'].isna(), 'r'].tolist()
+        raise ValueError(f"MISO BAs with no population weight: {bad}")
+    miso = miso.merge(
+        proj[['st', 'state_2026_TWh']], on='st', how='left',
+    )
+    missing_state = miso.loc[miso['state_2026_TWh'].isna(), 'st'].unique()
+    if len(missing_state):
+        raise ValueError(
+            f"MISO states missing from EIA 2010 retail-sales projection: "
+            f"{sorted(missing_state)}"
+        )
+    miso['ba_2026_TWh'] = miso['state_2026_TWh'] * miso['weight']
+    implied = miso.groupby('subregion')['ba_2026_TWh'].sum()
+
+    print(f"  ReEDS-implied {ltlf_first_year} subregion energy (TWh), "
+          f"first-principles projection of EIA 2010 retail "
+          f"x loadmult({lastyear}) x BA pop share:")
+    for sub in MISO_SUBREGIONS:
+        print(f"    {sub:<8} = {implied.get(sub, float('nan')):.2f} TWh")
+    return implied
 
 
 def fetch_eia_state_loadmult():
@@ -405,11 +539,17 @@ def main():
         )
     ba_subregion = miso[['r', 'subregion']].copy()
 
-    print('Reading MISO LTLF workbook...')
-    ltlf = read_ltlf_ratios()
-
     print('Fetching EIA historical state loadmult...')
     loadmult = fetch_eia_state_loadmult()
+
+    print('Computing ReEDS-implied 2026 subregion energy '
+          '(first-principles, no prior ReEDS run needed)...')
+    reeds_implied_2026 = compute_reeds_implied_2026_by_subregion(
+        hierarchy, ba_weights, loadmult,
+    )
+
+    print('Reading MISO LTLF workbook...')
+    ltlf = read_ltlf_ratios(reeds_implied_2026)
 
     print('Reading AEO scenario multipliers...')
     aeo_ratios = read_aeo_state_ratios(loadmult)
