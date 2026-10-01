@@ -40,8 +40,9 @@
 
 import os
 import sys
-import pandas as pd
+
 import matplotlib.pyplot as plt
+import pandas as pd
 
 ### Configuration
 
@@ -55,7 +56,10 @@ AEO_DIR = os.path.join(REPO_ROOT, 'aeo_updates')
 if AEO_DIR not in sys.path:
     sys.path.insert(0, AEO_DIR)
 from _eia_api_functions import (
-    api_key, create_EIA_url, create_SEDS_url, retrieve_EIA_data,
+    api_key,
+    create_EIA_url,
+    create_SEDS_url,
+    retrieve_EIA_data,
 )
 
 # lastyear is the last year that historical data are available

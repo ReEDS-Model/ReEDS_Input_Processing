@@ -37,17 +37,18 @@
 import os
 import re
 import sys
+
 import h5py
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
+from matplotlib import ticker
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
 
 sys.path.insert(0, SCRIPT_DIR)
-from MISO_LTLF_Load_Projections import (  # noqa: E402
+from MISO_LTLF_Load_Projections import (
     LTLF_SHEET,
     LTLF_WORKBOOK,
     MISO_STATE_TO_SUBREGION,
@@ -445,7 +446,9 @@ def fetch_state_direct_use_fraction(anchor_year=DIRECT_USE_ANCHOR_YEAR):
         sys.path.insert(0, aeo_updates_dir)
     try:
         from _eia_api_functions import (
-            api_key, create_EIA_url, retrieve_EIA_data,
+            api_key,
+            create_EIA_url,
+            retrieve_EIA_data,
         )
     except (ImportError, ValueError) as err:
         print(f"  [warn] direct-use fraction unavailable ({err}); "
