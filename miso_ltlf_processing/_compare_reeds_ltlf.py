@@ -33,6 +33,7 @@
 # Outputs (per scenario found under REEDS_RUN_ROOT):
 #   Outputs/ltlf_comparison_energy_{scenario}.png
 #   Outputs/ltlf_comparison_peak_{scenario}.png
+#   Outputs/ltlf_comparison_load_factor_{scenario}.png
 
 import os
 import re
@@ -60,7 +61,7 @@ from MISO_LTLF_Load_Projections import (
 
 # Root of the ReEDS-trees runs directory containing per-scenario run folders.
 REEDS_RUN_ROOT = r'C:\Users\challora\reeds-trees\miso-ltlf-2026\runs'
-RUN_TEMPLATE = 'v20260928_LTLF_{scenario}'
+RUN_TEMPLATE = 'v20261001_LTLF_{scenario}'
 INPUTS_CASE_DIR = 'inputs_case'
 
 # Model years to compare (ReEDS solves at 5-yr steps in this range).
@@ -657,6 +658,9 @@ def compute_scenario_metrics(scenario, ba_map, hierarchy):
                     'reeds_peak_MW_mean': float('nan'),
                     'reeds_peak_MW_min': float('nan'),
                     'reeds_peak_MW_max': float('nan'),
+                    'reeds_load_factor_mean': float('nan'),
+                    'reeds_load_factor_min': float('nan'),
+                    'reeds_load_factor_max': float('nan'),
                     'dpv_energy_TWh_mean': float('nan'),
                     'direct_use_energy_TWh_mean': float('nan'),
                     'n_bas': 0,
@@ -670,6 +674,14 @@ def compute_scenario_metrics(scenario, ba_map, hierarchy):
             peak_by_wy = pd.Series(
                 sub_hourly.values[peak_iloc_by_wy], index=unique_wys,
             )
+            # Load factor per weather year: avg load / coincident peak load.
+            # Compute paired per-weather-year so the band reflects actual LF
+            # realizations (not the naive quotient of extremes).
+            hours_by_wy = pd.Series(wy_arr).value_counts().reindex(
+                unique_wys,
+            )
+            avg_load_by_wy = (energy_by_wy * 1e6) / hours_by_wy   # MW
+            lf_by_wy = avg_load_by_wy / peak_by_wy                # dimensionless
 
             dpv_hourly = dpv_gen[bas].sum(axis=1)
             dpv_energy_by_wy = dpv_hourly.groupby(wy).sum() / 1e6
@@ -687,6 +699,9 @@ def compute_scenario_metrics(scenario, ba_map, hierarchy):
                 'reeds_peak_MW_mean': peak_by_wy.mean(),
                 'reeds_peak_MW_min': peak_by_wy.min(),
                 'reeds_peak_MW_max': peak_by_wy.max(),
+                'reeds_load_factor_mean': lf_by_wy.mean(),
+                'reeds_load_factor_min': lf_by_wy.min(),
+                'reeds_load_factor_max': lf_by_wy.max(),
                 'dpv_energy_TWh_mean': dpv_energy_by_wy.mean(),
                 'direct_use_energy_TWh_mean': direct_energy_by_wy.mean(),
                 'n_bas': len(bas),
@@ -710,6 +725,18 @@ def merge_with_ltlf(reeds, ltlf_energy, ltlf_peak):
         * (out['reeds_peak_MW_mean'] - out['ltlf_peak_MW'])
         / out['ltlf_peak_MW']
     )
+    # LTLF load factor from the published annual energy and coincident peak.
+    # 8760 hours/year (LTLF energy columns are annual totals; leap-year
+    # effect on load factor is < 0.3% and well within the plot band).
+    with np.errstate(divide='ignore', invalid='ignore'):
+        out['ltlf_load_factor'] = (
+            (out['ltlf_energy_TWh'] * 1e6 / 8760.0) / out['ltlf_peak_MW']
+        )
+    out['load_factor_diff_pct'] = (
+        100.0
+        * (out['reeds_load_factor_mean'] - out['ltlf_load_factor'])
+        / out['ltlf_load_factor']
+    )
     col_order = [
         'scenario', 'year', 'subregion', 'n_bas',
         'ltlf_energy_TWh', 'reeds_energy_TWh_mean',
@@ -718,6 +745,9 @@ def merge_with_ltlf(reeds, ltlf_energy, ltlf_peak):
         'ltlf_peak_MW', 'reeds_peak_MW_mean',
         'reeds_peak_MW_min', 'reeds_peak_MW_max',
         'peak_diff_pct',
+        'ltlf_load_factor', 'reeds_load_factor_mean',
+        'reeds_load_factor_min', 'reeds_load_factor_max',
+        'load_factor_diff_pct',
         'dpv_energy_TWh_mean',
         'direct_use_energy_TWh_mean',
     ]
@@ -731,6 +761,7 @@ def print_comparison(df):
         'year', 'subregion',
         'ltlf_energy_TWh', 'reeds_energy_TWh_mean', 'energy_diff_pct',
         'ltlf_peak_MW', 'reeds_peak_MW_mean', 'peak_diff_pct',
+        'ltlf_load_factor', 'reeds_load_factor_mean', 'load_factor_diff_pct',
         'dpv_energy_TWh_mean',
         'direct_use_energy_TWh_mean',
     ]].copy()
@@ -759,6 +790,9 @@ def make_plots(df, scenario):
         ('peak', 'Coincident Peak (GW)',
          'ltlf_peak_MW', 'reeds_peak_MW_mean',
          'reeds_peak_MW_min', 'reeds_peak_MW_max', 1e-3),
+        ('load_factor', 'Load Factor (%)',
+         'ltlf_load_factor', 'reeds_load_factor_mean',
+         'reeds_load_factor_min', 'reeds_load_factor_max', 100.0),
     ]:
         fig, axes = plt.subplots(2, 2, figsize=(9, 4), sharex=True)
         axes = axes.flatten()
