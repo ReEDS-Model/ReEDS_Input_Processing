@@ -20,6 +20,9 @@
 #   5. Split subregion hourly series into 15 weather years, compute annual
 #      energy (TWh) and annual coincident peak (MW) per weather year, then
 #      report the mean across weather years alongside min/max diagnostics.
+#      Coincident peak follows the MISO LTLF definition: for each weather
+#      year, find the hour at which the full MISO footprint hits its max,
+#      then record each subregion's demand at that hour.
 #   6. Compare with MISO LTLF workbook (Annual_Energy_TWh and
 #      Annual_Coincident_Peak_MW).
 #
@@ -620,6 +623,22 @@ def compute_scenario_metrics(scenario, ba_map, hierarchy):
 
         wy = adjusted.index.year
 
+        # Coincident peak: for each weather year, find the hour at which
+        # the full MISO footprint (sum across all MISO BAs) hits its max,
+        # then read each subregion's load at that hour. This matches the
+        # MISO LTLF definition of Annual_Coincident_Peak_MW:
+        #   "demand in a MISO region at the hour of the MISO-wide peak".
+        # Use positional (iloc) indexing to avoid any datetime-dtype
+        # round-trip issues on the shared index.
+        miso_hourly = adjusted[miso_bas].sum(axis=1)   # MW per hour
+        miso_vals = miso_hourly.values
+        wy_arr = np.asarray(wy)
+        unique_wys = np.unique(wy_arr)
+        peak_iloc_by_wy = np.empty(len(unique_wys), dtype=np.int64)
+        for i, yr in enumerate(unique_wys):
+            positions = np.where(wy_arr == yr)[0]
+            peak_iloc_by_wy[i] = positions[np.argmax(miso_vals[positions])]
+
         for sub_name in SUBREGION_ORDER:
             if sub_name == 'MISO_Total':
                 bas = miso_bas
@@ -643,7 +662,11 @@ def compute_scenario_metrics(scenario, ba_map, hierarchy):
 
             sub_hourly = adjusted[bas].sum(axis=1)   # MW per hour
             energy_by_wy = sub_hourly.groupby(wy).sum() / 1e6   # MWh -> TWh
-            peak_by_wy = sub_hourly.groupby(wy).max()           # MW
+            # Subregion's demand at the MISO-wide coincident peak hour of
+            # each weather year (not the subregion's own non-coincident max).
+            peak_by_wy = pd.Series(
+                sub_hourly.values[peak_iloc_by_wy], index=unique_wys,
+            )
 
             dpv_hourly = dpv_gen[bas].sum(axis=1)
             dpv_energy_by_wy = dpv_hourly.groupby(wy).sum() / 1e6
