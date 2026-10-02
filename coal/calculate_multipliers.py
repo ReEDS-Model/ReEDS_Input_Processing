@@ -7,8 +7,7 @@ import geopandas as gpd
 from geopandas import GeoDataFrame
 from shapely.geometry import Point
 
-# Get NEMS database from ReEDS-2.0 repo
-#reeds_path = os.path.expanduser('~/Documents/Github/ReEDS/ReEDS-2.0')
+# Get NEMS database from ReEDS repo
 reeds_path = os.path.expanduser('~/Documents/GitHub/ReEDS/public_ReEDS/ReEDS')
 sys.path.append(reeds_path)
 import reeds
