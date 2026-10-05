@@ -13,16 +13,21 @@
 #     Central / South) from the MISO LTLF Annual_Energy_TWh totals, normalized
 #     against a first-principles ReEDS-implied subregion energy at
 #     ltlf_first_year:
-#         ltlf_ratio(sub, year) = LTLF_energy(sub, year)
+#         ltlf_ratio(sub, year) = ( LTLF_energy(sub, year) + dpv(sub, year) )
 #                               / reeds_implied_2026(sub)
 #     where reeds_implied_2026(sub) reconstructs each MISO subregion's
-#     uncorrected ReEDS 2026 energy on the same busbar, direct-use-stripped
-#     basis the comparison script measures from load.h5:
+#     uncorrected ReEDS 2026 energy on a GROSS (of DPV) busbar,
+#     direct-use-stripped basis:
 #         reeds_implied_2026(sub) = sum over MISO BAs in sub of
 #             ( EIA_loadbystate_2010(st) / (1 - distloss)
 #               * loadmult(st, lastyear)
 #               * BA_pop_share_in_state
 #               * (1 - direct_use_frac(st)) )
+#     and dpv(sub, year) = distpvcap(year) * 8760 * DPV_GROSS_ACF adds
+#     behind-meter PV back onto the LTLF "Net Load" numerator per year (from
+#     the static distpvcap input, no prior run). The ReEDS busbar then grows to
+#     LTLF + DPV, so after the comparison strips DPV from load.h5 the measured
+#     net load equals LTLF at every projection year, not only ltlf_first_year.
 #     This absolute LTLF anchor rebases the ReEDS 2026 level toward LTLF
 #     2026 (so the MISO subregion comparison matches at the anchor year
 #     without requiring a prior ReEDS run), while LTLF year-over-year
@@ -98,6 +103,21 @@ COUNTY_POP_PATH = os.path.join(REEDS_TREES, 'inputs', 'disaggregation', 'county_
 # LTLF by a near-uniform 1/(1-distloss) ~ +5.3%).
 EIA_LOADBYSTATE_PATH = os.path.join(REEDS_TREES, 'inputs', 'load', 'EIA_loadbystate.csv')
 DISTLOSS = 0.05
+
+# Distributed-PV capacity input (static, selected by the rarely-changed
+# `distpvscen` switch) used to net behind-meter PV out of the implied-2026
+# anchor so it matches the LTLF "Net Load" basis and the comparison script,
+# which both exclude DPV. The file is county-level (p+FIPS) wide-by-year MW.
+DISTPVSCEN = 'stscen2023_mid_case'
+DISTPVCAP_PATH = os.path.join(
+    REEDS_TREES, 'inputs', 'dgen_model_inputs', DISTPVSCEN,
+    f'distpvcap_{DISTPVSCEN}.csv',
+)
+# Representative gross (1/(1-distloss)-scaled, to match recf.h5) distributed-PV
+# annual capacity factor. Calibrated against the v20261005_LTLF run: MISO DPV
+# energy / (distpvcap * 8760) = 0.165 (0.160 North/Central, 0.175 South).
+# DPV is ~0.5% of MISO load, so the small subregion CF spread is immaterial.
+DPV_GROSS_ACF = 0.165
 
 # Fallback hierarchy inside this repo if the external file is missing
 HIERARCHY_FALLBACK = os.path.join(REPO_ROOT, 'zones', 'z90_20260216', 'hierarchy.csv')
@@ -243,21 +263,21 @@ def build_ba_population_weights(hierarchy):
     return ba_pop[['r', 'st', 'weight']].copy()
 
 
-def read_ltlf_ratios(reeds_implied_2026):
+def read_ltlf_ratios(reeds_implied_2026, hierarchy):
     """Read LTLF Annual_Energy_TWh subregion totals per scenario and return
     ratios normalized against the ReEDS-implied 2026 subregion energy.
 
     For each (subregion, scenario, year >= ltlf_first_year):
-        ltlf_ratio = LTLF_energy_TWh / reeds_implied_2026[subregion]
+        ltlf_ratio = (LTLF_energy_TWh + dpv_energy_TWh) / reeds_implied_2026
 
     `reeds_implied_2026` is a mapping / Series {subregion -> TWh} produced by
-    `compute_reeds_implied_2026_by_subregion()`. It represents what the
-    uncorrected ReEDS inputs (loadmult * historical state energy * BA pop
-    share) would project for each MISO subregion at `ltlf_first_year`, so
-    dividing LTLF by it rebases the LTLF curve onto an absolute ReEDS-level
-    anchor. The result: when the state ratio hits 2026, the LTLF ratio is
-    k = LTLF_2026 / ReEDS_implied_2026 (not 1.0), pulling the ReEDS 2026
-    absolute level toward LTLF.
+    `compute_reeds_implied_2026_by_subregion()`. It is a GROSS (of DPV) busbar,
+    direct-use-stripped level. LTLF totals are "Net Load" (behind-meter PV
+    removed) and _compare_reeds_ltlf.py subtracts DPV generation from load.h5,
+    so distributed-PV generation is added back to the LTLF numerator per year
+    (via `hierarchy` + the static distpvcap input). The ReEDS busbar then grows
+    to LTLF + DPV, and after the comparison subtracts DPV the measured net load
+    equals LTLF at every projection year (not just ltlf_first_year).
 
     Returns [scenario, subregion, year, ltlf_ratio] covering every year in
     projection_years. Pre-anchor years (2010 - ltlf_first_year - 1) are
@@ -320,7 +340,18 @@ def read_ltlf_ratios(reeds_implied_2026):
     long = long.merge(
         implied.reset_index(), on='subregion', how='left',
     )
-    long['ltlf_ratio'] = long['energy_TWh'] / long['implied_2026_TWh']
+
+    # Net behind-meter PV onto the LTLF "Net Load" numerator per year, so the
+    # ReEDS busbar grows to LTLF + DPV and the comparison (which strips DPV)
+    # recovers LTLF at every year. DPV is scenario-independent.
+    dpv = fetch_dpv_energy_by_subregion_year(
+        hierarchy, sorted(long['year'].unique()),
+    )
+    long = long.merge(dpv, on=['subregion', 'year'], how='left')
+    long['dpv_TWh'] = long['dpv_TWh'].fillna(0.0)
+    long['ltlf_ratio'] = (
+        (long['energy_TWh'] + long['dpv_TWh']) / long['implied_2026_TWh']
+    )
 
     # Expand to cover 2010-2050. Missing years (pre-ltlf_first_year) get 1.0.
     combos = long[['scenario', 'subregion']].drop_duplicates().assign(_k=1)
@@ -424,6 +455,56 @@ def fetch_state_direct_use_fraction(anchor_year=2010):
     return dict(zip(out['st'], out['direct_use_frac']))
 
 
+def fetch_dpv_energy_by_subregion_year(hierarchy, years):
+    """Distributed-PV generation (TWh) by MISO subregion for each requested
+    year, from the static distpvcap input (no prior ReEDS run).
+
+    Used to net behind-meter PV out of the LTLF numerator per projection year
+    so the implied anchor stays on the LTLF "Net Load" / comparison basis at
+    every year (not just ltlf_first_year). distpvcap_{distpvscen}.csv is a
+    county-level (p+FIPS) wide-by-year MW file selected by the rarely-changed
+    `distpvscen` switch; its even-year columns are linearly interpolated to any
+    odd requested year (each odd year is the exact midpoint of its even
+    neighbours). Energy = capacity(year) * 8760 * DPV_GROSS_ACF. Counties ->
+    BAs via county2zone.csv, BAs -> subregion via hierarchy state; only MISO
+    BAs are counted.
+
+    Returns a DataFrame [subregion, year, dpv_TWh]; (subregion, year) pairs
+    with no DPV are 0.0. DPV is scenario-independent.
+    """
+    years = sorted({int(y) for y in years})
+
+    # County (p+FIPS) -> BA map, same source as the population weights.
+    c2z = pd.read_csv(COUNTY2ZONE_PATH, dtype=str).rename(
+        columns={'ba': 'r', 'state': 'st'})
+    if not {'FIPS', 'r'} <= set(c2z.columns):
+        raise ValueError(
+            f"county2zone at {COUNTY2ZONE_PATH} needs 'FIPS' and 'r' columns")
+    c2z['FIPS'] = 'p' + c2z['FIPS'].astype(str).str.zfill(5)
+
+    # MISO BA -> subregion.
+    miso = hierarchy[hierarchy['transreg'] == 'MISO'][['r', 'st']].copy()
+    miso['subregion'] = miso['st'].map(MISO_STATE_TO_SUBREGION)
+    miso_cty = c2z[['FIPS', 'r']].merge(miso, on='r', how='inner')
+
+    # Static distpvcap (MW) by county, wide by even year -> requested years.
+    cap = pd.read_csv(DISTPVCAP_PATH)
+    cap = cap.rename(columns={cap.columns[0]: 'FIPS'}).set_index('FIPS')
+    cap.columns = [int(c) for c in cap.columns]
+    all_years = sorted(set(cap.columns) | set(years))
+    cap = cap.reindex(columns=all_years).interpolate(axis=1, method='linear')
+    cap = cap[years].reset_index()
+
+    dpv = miso_cty.merge(cap, on='FIPS', how='left')
+    long = dpv.melt(
+        id_vars=['FIPS', 'r', 'st', 'subregion'], value_vars=years,
+        var_name='year', value_name='cap_MW')
+    long['cap_MW'] = long['cap_MW'].fillna(0.0)
+    long['year'] = long['year'].astype(int)
+    long['dpv_TWh'] = long['cap_MW'] * 8760.0 * DPV_GROSS_ACF / 1e6
+    return long.groupby(['subregion', 'year'], as_index=False)['dpv_TWh'].sum()
+
+
 def compute_reeds_implied_2026_by_subregion(hierarchy, ba_weights, loadmult):
     """Estimate each MISO subregion's uncorrected ReEDS 2026 annual energy on
     the same busbar, direct-use-stripped basis the comparison measures from
@@ -435,6 +516,11 @@ def compute_reeds_implied_2026_by_subregion(hierarchy, ba_weights, loadmult):
         ba_2026(BA)     = state_2026(st) * ba_pop_weight_in_state
         ba_2026_net(BA) = ba_2026(BA) * (1 - direct_use_frac[st])
         implied[sub]    = sum over MISO BAs in sub of ba_2026_net
+
+    This is a GROSS (of DPV) busbar, direct-use-stripped level. Behind-meter
+    PV is netted out per projection year in read_ltlf_ratios (by adding DPV
+    generation to the LTLF numerator), not here, so the anchor matches the
+    LTLF "Net Load" / comparison basis at every year rather than only 2026.
 
     Rationale for each term:
       * EIA_loadbystate.csv is ReEDS's own 2010 end-use base, so it anchors
@@ -451,9 +537,6 @@ def compute_reeds_implied_2026_by_subregion(hierarchy, ba_weights, loadmult):
         exactly as _compare_reeds_ltlf.py does to load.h5. Because
         EIA_loadbystate = retail + direct-use, this recovers a
         retail-equivalent net base per state.
-      * Distributed PV at 2026 is small (~0.5-0.9% of MISO energy) and would
-        require a prior ReEDS run (distpvcap); it is intentionally omitted,
-        leaving a small (~ -0.5 to -0.9%) residual the comparison quantifies.
 
     Only the MISO portion of mixed states is counted (via BA population
     weights), so e.g. TX contributes only TX_MISO, not ERCOT. Units are TWh,
@@ -511,9 +594,10 @@ def compute_reeds_implied_2026_by_subregion(hierarchy, ba_weights, loadmult):
     )
     implied = miso.groupby('subregion')['ba_2026_TWh'].sum()
 
-    print(f"  ReEDS-implied {ltlf_first_year} subregion energy (TWh), busbar & "
-          f"direct-use-stripped, from EIA_loadbystate 2010 /(1-distloss) "
-          f"x loadmult({lastyear}) x BA pop share x (1-direct):")
+    print(f"  ReEDS-implied {ltlf_first_year} subregion energy (TWh), gross "
+          f"busbar & direct-use-stripped (DPV netted per-year in the ratio), "
+          f"from EIA_loadbystate 2010 /(1-distloss) x loadmult({lastyear}) "
+          f"x BA pop share x (1-direct):")
     for sub in MISO_SUBREGIONS:
         print(f"    {sub:<8} = {implied.get(sub, float('nan')):.2f} TWh")
     return implied
@@ -640,7 +724,7 @@ def main():
     )
 
     print('Reading MISO LTLF workbook...')
-    ltlf = read_ltlf_ratios(reeds_implied_2026)
+    ltlf = read_ltlf_ratios(reeds_implied_2026, hierarchy)
 
     print('Reading AEO scenario multipliers...')
     aeo_ratios = read_aeo_state_ratios(loadmult)
