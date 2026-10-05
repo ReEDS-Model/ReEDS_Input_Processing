@@ -15,10 +15,14 @@
 #     ltlf_first_year:
 #         ltlf_ratio(sub, year) = LTLF_energy(sub, year)
 #                               / reeds_implied_2026(sub)
-#     where
+#     where reeds_implied_2026(sub) reconstructs each MISO subregion's
+#     uncorrected ReEDS 2026 energy on the same busbar, direct-use-stripped
+#     basis the comparison script measures from load.h5:
 #         reeds_implied_2026(sub) = sum over MISO BAs in sub of
-#             (state_2010_sales * loadmult(st, lastyear)
-#              * BA_pop_share_in_state)
+#             ( EIA_loadbystate_2010(st) / (1 - distloss)
+#               * loadmult(st, lastyear)
+#               * BA_pop_share_in_state
+#               * (1 - direct_use_frac(st)) )
 #     This absolute LTLF anchor rebases the ReEDS 2026 level toward LTLF
 #     2026 (so the MISO subregion comparison matches at the anchor year
 #     without requiring a prior ReEDS run), while LTLF year-over-year
@@ -26,11 +30,14 @@
 #   - Non-MISO BAs pick up the growth ratio of their state from
 #     aeo_updates/Outputs/demand_AEO_{AEO_year}_{scenario}.csv, backed out by
 #     dividing the AEO state multiplier by the state loadmult.
-# BA ratios are aggregated to a state ratio using a population-weighted
-# average of BAs within the state (weights static, sum to 1 per state).
-# The final state multiplier is loadmult(st, year) * state_ratio(st, year).
+# The final BA multiplier is loadmult(st_of_BA, year) * ba_ratio(BA, year),
+# emitted at BA (model-region) resolution. Applying growth per BA (rather than
+# collapsing to a population-weighted state multiplier) lets MISO BAs follow
+# their LTLF subregion trajectory even inside mixed states (e.g. TX_MISO vs
+# ERCOT, IL ComEd vs PJM); ReEDS applies these multipliers per model region
+# in input_processing/hourly_load.py.
 #
-# Output files (matching demand_AEO_{year}_{scenario}.csv schema, r=state):
+# Output files (r=BA/model region; same multiplier schema as the AEO CSVs):
 #   Outputs/demand_MISOLTLF_{AEO_year}_baseline.csv  (Current Trajectory)
 #   Outputs/demand_MISOLTLF_{AEO_year}_high.csv      (High Trajectory)
 #   Outputs/demand_MISOLTLF_{AEO_year}_low.csv       (Low Trajectory)
@@ -83,6 +90,14 @@ REEDS_TREES = r'C:\Users\challora\reeds-trees\main'
 HIERARCHY_PATH = os.path.join(REEDS_TREES, 'inputs', 'zones', 'z90', 'hierarchy.csv')
 COUNTY2ZONE_PATH = os.path.join(REEDS_TREES, 'inputs', 'zones', 'z90', 'county2zone.csv')
 COUNTY_POP_PATH = os.path.join(REEDS_TREES, 'inputs', 'disaggregation', 'county_population.csv')
+
+# ReEDS's own 2010 end-use load base (MWh by state) used as the implied-2026
+# anchor base, plus the distribution-loss scalar used to gross it up to the
+# busbar basis of load.h5 (confirmed required by comparing a ReEDS run's
+# load.h5 against LTLF: without the gross-up every MISO subregion overshoots
+# LTLF by a near-uniform 1/(1-distloss) ~ +5.3%).
+EIA_LOADBYSTATE_PATH = os.path.join(REEDS_TREES, 'inputs', 'load', 'EIA_loadbystate.csv')
+DISTLOSS = 0.05
 
 # Fallback hierarchy inside this repo if the external file is missing
 HIERARCHY_FALLBACK = os.path.join(REPO_ROOT, 'zones', 'z90_20260216', 'hierarchy.csv')
@@ -349,57 +364,125 @@ def read_ltlf_ratios(reeds_implied_2026):
     return ratios[['scenario', 'subregion', 'year', 'ltlf_ratio']].copy()
 
 
+def fetch_state_direct_use_fraction(anchor_year=2010):
+    """Return {state -> direct_use / (retail_sales + direct_use)} for
+    `anchor_year` from the EIA API, matching the definition in
+    _compare_reeds_ltlf.py so the implied-2026 anchor is stripped of
+    industrial direct-use on exactly the same basis the comparison strips it
+    from load.h5.
+
+    Sources:
+      * retail-sales (data=sales, sectorid=ALL): GWh
+      * state-electricity-profiles/source-disposition (data=direct-use): MWh
+        (divided by 1000 to reach GWh)
+
+    Cached to Outputs/state_direct_use_fraction_{year}.csv (the same cache
+    the comparison script uses, so the two stay consistent)."""
+    cache_path = os.path.join(
+        OUTPUT_DIR, f'state_direct_use_fraction_{anchor_year}.csv',
+    )
+    if os.path.exists(cache_path):
+        cached = pd.read_csv(cache_path)
+        return dict(zip(cached['st'], cached['direct_use_frac']))
+
+    url_retail = create_EIA_url(
+        api_key, 'retail-sales', ['sales'], {'sectorid': ['ALL']},
+        freq='annual', start=anchor_year, end=anchor_year,
+    )
+    df_retail = retrieve_EIA_data(url_retail)[['stateid', 'sales']].copy()
+    df_retail['sales'] = pd.to_numeric(
+        df_retail['sales'], errors='coerce',
+    ).fillna(0.0)
+    df_retail.loc[df_retail['stateid'] == 'DC', 'stateid'] = 'MD'
+    df_retail = df_retail.groupby('stateid', as_index=False)['sales'].sum()
+
+    url_direct = create_EIA_url(
+        api_key, 'state-electricity-profiles/source-disposition',
+        ['direct-use'], {}, freq='annual',
+        start=anchor_year, end=anchor_year,
+    )
+    df_direct = retrieve_EIA_data(url_direct)
+    df_direct = df_direct.rename(columns={'state': 'stateid'})
+    df_direct = df_direct[['stateid', 'direct-use']].copy()
+    # source-disposition returns MWh; retail-sales.sales is GWh.
+    df_direct['direct-use'] = pd.to_numeric(
+        df_direct['direct-use'], errors='coerce',
+    ).fillna(0.0) / 1000.0
+    df_direct.loc[df_direct['stateid'] == 'DC', 'stateid'] = 'MD'
+    df_direct = df_direct.groupby('stateid', as_index=False)['direct-use'].sum()
+
+    merged = df_retail.merge(df_direct, on='stateid', how='outer').fillna(0.0)
+    denom = merged['sales'] + merged['direct-use']
+    merged['direct_use_frac'] = (
+        (merged['direct-use'] / denom).where(denom > 0, 0.0)
+    )
+    out = merged.rename(columns={'stateid': 'st'})[
+        ['st', 'sales', 'direct-use', 'direct_use_frac']
+    ]
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    out.to_csv(cache_path, index=False)
+    return dict(zip(out['st'], out['direct_use_frac']))
+
+
 def compute_reeds_implied_2026_by_subregion(hierarchy, ba_weights, loadmult):
-    """Estimate each MISO subregion's uncorrected ReEDS 2026 annual energy
-    from first principles (no prior ReEDS run required).
+    """Estimate each MISO subregion's uncorrected ReEDS 2026 annual energy on
+    the same busbar, direct-use-stripped basis the comparison measures from
+    load.h5, from first principles (no prior ReEDS run required).
 
-    For each state ``st``:
-        state_2026_TWh = state_2010_sales_GWh * loadmult(st, lastyear) / 1000
+    Per MISO BA, summed to subregion:
+        base_busbar(st) = EIA_loadbystate_2010(st) / (1 - DISTLOSS)
+        state_2026(st)  = base_busbar(st) * loadmult(st, lastyear)
+        ba_2026(BA)     = state_2026(st) * ba_pop_weight_in_state
+        ba_2026_net(BA) = ba_2026(BA) * (1 - direct_use_frac[st])
+        implied[sub]    = sum over MISO BAs in sub of ba_2026_net
 
-    Then each MISO BA contributes its share of the state's projected 2026
-    energy, where the share is the BA's population weight within the state
-    (the ReEDS-canonical GSw_LoadAllocationMethod='population' assumption).
-    Finally, BA contributions are summed by MISO subregion:
+    Rationale for each term:
+      * EIA_loadbystate.csv is ReEDS's own 2010 end-use base, so it anchors
+        the absolute level with clean provenance (it is exactly the file
+        ReEDS reads before applying loadmult and distribution losses).
+      * Dividing by (1 - DISTLOSS) grosses the end-use base up to the busbar
+        basis that ReEDS writes to load.h5. This is REQUIRED: a Phase-4 run
+        showed that without it every MISO subregion overshoots LTLF by a
+        near-uniform 1/(1-distloss) ~ +5.3%. The identity
+        reeds_net ~ LTLF/(1-distloss) - DPV held to <0.1 TWh (e.g. North
+        2030: 183.50/0.95 - 1.70 = 191.46 vs measured 191.49), so grossing
+        up the anchor cancels the term and lands within the DPV residual.
+      * Multiplying by (1 - direct_use_frac) strips industrial direct-use,
+        exactly as _compare_reeds_ltlf.py does to load.h5. Because
+        EIA_loadbystate = retail + direct-use, this recovers a
+        retail-equivalent net base per state.
+      * Distributed PV at 2026 is small (~0.5-0.9% of MISO energy) and would
+        require a prior ReEDS run (distpvcap); it is intentionally omitted,
+        leaving a small (~ -0.5 to -0.9%) residual the comparison quantifies.
 
-        reeds_implied_2026[sub] = sum over MISO BAs in sub of
-            (state_2026_TWh * ba_pop_weight_in_state)
-
-    This correctly captures that for mixed-MISO states (e.g., TX where
-    TX_MISO is a small share of ERCOT-dominated TX), only the MISO portion
-    of the state's energy is counted toward the MISO subregion total. Units
-    are TWh so the result is directly comparable to LTLF Annual_Energy_TWh.
+    Only the MISO portion of mixed states is counted (via BA population
+    weights), so e.g. TX contributes only TX_MISO, not ERCOT. Units are TWh,
+    directly comparable to LTLF Annual_Energy_TWh.
 
     Returns a pandas Series indexed by subregion name ('North', 'Central',
     'South'), values in TWh.
     """
-    # 2010 retail sales (million kWh = GWh) per state, matching the DC->MD
-    # convention used in fetch_eia_state_loadmult.
-    url_retail = create_EIA_url(
-        api_key, 'retail-sales', ['sales'], {'sectorid': ['ALL']},
-        freq='annual', start=2010, end=2010,
-    )
-    df_retail = retrieve_EIA_data(url_retail)
-    df_retail = df_retail[['stateid', 'sales']].copy()
-    df_retail['sales'] = pd.to_numeric(
-        df_retail['sales'], errors='coerce',
-    ).fillna(0)
-    df_retail.loc[df_retail['stateid'] == 'DC', 'stateid'] = 'MD'
-    df_retail = df_retail.groupby('stateid', as_index=False)['sales'].sum()
-    df_retail = df_retail.rename(
-        columns={'stateid': 'st', 'sales': 'sales_GWh_2010'},
+    # ReEDS 2010 end-use base (MWh) -> busbar TWh, matching load.h5.
+    load_state = pd.read_csv(EIA_LOADBYSTATE_PATH)
+    load_state = load_state[load_state['year'] == 2010][['st', 'MWh']].copy()
+    load_state['st'] = load_state['st'].replace({'DC': 'MD'})
+    load_state = load_state.groupby('st', as_index=False)['MWh'].sum()
+    load_state['base_busbar_TWh'] = (
+        load_state['MWh'] / 1e6 / (1.0 - DISTLOSS)
     )
 
-    # loadmult is held flat at lastyear through 2050; pick the lastyear value
+    # loadmult is held flat at lastyear through 2050; use the lastyear value
     # as the projection to ltlf_first_year (2026).
     lm_last = loadmult[loadmult['year'] == lastyear][['st', 'loadmult']].rename(
         columns={'loadmult': 'loadmult_last'},
     )
-    proj = df_retail.merge(lm_last, on='st', how='inner')
-    proj['state_2026_TWh'] = (
-        proj['sales_GWh_2010'] * proj['loadmult_last'] / 1000.0
-    )
+    proj = load_state.merge(lm_last, on='st', how='inner')
+    proj['state_2026_TWh'] = proj['base_busbar_TWh'] * proj['loadmult_last']
 
-    # Each MISO BA contributes (state_2026_TWh * BA pop share in state).
+    # Per-state direct-use fraction (same basis as the comparison script).
+    direct_frac = fetch_state_direct_use_fraction()
+
+    # Each MISO BA contributes (state_2026_TWh * BA pop share * (1-direct)).
     miso = hierarchy[hierarchy['transreg'] == 'MISO'].copy()
     miso['subregion'] = miso['st'].map(MISO_STATE_TO_SUBREGION)
     missing_sub = miso[miso['subregion'].isna()][['r', 'st']]
@@ -418,15 +501,19 @@ def compute_reeds_implied_2026_by_subregion(hierarchy, ba_weights, loadmult):
     missing_state = miso.loc[miso['state_2026_TWh'].isna(), 'st'].unique()
     if len(missing_state):
         raise ValueError(
-            f"MISO states missing from EIA 2010 retail-sales projection: "
+            f"MISO states missing from EIA_loadbystate 2010 base: "
             f"{sorted(missing_state)}"
         )
-    miso['ba_2026_TWh'] = miso['state_2026_TWh'] * miso['weight']
+    miso['direct_use_frac'] = miso['st'].map(direct_frac).fillna(0.0)
+    miso['ba_2026_TWh'] = (
+        miso['state_2026_TWh'] * miso['weight']
+        * (1.0 - miso['direct_use_frac'])
+    )
     implied = miso.groupby('subregion')['ba_2026_TWh'].sum()
 
-    print(f"  ReEDS-implied {ltlf_first_year} subregion energy (TWh), "
-          f"first-principles projection of EIA 2010 retail "
-          f"x loadmult({lastyear}) x BA pop share:")
+    print(f"  ReEDS-implied {ltlf_first_year} subregion energy (TWh), busbar & "
+          f"direct-use-stripped, from EIA_loadbystate 2010 /(1-distloss) "
+          f"x loadmult({lastyear}) x BA pop share x (1-direct):")
     for sub in MISO_SUBREGIONS:
         print(f"    {sub:<8} = {implied.get(sub, float('nan')):.2f} TWh")
     return implied
@@ -585,23 +672,32 @@ def main():
             f"{bad.head()}"
         )
 
-    # ---- Population-weighted state ratio ----------------------------------
-    ba_grid = ba_grid.merge(ba_weights[['r', 'weight']], on='r', how='left')
-    if ba_grid['weight'].isna().any():
-        bad = ba_grid.loc[ba_grid['weight'].isna(), 'r'].drop_duplicates().tolist()
-        raise ValueError(f"BAs with no population weight: {bad}")
-    ba_grid['weighted'] = ba_grid['ba_ratio'] * ba_grid['weight']
-    state_ratio = (
-        ba_grid.groupby(['scenario', 'st', 'year'], as_index=False)['weighted']
-        .sum().rename(columns={'weighted': 'state_ratio'})
-    )
-
-    # ---- Compose final state multiplier -----------------------------------
-    out = state_ratio.merge(loadmult, on=['st', 'year'], how='left')
+    # ---- Compose final BA-level multiplier --------------------------------
+    # Apply demand growth at BA resolution so MISO BAs follow their LTLF
+    # subregion trajectory even inside mixed states (e.g. TX_MISO vs ERCOT,
+    # IL ComEd vs PJM). Each BA combines its state's historical loadmult with
+    # its own BA-level forward ratio (LTLF for MISO BAs, AEO for non-MISO).
+    # No population-weighted state collapse: ReEDS applies these multipliers
+    # per model region (see hourly_load.py), so emitting r=BA lets mixed
+    # states carry distinct MISO vs non-MISO growth.
+    out = ba_grid.merge(loadmult, on=['st', 'year'], how='left')
     if out['loadmult'].isna().any():
-        raise ValueError('Missing loadmult after merge into state ratios')
-    out['multiplier'] = out['loadmult'] * out['state_ratio']
-    out = out.rename(columns={'st': 'r'})[['r', 'year', 'scenario', 'multiplier']]
+        raise ValueError('Missing loadmult after merge into BA ratios')
+    out['multiplier'] = out['loadmult'] * out['ba_ratio']
+    out = out[['r', 'year', 'scenario', 'multiplier']]
+
+    # Sanity: the baseline year (2010) multiplier must be ~1.0 for every BA
+    # (loadmult(2010)=1 and ba_ratio(2010)=1), so growth is anchored there.
+    base_year = min(projection_years)
+    base = out[out['year'] == base_year]
+    max_base_dev = (base['multiplier'] - 1.0).abs().max()
+    if max_base_dev > 1e-6:
+        bad = base.loc[(base['multiplier'] - 1.0).abs() > 1e-6,
+                       ['r', 'scenario', 'multiplier']]
+        raise ValueError(
+            f"Baseline-year ({base_year}) multiplier deviates from 1.0 "
+            f"(worst = {max_base_dev:.2e}); first few:\n{bad.head()}"
+        )
 
     # ---- Write scenario CSVs ----------------------------------------------
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -610,7 +706,7 @@ def main():
         df = df.sort_values(['r', 'year']).reset_index(drop=True)
         path = os.path.join(OUTPUT_DIR, f'demand_MISOLTLF_{AEO_year}_{suffix}.csv')
         df.to_csv(path, index=False)
-        print(f'Wrote {path}  ({len(df):,} rows, {df["r"].nunique()} states)')
+        print(f'Wrote {path}  ({len(df):,} rows, {df["r"].nunique()} BAs)')
 
     # ---- Optional plots (set MISO_LTLF_PLOT=1 to enable) -------------------
     if os.environ.get('MISO_LTLF_PLOT', '0') == '1':
@@ -620,10 +716,10 @@ def main():
             for r in df['r'].unique():
                 df_r = df[df['r'] == r]
                 plt.plot(df_r['year'], df_r['multiplier'], label=r)
-            plt.title(f'MISO LTLF Demand Multipliers by State - {suffix}')
+            plt.title(f'MISO LTLF Demand Multipliers by BA - {suffix}')
             plt.xlabel('Year')
             plt.ylabel('Demand Multiplier')
-            plt.legend(title='State', bbox_to_anchor=(1.05, 1), loc='upper left',
+            plt.legend(title='BA', bbox_to_anchor=(1.05, 1), loc='upper left',
                        fontsize=7, ncol=2)
             plt.grid()
             plt.tight_layout()

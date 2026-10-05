@@ -61,7 +61,7 @@ from MISO_LTLF_Load_Projections import (
 
 # Root of the ReEDS-trees runs directory containing per-scenario run folders.
 REEDS_RUN_ROOT = r'C:\Users\challora\reeds-trees\miso-ltlf-2026\runs'
-RUN_TEMPLATE = 'v20261001_LTLF_{scenario}'
+RUN_TEMPLATE = 'v20261005_LTLF_{scenario}'
 INPUTS_CASE_DIR = 'inputs_case'
 
 # Model years to compare (ReEDS solves at 5-yr steps in this range).
