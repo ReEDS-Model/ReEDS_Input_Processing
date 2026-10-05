@@ -2,14 +2,15 @@
 '''
 Process Raw Pumped-Storage Hydropower (PSH) Supply Curve Files
 
-This script takes in raw pumped storage hydropower supply curve data received from Evan Rosenleib
-and:
- - renames columns for consistency with other supply curve files (e.g. wind, solar)
- - converts values from $/W to $/MW 
- - plots the raw supply curve data in 2004$ for error checking
+This script takes in raw pumped storage hydropower supply curve data received from the 
+NLR geospatial data science team. Primary point of contact as of Oct 2026 is Evan Rosenlieb.
+Script proedures include:
+ - renaming columns for consistency with other supply curve files (e.g. wind, solar)
+ - converting values from $/W to $/MW 
+ - plotting the raw supply curve data in desired dollar year for error checking
 
 NOTE: The $/W to $/MW conversion may be removed for future data updates, depending on the
-      units Evan supplies the data at - check with Evan prior to processing the files
+      units of the supplied data - check with data provider prior to processing the files
 
 INPUTS
 ------
@@ -32,11 +33,19 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from pathlib import Path
 
-deflate_2022_to_2004 = 0.645693617
-
+# User Inputs #
+#-------------#
+# Paths
 inpath = 'data/raw_supplycurves/'
 outpath = 'outputs/supplycurves/'
 Path(outpath).mkdir(parents=True, exist_ok=True)
+reeds_path = os.path.expanduser('~/github/ReEDS')
+
+# Update dollaryear variables below as necessary/desired
+dollaryear_data = 2022
+dollaryear_plot = 2025
+save_plot = True
+
 
 #%%===================================#
 #   -- PROCESS RAW SUPPLY CURVES --   #
@@ -54,18 +63,19 @@ DICT_SC = {
     'psh_reeds_12hr_reference' : 'supplycurve_psh-12hr_reference',
     'psh_reeds_12hr_open'      : 'supplycurve_psh-12hr_open',
 }
-
+longest_key = len(max(DICT_SC, key=len))
 DICT_SC_OUT = {}
 
+print('Processing supply curves:')
 for filename_old in DICT_SC:
-    print(f'Processing supply curve: {filename_old}.csv')
-    dfin = pd.read_csv(os.path.join(inpath, filename_old + '.csv'))
-    # Convert cost from 2022$/W to 2022$/MW
+    file_old = filename_old + '.csv'
+    dfin = pd.read_csv(os.path.join(inpath, file_old))
+    # Rename headers and convert cost from 2022$/W to 2022$/MW 
     df = dfin.rename(columns={'max_gen_power_mw':'capacity',
                               '2022_dollars_per_mw':'capital_adder_per_mw'})
     df['capital_adder_per_mw'] *= 1e6
     filename_new = DICT_SC[filename_old]
-    print(f'Saving supply curve as file: {filename_new}.csv')
+    print(f' - {file_old:<{longest_key+4}} -> {filename_new}.csv')
     df.to_csv(os.path.join(outpath, filename_new + '.csv'), index=False)
     DICT_SC_OUT[filename_new] = df.copy()
 
@@ -74,14 +84,11 @@ for filename_old in DICT_SC:
 #   -- BUILD/PLOT SUPPLY CURVES --   #
 #====================================#
 
-# User Inputs
-deflate_to_2004 = True
-save_plot = True
-
 # Assemble Supply Curves #
 #------------------------#
 
 DICT_DFPLOT = {}
+print_once = 0
 
 for case_old in DICT_SC:
     case = DICT_SC[case_old]
@@ -89,8 +96,15 @@ for case_old in DICT_SC:
     df = dfin[['capacity','capital_adder_per_mw']].rename(columns={'capacity':'cap_mw','capital_adder_per_mw':'cost'}).copy()
     df = df.sort_values(by='cost')
     df['cumcap_gw'] = (df['cap_mw'] * 0.001).cumsum()
-    if deflate_to_2004:
-        df['cost'] *= deflate_2022_to_2004
+    if dollaryear_plot != dollaryear_data:
+        if not print_once:
+            print(f'Adjusting dollar year from {dollaryear_data}$ to {dollaryear_plot}$...')
+            print_once += 1
+        deflator = pd.read_csv(
+            os.path.join(reeds_path,'inputs','financials','deflator.csv'),index_col='*Dollar.Year'
+        ).squeeze()
+        dollaryear_adj_factor = deflator[dollaryear_data] / deflator[dollaryear_plot]
+        df['cost'] *= dollaryear_adj_factor
     df['cost'] *= 0.001
     DICT_DFPLOT[case] = df.copy()
 
@@ -118,6 +132,7 @@ fig = make_subplots(
     subplot_titles=('Zoomed Out', 'Zoomed In'),
 )
 
+print('Plotting supply curves...')
 for i, casename in enumerate(DICT_DFPLOT):
     dfplot = DICT_DFPLOT[casename]
     casename
@@ -163,11 +178,12 @@ for i, casename in enumerate(DICT_DFPLOT):
     )
 
 # Axis labels and ranges to match original view
+## Upper Plot
 fig.update_xaxes(range=[0, 35000], row=1, col=1)
-fig.update_yaxes(title_text='Total Capital Cost [2004$/kW]', range=[0, 6000], row=1, col=1)
-
+fig.update_yaxes(title_text=f'Total Capital Cost [{dollaryear_plot}$/kW]', range=[0, 8000], row=1, col=1)
+## Lower Plot
 fig.update_xaxes(title_text='Cumulative Capacity Potential [GW]', range=[0, 200], row=2, col=1)
-fig.update_yaxes(title_text='Total Capital Cost [2004$/kW]', range=[0, 3000], row=2, col=1)
+fig.update_yaxes(title_text=f'Total Capital Cost [{dollaryear_plot}$/kW]', range=[0, 3510], row=2, col=1)
 
 fig.update_layout(
     width=900,
