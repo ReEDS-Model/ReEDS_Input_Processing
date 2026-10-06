@@ -395,6 +395,115 @@ def read_ltlf_ratios(reeds_implied_2026, hierarchy):
     return ratios[['scenario', 'subregion', 'year', 'ltlf_ratio']].copy()
 
 
+def read_ltlf_peak_targets(ba_subregion):
+    """Read LTLF Annual_Energy_TWh and Annual_Coincident_Peak_MW subregion
+    totals and return a per-MISO-BA target coincident load factor for every
+    projection year and scenario:
+
+        target_lf(sub, year) = LTLF_energy_MWh / (8760 * LTLF_peak_MW)
+
+    This is the MISO LTLF "Net Load" coincident load factor (average load /
+    coincident peak). Annual energy is already matched by the demand
+    multipliers, but flat annual load growth freezes the historical hourly
+    shape, so ReEDS keeps a constant (too low) load factor and overshoots the
+    LTLF coincident peak. input_processing/hourly_load.py reshapes each MISO
+    subregion's hourly profile to this load factor (see apply_miso_peak_reshape)
+    while preserving annual energy. The target is emitted per MISO BA so ReEDS
+    can group BAs by subregion without needing the state->subregion map.
+
+    Returns [scenario, r, subregion, year, target_lf]. Years before the LTLF
+    horizon get NaN (no reshape); values are linearly interpolated across
+    published years; post-horizon the final load factor is held flat.
+    """
+    df = pd.read_excel(LTLF_WORKBOOK, sheet_name=LTLF_SHEET)
+    id_cols = ['LOAD_TYPE', 'TRAJECTORY', 'ZONE/REGION', 'DATA_TYPE', 'DRIVER']
+    missing = [c for c in id_cols if c not in df.columns]
+    if missing:
+        raise ValueError(
+            f"LTLF sheet '{LTLF_SHEET}' is missing expected columns: {missing}"
+        )
+    year_cols = [c for c in df.columns if c not in id_cols]
+    driver_blank = (
+        df['DRIVER'].isna() | (df['DRIVER'].astype(str).str.strip() == '')
+    )
+
+    def _metric(data_type, value_col):
+        mask = (
+            (df['LOAD_TYPE'] == 'Net Load')
+            & (df['DATA_TYPE'] == data_type)
+            & driver_blank
+            & (df['ZONE/REGION'].isin(MISO_SUBREGIONS))
+            & (df['TRAJECTORY'].isin(SCENARIO_MAP.keys()))
+        )
+        sub = df.loc[mask, ['TRAJECTORY', 'ZONE/REGION'] + year_cols].copy()
+        long = sub.melt(
+            id_vars=['TRAJECTORY', 'ZONE/REGION'], value_vars=year_cols,
+            var_name='year', value_name=value_col,
+        )
+        long['year'] = long['year'].astype(int)
+        long[value_col] = pd.to_numeric(long[value_col], errors='coerce')
+        long = long.rename(columns={'ZONE/REGION': 'subregion'})
+        long['scenario'] = long['TRAJECTORY'].map(SCENARIO_MAP)
+        return long[['scenario', 'subregion', 'year', value_col]]
+
+    energy = _metric('Annual_Energy_TWh', 'energy_TWh')
+    peak = _metric('Annual_Coincident_Peak_MW', 'peak_MW')
+    if energy.empty or peak.empty:
+        raise ValueError(
+            "LTLF workbook missing Annual_Energy_TWh or "
+            "Annual_Coincident_Peak_MW rows for MISO subregions."
+        )
+    merged = energy.merge(
+        peak, on=['scenario', 'subregion', 'year'], how='inner',
+    )
+    merged['target_lf'] = (merged['energy_TWh'] * 1e6) / (
+        8760.0 * merged['peak_MW']
+    )
+    merged = merged.replace([float('inf'), float('-inf')], float('nan'))
+    merged = merged.dropna(subset=['target_lf'])
+    if merged.empty:
+        raise ValueError(
+            "No valid LTLF load-factor targets (energy/peak) could be formed."
+        )
+
+    # Expand to the full projection horizon per (scenario, subregion):
+    # linearly interpolate across published years, hold the last value flat
+    # post-horizon, leave pre-horizon NaN (no reshape before LTLF starts).
+    combos = merged[['scenario', 'subregion']].drop_duplicates().assign(_k=1)
+    grid = (
+        pd.DataFrame({'year': list(projection_years)}).assign(_k=1)
+        .merge(combos, on='_k').drop(columns='_k')
+    )
+    full = grid.merge(
+        merged[['scenario', 'subregion', 'year', 'target_lf']],
+        on=['scenario', 'subregion', 'year'], how='left',
+    ).sort_values(['scenario', 'subregion', 'year'])
+    full['target_lf'] = full.groupby(
+        ['scenario', 'subregion'],
+    )['target_lf'].transform(
+        # interpolate only between published years, then hold the last value
+        # flat forward; leading (pre-horizon) NaNs are left as NaN.
+        lambda s: s.interpolate(method='linear', limit_area='inside').ffill()
+    )
+
+    ltlf_first = int(merged['year'].min())
+    ltlf_last = int(merged['year'].max())
+    print(f"    LTLF coincident load-factor targets "
+          f"({ltlf_first}..{ltlf_last}):")
+    for suffix in SCENARIO_MAP.values():
+        row = merged[
+            (merged['scenario'] == suffix) & (merged['year'] == ltlf_first)
+        ]
+        lf_str = ", ".join(
+            f"{r.subregion}={r.target_lf:.3f}" for r in row.itertuples()
+        )
+        print(f"      {suffix:<9} {ltlf_first}: {lf_str}")
+
+    # Expand subregion targets to each MISO BA.
+    out = ba_subregion.merge(full, on='subregion', how='inner')
+    return out[['scenario', 'r', 'subregion', 'year', 'target_lf']].copy()
+
+
 def fetch_state_direct_use_fraction(anchor_year=2010):
     """Return {state -> direct_use / (retail_sales + direct_use)} for
     `anchor_year` from the EIA API, matching the definition in
@@ -791,6 +900,27 @@ def main():
         path = os.path.join(OUTPUT_DIR, f'demand_MISOLTLF_{AEO_year}_{suffix}.csv')
         df.to_csv(path, index=False)
         print(f'Wrote {path}  ({len(df):,} rows, {df["r"].nunique()} BAs)')
+
+    # ---- Write MISO peak / load-factor targets ----------------------------
+    # Energy is matched by the multipliers above; these per-BA coincident
+    # load-factor targets let ReEDS (input_processing/hourly_load.py) reshape
+    # the MISO hourly shape to the LTLF peak without altering annual energy.
+    print('Reading MISO LTLF coincident load-factor targets...')
+    peak_targets = read_ltlf_peak_targets(ba_subregion)
+    for suffix in scenarios:
+        dfp = (
+            peak_targets[peak_targets['scenario'] == suffix]
+            .drop(columns='scenario')
+            .dropna(subset=['target_lf'])
+            .sort_values(['r', 'year'])
+            .reset_index(drop=True)
+        )
+        pathp = os.path.join(
+            OUTPUT_DIR, f'peaklf_MISOLTLF_{AEO_year}_{suffix}.csv',
+        )
+        dfp.to_csv(pathp, index=False)
+        print(f'Wrote {pathp}  ({len(dfp):,} rows, '
+              f'{dfp["r"].nunique()} MISO BAs)')
 
     # ---- Optional plots (set MISO_LTLF_PLOT=1 to enable) -------------------
     if os.environ.get('MISO_LTLF_PLOT', '0') == '1':
