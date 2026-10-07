@@ -102,8 +102,9 @@ def main(copy_to_reeds=False):
     if copy_to_reeds:
         outdir_to_reeds = os.path.join(reeds_path, 'inputs', 'storage')
         psh_data_out.to_csv(os.path.join(outdir_to_reeds, 'cap_existing_psh.csv'))
-
-    print(f"Run complete. See 'outputs/' for outputs.")
+    else:
+        print(f'NOTE: cap_existing_psh.csv was not automatically copied to {reeds_path}/inputs/storage/')
+    print(f"Run complete. See 'outputs/cap_existing_psh.csv' for outputs.")
 
 
 if __name__ == "__main__":
