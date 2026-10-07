@@ -7,6 +7,9 @@ input files and plots. The workflow has three explicit stages:
 2. format the local raw data for ReEDS;
 3. plot metrics from the same local raw data.
 
+Note: The published ATB data does not include geothermal costs by class,
+so this data is handled in a separate workflow. See geothermal/README.md for details.
+
 ## Configure the run
 
 [`config.yaml`](config.yaml) is the user-facing control file. It shows which

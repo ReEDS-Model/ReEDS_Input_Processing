@@ -7,6 +7,7 @@ gens_fixme.csv
 ATB/inputs/
 atb/output/
 atb/inputs/
+atb/geothermal/output/
 # Raw ATB figures remain local. The smoothing comparisons are intentionally
 # versioned so reviewers can see the effect without rerunning the workflow.
 atb/figures/*
