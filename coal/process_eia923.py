@@ -1,12 +1,13 @@
 #%%
 import os
 import sys
-import numpy as np
 import zipfile
-import pandas as pd
+
 import matplotlib.pyplot as plt
-from matplotlib.ticker import AutoMinorLocator
+import numpy as np
+import pandas as pd
 import seaborn as sns
+from matplotlib.ticker import AutoMinorLocator
 
 #%%
 # Get reeds_path from ReEDS repo
