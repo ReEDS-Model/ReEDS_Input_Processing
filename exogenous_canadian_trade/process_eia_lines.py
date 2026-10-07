@@ -102,6 +102,10 @@ def main():
     )
     df_eia['LineName'] = df_eia.LineName + '_' + df_eia.voltage.astype(int).astype(str)
 
+    # Append manually specified lines that aren't included in the EIA dataset
+    df_manual = pd.read_csv("data/raw_inputs/manual_usa_can_lines.csv")
+    df_eia = pd.concat([df_eia, df_manual], ignore_index=True)
+
     out_fpath = "data/EIA_usa_can_lines.csv"
     df_eia.to_csv(out_fpath, index=False)
     print(f"Run complete. See {out_fpath} for outputs.")
