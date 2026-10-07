@@ -15,17 +15,21 @@ Procedures are adapted from the original version of this script developed by @ko
 @date: 20260618 12:21
 """
 
-import pandas as pd
+import argparse
 import os
+import pandas as pd
 import geopandas as gpd
 import sys
+from pathlib import Path
 from shapely.geometry import Point
 reeds_path = os.path.expanduser('~/github/ReEDS')
 sys.path.append(reeds_path)
 import reeds
 
-def main():
-    outdir_path = os.path.join(reeds_path, 'inputs', 'storage')
+# Instantiate outputs folder if none exists
+Path('outputs/').mkdir(parents=True, exist_ok=True)
+
+def main(copy_to_reeds=False):
 
     # Ingest county-level CONUS shapefile 
     dfcounty = reeds.spatial.get_map('county').reset_index()
@@ -94,10 +98,22 @@ def main():
         .round(1)
     )
     # Output data to ReEDS inputs folder
-    psh_data_out.to_csv(os.path.join(outdir_path, 'cap_existing_psh.csv'))
+    psh_data_out.to_csv(os.path.join('outputs', 'cap_existing_psh.csv'))
+    if copy_to_reeds:
+        outdir_to_reeds = os.path.join(reeds_path, 'inputs', 'storage')
+        psh_data_out.to_csv(os.path.join(outdir_to_reeds, 'cap_existing_psh.csv'))
 
-    print(f"Run complete. See {outdir_path} for outputs.")
+    print(f"Run complete. See 'outputs/' for outputs.")
 
 
 if __name__ == "__main__":
-    main()
+    
+    ### Argument inputs
+    parser = argparse.ArgumentParser(description='Copy outputs to ReEDS input folder')
+    parser.add_argument('--copy_to_reeds', '-c', action='store_true', default=False,
+                        help='Set to True to copy outputs, default False')
+
+    args = parser.parse_args()
+    copy_to_reeds = args.copy_to_reeds
+    
+    main(copy_to_reeds=copy_to_reeds)
