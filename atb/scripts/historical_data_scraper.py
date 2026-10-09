@@ -294,18 +294,33 @@ def prepare_manual(settings, deflator, deflator_source, force=False, no_download
     for tech, config in settings['techs'].items():
         ids = [c for c in config['indexcols'] if c not in ('Scenario', 't')]
         identity = next((c for c in ('i', 'type', 'turbine') if c in ids), None)
+        # A technology ReEDS never carried as an ATB file names its baseline
+        # plant_characteristics file in settings.yaml (e.g. beccs_reference).
+        baseline = config.get('baseline_file')
         for scenario in ('Advanced', 'Moderate', 'Conservative'):
-            key, _ = get_atb_file_path(tech, vintage, scenario, settings)
-            relative = f'inputs/plant_characteristics/{key}.csv'
-            path = reeds_source_file(config_root, relative, force, no_download, optional=True)
-            if path is None:
-                key, _ = get_atb_file_path(tech, vintage, 'Moderate', settings)
+            if baseline:
+                key = baseline
                 relative = f'inputs/plant_characteristics/{key}.csv'
                 path = reeds_source_file(config_root, relative, force, no_download)
+                snapshot = 'ReEDS reference file at the pinned ref; SHA256 identifies exact contents.'
+                method = (f'ReEDS {key}.csv baseline (not an ATB release), used for every scenario; '
+                          'monetary values converted with the ReEDS deflator.')
+                atb_year = ''
+            else:
+                key, _ = get_atb_file_path(tech, vintage, scenario, settings)
+                relative = f'inputs/plant_characteristics/{key}.csv'
+                path = reeds_source_file(config_root, relative, force, no_download, optional=True)
+                if path is None:
+                    key, _ = get_atb_file_path(tech, vintage, 'Moderate', settings)
+                    relative = f'inputs/plant_characteristics/{key}.csv'
+                    path = reeds_source_file(config_root, relative, force, no_download)
+                snapshot = f'ReEDS ATB {vintage} snapshot at the pinned ref; SHA256 identifies exact contents.'
+                method = (f'ReEDS ATB {vintage} baseline, including reference/projection rows for retired designs; '
+                          'monetary values converted with the ReEDS deflator.')
+                atb_year = vintage
             data = _normalize_reeds_history(pd.read_csv(path), tech, settings)
             dollar_year = int(dollars[key])
-            references = [source_reference(path, reeds_blob_url(config_root, relative),
-                                           f'ReEDS ATB {vintage} snapshot at the pinned ref; SHA256 identifies exact contents.', dollar_year),
+            references = [source_reference(path, reeds_blob_url(config_root, relative), snapshot, dollar_year),
                           deflator_source,
                           source_reference(dollars_path, reeds_blob_url(config_root, dollars_relative), key)]
             for record in data.to_dict('records'):
@@ -318,8 +333,8 @@ def prepare_manual(settings, deflator, deflator_source, force=False, no_download
                     if metric in MONETARY:
                         value *= deflator[dollar_year] / deflator[settings['dollaryear']]
                     row = point(tech, series, metric, record['t'], value, settings['dollaryear'], 'manual', references,
-                                f'ReEDS ATB {vintage} baseline, including reference/projection rows for retired designs; monetary values converted with the ReEDS deflator.')
-                    row.update(scenario=scenario, identifiers=identifiers, atb_year=vintage)
+                                method)
+                    row.update(scenario=scenario, identifiers=identifiers, atb_year=atb_year)
                     if metric == 'cf_improvement':
                         row['unit'] = f'ATB {vintage} reference multiplier'
                     rows.append(row)

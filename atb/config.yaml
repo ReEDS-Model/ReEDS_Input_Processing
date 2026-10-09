@@ -258,16 +258,24 @@ processing:
       wind-ofs: 2030
       coal-ccs: 2023
       gas-ccs: 2023
+      beccs: 2023
     slope_change_threshold: 0.4
     max_kink_years: 4
     major_step_relative_threshold: 0.1
     minimum_adjustment_relative_threshold: 0.001
     # future_data names where each sub-technology's projection comes from:
-    #   atb    - the current ATB release (settings.yaml DisplayName mapping)
-    #   manual - retained from the ReEDS ATB baseline in historical/manual.csv
-    #            because the current ATB no longer publishes the series
-    # The value is fixed by the settings.yaml mapping and only documents it;
-    # the formatter rejects any other value.
+    #   atb_flatfile - the current ATB release's flat file (raw_data.flat_file)
+    #   atb_workbook - the current ATB release's workbook (raw_data.workbook),
+    #                  read from the sheet settings.yaml names as workbook_sheet
+    #   manual       - retained from the ReEDS baseline in historical/manual.csv
+    #                  because the current ATB does not publish the series
+    # Whether a series is ATB or manual is fixed by the settings.yaml mapping;
+    # the formatter rejects any other value. All ATB series of one technology
+    # must name the same file, and a file missing any of that technology's
+    # display names or metrics stops the run instead of falling back. Battery
+    # is the one standing exception: its power/energy split exists only in the
+    # workbook, so format_continuous_battery always overlays it on the flat
+    # file rows. ATB 2025 publishes Biopower - 95% CCS (beccs) only in the workbook.
     technologies:
       upv:
         historical_data:
@@ -275,7 +283,7 @@ processing:
           fom: indexed  # options: real / manual / broadcast / indexed / unavailable
           vom: broadcast  # options: manual / broadcast / unavailable
           cf_improvement: real  # options: real / manual / broadcast / unavailable
-        future_data: atb  # options: atb
+        future_data: atb_flatfile  # options: atb_flatfile / atb_workbook
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       wind-ons:
@@ -289,7 +297,7 @@ processing:
           cf_improvement:
             115hh_170rd: real  # options: real / manual / broadcast / unavailable
         future_data:
-          115hh_170rd: atb  # options: atb
+          115hh_170rd: atb_flatfile  # options: atb_flatfile / atb_workbook
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       wind-ofs:
@@ -310,8 +318,8 @@ processing:
             fixed: broadcast  # options: manual / broadcast
             floating: broadcast  # options: manual / broadcast
         future_data:
-          fixed: atb  # options: atb
-          floating: atb  # options: atb
+          fixed: atb_flatfile  # options: atb_flatfile / atb_workbook
+          floating: atb_flatfile  # options: atb_flatfile / atb_workbook
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       battery:
@@ -329,7 +337,7 @@ processing:
           rte:
             battery_li: broadcast  # options: manual / broadcast / unavailable
         future_data:
-          battery_li: atb  # options: atb
+          battery_li: atb_flatfile  # options: atb_flatfile (power/energy costs are always overlaid from the workbook)
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       csp:
@@ -352,10 +360,10 @@ processing:
         # csp1, csp3 and csp4 are scaled from the ATB csp2 series with
         # manual_input/csp_cost_ratios_<year>.csv, so their source is still atb.
         future_data:
-          csp1: atb  # options: atb
-          csp2: atb  # options: atb
-          csp3: atb  # options: atb
-          csp4: atb  # options: atb
+          csp1: atb_flatfile  # options: atb_flatfile / atb_workbook
+          csp2: atb_flatfile  # options: atb_flatfile / atb_workbook
+          csp3: atb_flatfile  # options: atb_flatfile / atb_workbook
+          csp4: atb_flatfile  # options: atb_flatfile / atb_workbook
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       coal:
@@ -393,8 +401,8 @@ processing:
             CofireNew: manual  # options: manual / broadcast / unavailable
             CofireOld: manual  # options: manual / broadcast / unavailable
         future_data:
-          Coal-new: atb  # options: atb
-          Coal-IGCC: atb  # options: atb
+          Coal-new: atb_flatfile  # options: atb_flatfile / atb_workbook
+          Coal-IGCC: atb_flatfile  # options: atb_flatfile / atb_workbook
           CoalOldScr: manual  # options: manual
           CoalOldUns: manual  # options: manual
           CofireNew: manual  # options: manual
@@ -412,7 +420,7 @@ processing:
           heatrate:
             coal-CCS_mod: broadcast  # options: manual / broadcast / unavailable
         future_data:
-          coal-CCS_mod: atb  # options: atb
+          coal-CCS_mod: atb_flatfile  # options: atb_flatfile / atb_workbook
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       gas:
@@ -445,10 +453,10 @@ processing:
             Gas-CC_H_2x1: broadcast  # options: manual / broadcast / unavailable
             Gas-CT_aero: manual  # options: manual / broadcast / unavailable
         future_data:
-          Gas-CC: atb  # options: atb
-          Gas-CT: atb  # options: atb
-          Gas-CC_H_1x1: atb  # options: atb
-          Gas-CC_H_2x1: atb  # options: atb
+          Gas-CC: atb_flatfile  # options: atb_flatfile / atb_workbook
+          Gas-CT: atb_flatfile  # options: atb_flatfile / atb_workbook
+          Gas-CC_H_1x1: atb_flatfile  # options: atb_flatfile / atb_workbook
+          Gas-CC_H_2x1: atb_flatfile  # options: atb_flatfile / atb_workbook
           Gas-CT_aero: manual  # options: manual
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
@@ -471,9 +479,9 @@ processing:
             Gas-CC_H_1x1-CCS_mod: broadcast  # options: manual / broadcast / unavailable
             Gas-CC_H_2x1-CCS_mod: broadcast  # options: manual / broadcast / unavailable
         future_data:
-          Gas-CC-CCS_mod: atb  # options: atb
-          Gas-CC_H_1x1-CCS_mod: atb  # options: atb
-          Gas-CC_H_2x1-CCS_mod: atb  # options: atb
+          Gas-CC-CCS_mod: atb_flatfile  # options: atb_flatfile / atb_workbook
+          Gas-CC_H_1x1-CCS_mod: atb_flatfile  # options: atb_flatfile / atb_workbook
+          Gas-CC_H_2x1-CCS_mod: atb_flatfile  # options: atb_flatfile / atb_workbook
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       fuelcell:
@@ -487,7 +495,7 @@ processing:
           heatrate:
             ng-fuel-cell: broadcast  # options: manual / broadcast / unavailable
         future_data:
-          ng-fuel-cell: atb  # options: atb
+          ng-fuel-cell: atb_flatfile  # options: atb_flatfile / atb_workbook
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       nuclear:
@@ -501,7 +509,7 @@ processing:
           heatrate:
             Nuclear: broadcast  # options: manual / broadcast / unavailable
         future_data:
-          Nuclear: atb  # options: atb
+          Nuclear: atb_flatfile  # options: atb_flatfile / atb_workbook
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       nuclear-smr:
@@ -515,7 +523,7 @@ processing:
           heatrate:
             Nuclear-SMR: broadcast  # options: manual / broadcast / unavailable
         future_data:
-          Nuclear-SMR: atb  # options: atb
+          Nuclear-SMR: atb_flatfile  # options: atb_flatfile / atb_workbook
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       biopower:
@@ -529,7 +537,28 @@ processing:
           heatrate:
             biopower: broadcast  # options: manual / broadcast / unavailable
         future_data:
-          biopower: atb  # options: atb
+          biopower: atb_flatfile  # options: atb_flatfile / atb_workbook
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      # beccs_mod is ATB 2025 Biopower - 95% CCS (workbook). beccs_max is not
+      # in ATB, so it is retained from ReEDS beccs_reference.csv via manual.csv.
+      beccs:
+        historical_data:
+          capcost:
+            beccs_mod: unavailable  # options: manual / broadcast / unavailable
+            beccs_max: manual  # options: manual
+          fom:
+            beccs_mod: broadcast  # options: manual / broadcast / unavailable
+            beccs_max: manual  # options: manual
+          vom:
+            beccs_mod: broadcast  # options: manual / broadcast / unavailable
+            beccs_max: manual  # options: manual
+          heatrate:
+            beccs_mod: broadcast  # options: manual / broadcast / unavailable
+            beccs_max: manual  # options: manual
+        future_data:
+          beccs_mod: atb_workbook  # options: atb_flatfile / atb_workbook
+          beccs_max: manual  # options: manual
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
 # ReEDS repository files fetched by historical_data_scraper.py. Pinning `ref`

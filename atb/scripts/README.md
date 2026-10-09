@@ -8,7 +8,7 @@
 | `generate_atb_files.py` | Format projections and merge selected history. |
 | `historical_data.py` | Validate, select, and apply prepared history. |
 | `observed_sources.py`, `real_history_sources.py` | Extract observations and calculate mapped real series. |
-| `battery_workbook.py` | Extract battery power/energy capital components. |
+| `atb_workbook.py` | Extract battery power/energy capital components and technology-sheet metrics from the ATB workbook. |
 | `downloads.py`, `atb_config.py` | Shared download and configuration helpers. |
 | `atb_plotting.py` | Plot the current ATB flat file. |
 | `settings.yaml` | Internal technology mappings and ReEDS output schemas. |

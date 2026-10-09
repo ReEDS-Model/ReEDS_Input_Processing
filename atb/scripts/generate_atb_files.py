@@ -16,7 +16,9 @@ import shutil
 from pandas.errors import EmptyDataError
 import sys
 
-from atb_config import ATBE_COLUMN_MAPPING, load_processing_settings
+from atb_config import (
+    ATB_FUTURE_SOURCES, ATBE_COLUMN_MAPPING, load_processing_settings, technology_atb_source,
+)
 
 # directory containing this script (atb/scripts); settings.yaml lives here.
 THISDIR = os.path.dirname(os.path.abspath(__file__))
@@ -106,9 +108,83 @@ def report_atb_changes(settings, atb_data):
         print("  no technology or display-name changes")
 
 
-def load_atb_flat_file(settings, args, techs_to_run):
+def technology_subset_rows(tech_settings):
     """
-    load ATB flat file with all inputs for specified techs
+    return the Case / CRPYears filter to apply to one technology's raw rows
+
+    CRP only de-duplicates flat file cost rows; the workbook metric blocks
+    carry no CRP dimension, so a workbook technology filters on Case alone.
+    """
+    subset_rows = tech_settings['subset_rows']
+    if tech_settings.get('atb_source') == 'workbook':
+        subset_rows = {k: v for k, v in subset_rows.items() if k != 'CRPYears'}
+    return subset_rows
+
+
+def load_atb_workbook_rows(tech, settings):
+    """
+    load one technology's rows from the ATB workbook sheet named in settings.yaml
+
+    Used for technologies whose future_data in config.yaml is ``atb_workbook``.
+    The rows come back in the flat file's long format, and every display name
+    and parameter the technology needs must be on the sheet; nothing falls
+    back to the flat file.
+
+    Parameters
+    ----------
+    tech: str
+        Technology key in settings['techs']
+    settings: dict
+        Parameter settings from settings.yaml
+    """
+    from atb_workbook import extract_sheet_parameters
+    tech_settings = settings['techs'][tech]
+    sheet = tech_settings.get('workbook_sheet')
+    if not sheet:
+        raise KeyError(
+            f"{tech} reads from the ATB workbook (future_data: atb_workbook), but "
+            "settings.yaml gives it no workbook_sheet."
+        )
+    workbook = settings['workbook_path']
+    if not os.path.isfile(workbook):
+        raise FileNotFoundError(f'Missing {workbook}; run scripts/future_atb_scraper.py.')
+    # One sheet, or several when the technology spans sheets (offshore wind's
+    # fixed-bottom and floating classes) or the R&D and Expanded cases.
+    sheets = sheet if isinstance(sheet, list) else [sheet]
+    print(f"Loading {tech} from workbook sheet(s) {sheets}: {workbook}")
+    rows = pd.concat(
+        [extract_sheet_parameters(workbook, name, tech_settings['Technology']) for name in sheets],
+        ignore_index=True,
+    )
+
+    display = tech_settings.get('DisplayName')
+    names = list(display) if isinstance(display, dict) else [display] if display else []
+    missing_names = sorted(set(names) - set(rows['DisplayName']))
+    if missing_names:
+        raise ValueError(
+            f"Workbook sheet {sheet!r} has no {missing_names} for {tech}; "
+            f"available: {sorted(rows['DisplayName'].unique())}."
+        )
+    required = [k for k, v in settings['param_names'].items() if v in tech_settings['cols']]
+    for name in names or [None]:
+        present = rows.loc[rows['DisplayName'] == name] if name else rows
+        missing_params = sorted(set(required) - set(present['Parameter']))
+        if missing_params:
+            raise ValueError(
+                f"Workbook sheet {sheet!r} lacks {missing_params} for "
+                f"{name or tech}; it has {sorted(present['Parameter'].unique())}."
+            )
+    return rows
+
+
+def load_atb_data(settings, args, techs_to_run):
+    """
+    load ATB data with all inputs for specified techs
+
+    Each technology is read from the flat file or from the workbook according
+    to its future_data entry in config.yaml (atb_flatfile / atb_workbook). The
+    flat file is always loaded for the release change report and the
+    financial parameters.
 
     Parameters
     ----------
@@ -145,16 +221,25 @@ def load_atb_flat_file(settings, args, techs_to_run):
         if 'subset_rows' not in tech_settings:
             raise ValueError(f"Missing 'subset_rows' for {tech} in settings.yaml")
         
-        # 2. Filter by Technology
-        tech_rows_full = atb_data_in[atb_data_in['Technology'] == tech_settings['Technology']]
-        
+        # 2. Filter by Technology, from the configured source
+        from_workbook = tech_settings.get('atb_source') == 'workbook'
+        if from_workbook:
+            tech_rows_full = load_atb_workbook_rows(tech, settings)
+        else:
+            tech_rows_full = atb_data_in[atb_data_in['Technology'] == tech_settings['Technology']]
+
         if tech_rows_full.empty:
             print(f"Warning: No data found for Technology '{tech_settings['Technology']}' ({tech}).")
             continue
 
         # 3. Apply specific subset_rows (Case, CRPYears, etc.)
         # subset_atb_rows returns (subset_df, col_vals)
-        tech_subset, _ = subset_atb_rows(tech_settings['subset_rows'], tech_rows_full)
+        tech_subset, col_vals = subset_atb_rows(technology_subset_rows(tech_settings), tech_rows_full)
+        if from_workbook and tech_subset.empty:
+            raise EmptyDataError(
+                f"\n\nWorkbook sheet {tech_settings['workbook_sheet']!r} has no rows for "
+                f"{tech} with {tech_settings['subset_rows']}; it offers {col_vals}."
+            )
 
         # 4. Filter for specific DisplayName(s) if applicable
         if 'DisplayName' in tech_settings:
@@ -167,7 +252,14 @@ def load_atb_flat_file(settings, args, techs_to_run):
 
             if found_data is not None and not found_data.empty:
                 validated_data_list.append(found_data)
-            
+            if from_workbook and missing_subtechs:
+                # The workbook reader already checked the sheet has these names,
+                # so the subset_rows Case or CRPYears must have dropped them.
+                raise EmptyDataError(
+                    f"\n\nWorkbook rows for {missing_subtechs} do not match "
+                    f"{tech_settings['subset_rows']} for {tech}; the sheet offers {col_vals}."
+                )
+
             # fallback: handle any subtechs that were missing from the subset
             for atb_tech_name in missing_subtechs:
                 # Fallback logic: check if it exists in the wider tech data (e.g., for a different Case)
@@ -615,7 +707,7 @@ def _historical_mode_for_metric(historical_data, metric, class_value=None):
         ) from error
 
 
-FUTURE_DATA_SOURCES = ('atb', 'manual')
+FUTURE_DATA_SOURCES = (*ATB_FUTURE_SOURCES, 'manual')
 
 
 def atb_backed_classes(tech, settings):
@@ -641,8 +733,9 @@ def atb_backed_classes(tech, settings):
 def _validate_future_data_config(tech, future_data, settings):
     """Check the declared projection source of every sub-technology.
 
-    The section documents the source, so it must agree with what the
-    pipeline does: ``atb`` only for labels mapped from ATB (or scaled from a
+    The section must agree with what the pipeline does: an ATB file
+    (``atb_flatfile`` or ``atb_workbook``, the same one for every ATB series
+    of the technology) only for labels mapped from ATB (or scaled from a
     mapped CSP type) and ``manual`` only for series ATB does not publish.
     """
     label = f"processing.smooth_cost_curves.technologies.{tech}.future_data"
@@ -661,17 +754,22 @@ def _validate_future_data_config(tech, future_data, settings):
             )
         entries = {None: future_data}
     else:
-        raise TypeError(f"{label} must be 'atb', 'manual', or a mapping of sub-technology to source.")
+        raise TypeError(
+            f"{label} must be one of {list(FUTURE_DATA_SOURCES)} or a mapping of sub-technology to source."
+        )
     invalid = {cls: src for cls, src in entries.items() if src not in FUTURE_DATA_SOURCES}
     if invalid:
         raise KeyError(f"Unknown future_data sources in {label}; choose from {list(FUTURE_DATA_SOURCES)}: {invalid}")
+    # One ATB file per technology; the loader already read it from this entry.
+    technology_atb_source(tech, future_data)
     backed = atb_backed_classes(tech, settings)
     for cls, source in entries.items():
-        expected = 'atb' if cls is None or cls in backed else 'manual'
-        if source != expected:
-            why = (
-                "is mapped from an ATB display name in settings.yaml" if expected == 'atb'
-                else "is not in the ATB mapping, so it is retained from the ReEDS baseline"
+        from_atb = cls is None or cls in backed
+        if (source in ATB_FUTURE_SOURCES) != from_atb:
+            why, expected = (
+                ("is mapped from an ATB display name in settings.yaml", sorted(ATB_FUTURE_SOURCES))
+                if from_atb
+                else ("is not in the ATB mapping, so it is retained from the ReEDS baseline", 'manual')
             )
             raise ValueError(
                 f"{label}{'.' + cls if cls else ''} says {source!r} but {cls or tech} {why}; "
@@ -1125,7 +1223,7 @@ def format_continuous_battery(tech, settings, df):
     df: pd.DataFrame
         Input dataframe with columns that will be replaced by the battery cost fields (the function drops ['capcost', 'fom'] before merging)
     """
-    from battery_workbook import extract_battery_costs
+    from atb_workbook import extract_battery_costs
     workbook = settings['workbook_path']
     if not os.path.isfile(workbook):
         raise FileNotFoundError(f'Missing {workbook}; run scripts/future_atb_scraper.py.')
@@ -1307,7 +1405,7 @@ def process_tech_file(atb_data, tech, settings, filenames, dollaryear, deflator,
     Parameters
     ----------
     atb_data: pd.DataFrame
-        Technology-level data from ATB flat-file
+        Technology-level data from the ATB flat file or workbook (see load_atb_data)
     tech: str
         Technology-specific key in settings['techs'] to process
     settings: dict
@@ -1331,7 +1429,7 @@ def process_tech_file(atb_data, tech, settings, filenames, dollaryear, deflator,
     tech_data = atb_data.loc[atb_data['Technology'] == tech_settings['Technology']]
     # apply tech-specific subset_rows (Case, CRPYears)
     if 'subset_rows' in tech_settings:
-        tech_data, _ = subset_atb_rows(tech_settings['subset_rows'], tech_data)
+        tech_data, _ = subset_atb_rows(technology_subset_rows(tech_settings), tech_data)
     else:
         raise ValueError(f"Missing 'subset_rows' for {tech} in settings.yaml")
     # get subtech(s), specified either as a dictionary or a single string
@@ -1728,8 +1826,8 @@ def main(args):
         from historical_data import load_history
         for kind in ('real', 'manual'):
             load_history(settings, kind)
-    # load ATB flat file
-    atb_data = load_atb_flat_file(settings, args, techs_to_run)
+    # load ATB data from the configured source of each technology
+    atb_data = load_atb_data(settings, args, techs_to_run)
 
     ## process technology files
     filenames = []

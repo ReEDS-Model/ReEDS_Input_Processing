@@ -33,6 +33,8 @@ techs:
   upv:
     # technology group in the ATB data that corresponds to this ReEDS tech
     Technology: UtilityPV
+    # workbook sheet(s) read when future_data in config.yaml is atb_workbook
+    workbook_sheet: [Solar - Utility PV - R&D, Solar - Utility PV - Expanded]
     # technology sub-class in the ATB data that corresponds to this ReEDS tech; can also be multiple paired entries
     DisplayName: Utility PV - Class 4
     # columns in the ATB file to rename; each pairing should be "ATB col name: ReEDS col name"
@@ -65,6 +67,8 @@ techs:
   
   wind-ons:
     Technology: LandbasedWind
+    # workbook sheet(s) read when future_data in config.yaml is atb_workbook
+    workbook_sheet: [Land-Based Wind - R&D, Land-Based Wind - Expanded]
     DisplayName: Land-Based Wind - Class 4 - Technology 1
     reeds_name: ons-wind
     subset_rows:
@@ -115,6 +119,8 @@ techs:
 
   wind-ofs:
     Technology: OffShoreWind
+    # workbook sheet(s) read when future_data in config.yaml is atb_workbook
+    workbook_sheet: [Fixed-Bottom Offshore Wind, Floating Offshore Wind]
     DisplayName:
       Offshore Wind - Class 1: fixed
       Offshore Wind - Class 8: floating
@@ -205,6 +211,8 @@ techs:
 
   csp:
     Technology: CSP
+    # workbook sheet(s) read when future_data in config.yaml is atb_workbook
+    workbook_sheet: Solar - CSP
     DisplayName:
       # mapping to csp2 since that corresponds to ATB storage + solar multiple assumption
       # 'add_csp_techs' expands this base series to the other CSP configurations
@@ -235,6 +243,8 @@ techs:
 
   coal:
     Technology: Coal_FE
+    # workbook sheet(s) read when future_data in config.yaml is atb_workbook
+    workbook_sheet: Coal_FE
     DisplayName:
       Coal-new: Coal-new
       Coal-IGCC: Coal-IGCC
@@ -262,6 +272,8 @@ techs:
 
   coal-ccs:
     Technology: Coal_FE
+    # workbook sheet(s) read when future_data in config.yaml is atb_workbook
+    workbook_sheet: Coal_FE
     DisplayName:
       Coal-95%-CCS: coal-CCS_mod
     subset_rows:
@@ -287,6 +299,8 @@ techs:
 
   gas:
     Technology: NaturalGas_FE
+    # workbook sheet(s) read when future_data in config.yaml is atb_workbook
+    workbook_sheet: Natural Gas_FE
     DisplayName:
       NG 2-on-1 Combined Cycle (F-Frame): Gas-CC
       NG Combustion Turbine (F-Frame): Gas-CT
@@ -316,6 +330,8 @@ techs:
 
   gas-ccs:
     Technology: NaturalGas_FE
+    # workbook sheet(s) read when future_data in config.yaml is atb_workbook
+    workbook_sheet: Natural Gas_FE
     DisplayName:
       NG 2-on-1 Combined Cycle (F-Frame) 95% CCS: Gas-CC-CCS_mod
       NG 1-on-1 Combined Cycle (H-Frame) 95% CCS: Gas-CC_H_1x1-CCS_mod
@@ -343,6 +359,8 @@ techs:
 
   fuelcell:
     Technology: NaturalGas_FE
+    # workbook sheet(s) read when future_data in config.yaml is atb_workbook
+    workbook_sheet: Natural Gas Fuel Cell_FE
     DisplayName:
       NG Fuel Cell: ng-fuel-cell
     subset_rows:
@@ -368,6 +386,8 @@ techs:
   
   nuclear:
     Technology: Nuclear
+    # workbook sheet(s) read when future_data in config.yaml is atb_workbook
+    workbook_sheet: Nuclear
     DisplayName:
       Nuclear - Large: Nuclear
     subset_rows:
@@ -393,6 +413,8 @@ techs:
 
   nuclear-smr:
     Technology: Nuclear
+    # workbook sheet(s) read when future_data in config.yaml is atb_workbook
+    workbook_sheet: Nuclear
     DisplayName:
       Nuclear - Small: Nuclear-SMR
     subset_rows:
@@ -418,6 +440,8 @@ techs:
       
   biopower:
     Technology: Biopower
+    # sheet read when future_data in config.yaml is atb_workbook
+    workbook_sheet: Biopower
     DisplayName:
       Biopower - Dedicated: biopower
     subset_rows:
@@ -441,27 +465,34 @@ techs:
       - vom
       - heatrate
 
-  # NOTE: beccs is not available in ATB 2024 (only 'Biopower - Dedicated' exists,
-  # and there is no 'R&D + TC' case). Disabled for 2024 runs; re-enable for ATB 2025.
-  # beccs:
-  #   Technology: Biopower
-  #   DisplayName:
-  #     Biopower - 95% CCS: beccs_mod
-  #   subset_rows:
-  #     Case: R&D + TC
-  #     CRPYears: 30
-  #   renamecols:
-  #     DisplayName: i
-  #     variable: t
-  #   indexcols:
-  #     - Scenario
-  #     - i
-  #     - t
-  #   cols:
-  #     - i
-  #     - t
-  #     - capcost
-  #     - fom
-  #     - vom
-  #     - heatrate
-  #   filename_historical: "beccs_reference.csv"
+  # ATB 2025 publishes Biopower - 95% CCS only in the workbook (the flat file
+  # carries its FCR alone), so config.yaml reads this technology from the
+  # workbook sheet named here. ATB 2024 had no BECCS series at all.
+  beccs:
+    Technology: Biopower
+    workbook_sheet: Biopower
+    DisplayName:
+      Biopower - 95% CCS: beccs_mod
+    subset_rows:
+      Case: Market
+      CRPYears: 30
+    renamecols:
+      DisplayName: i
+      variable: t
+    indexcols:
+      - Scenario
+      - i
+      - t
+    # column naming the sub-technology, so config.yaml can give each
+    # sub-technology its own historical_data mode
+    history_class_column: i
+    cols:
+      - i
+      - t
+      - capcost
+      - fom
+      - vom
+      - heatrate
+    # ReEDS has no beccs ATB files, so the manual baseline (and the retained
+    # beccs_max series) comes from this ReEDS plant_characteristics file.
+    baseline_file: beccs_reference

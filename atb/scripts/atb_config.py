@@ -25,6 +25,34 @@ ATBE_COLUMN_MAPPING = {
     "core_metric_variable": "variable",
 }
 
+# future_data values naming an ATB release file, and the raw_data entry each reads.
+ATB_FUTURE_SOURCES = {"atb_flatfile": "flat_file", "atb_workbook": "workbook"}
+
+
+def technology_atb_source(tech, future_data):
+    """Return the raw ATB file (``flat_file`` or ``workbook``) one technology reads.
+
+    ``future_data`` is the technology's config entry: one value, or one value
+    per sub-technology. Every ATB-backed series must name the same file, so a
+    technology is never assembled from both. ``manual`` series do not count.
+    """
+    label = f"processing.smooth_cost_curves.technologies.{tech}.future_data"
+    if future_data is None:
+        return "flat_file"
+    values = future_data.values() if isinstance(future_data, dict) else [future_data]
+    unknown = sorted({str(v) for v in values if v not in ATB_FUTURE_SOURCES and v != "manual"})
+    if unknown:
+        raise ValueError(
+            f"{label} has unknown values {unknown}; choose from "
+            f"{sorted(ATB_FUTURE_SOURCES)} or 'manual'."
+        )
+    files = sorted({ATB_FUTURE_SOURCES[v] for v in values if v in ATB_FUTURE_SOURCES})
+    if len(files) > 1:
+        raise ValueError(
+            f"{label} mixes {files}; every ATB series of a technology must name the same file."
+        )
+    return files[0] if files else "flat_file"
+
 
 def load_config(config_path=None):
     """Load the user-facing workflow configuration."""
@@ -60,10 +88,15 @@ def load_processing_settings(config_path=None):
     unknown = set(cases) - set(settings['techs'])
     if unknown:
         raise ValueError(f'Unknown ATB case override technologies: {sorted(unknown)}')
+    configured = processing['smooth_cost_curves'].get('technologies') or {}
     for tech, rules in settings['techs'].items():
         case = cases.get(tech, processing.get('atb_case'))
         if case is not None:
             rules['subset_rows']['Case'] = case
+        # Which raw ATB file the loader reads this technology from.
+        rules['atb_source'] = technology_atb_source(
+            tech, (configured.get(tech) or {}).get('future_data')
+        )
     history = config["historical_data"]
     settings.update(
         {

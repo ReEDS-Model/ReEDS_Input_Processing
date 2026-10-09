@@ -115,7 +115,7 @@ def battery_history_sources(raw, mapping, settings):
 
 def _split_battery_history(total_costs, settings, deflator, durations=None):
     """Scale ATB reference components to observed totals at cohort durations."""
-    from battery_workbook import extract_battery_costs
+    from atb_workbook import extract_battery_costs
 
     split = settings['config']['historical_cost_sources']['battery_cost_split']
     if durations is None:

@@ -13,6 +13,19 @@ creates plots. It never downloads data or rewrites historical inputs. Use
 `--only format` to generate CSVs without plots. Outputs go to `output/`;
 `processing.copy_to_reeds` controls copying them into ReEDS.
 
+Each series' `future_data` entry in `config.yaml` names the release file it is
+read from: `atb_flatfile` (the ATBe csv), `atb_workbook` (the technology
+sheet(s) `settings.yaml` names as `workbook_sheet`), or `manual` for series
+ATB does not publish. A technology is read from one file only, so all its ATB
+series must agree, and a file missing any of its display names or metrics
+stops the run. Every technology but battery can read either file; the two
+agree for every series in ATB 2025. Battery is flat file only and overlays its
+power/energy split from the workbook, because the flat file never publishes
+it and the battery sheet has no per-series metric blocks. ATB 2025 publishes
+Biopower - 95% CCS (`beccs`) only in the workbook; its `beccs_max` series is
+not in ATB and is retained from ReEDS `beccs_reference.csv` through
+`historical/manual.csv`.
+
 ## Historical inputs
 
 The two versioned tables in [`historical/`](historical/README.md) are sufficient

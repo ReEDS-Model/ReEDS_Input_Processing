@@ -17,6 +17,7 @@ SCRIPT_DIR = ATB_DIR / "scripts"
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from atb_config import (
+    ATB_FUTURE_SOURCES,
     DEFAULT_CONFIG_PATH,
     load_processing_settings,
     raw_file_path,
@@ -691,13 +692,14 @@ def series_has_atb_data(final_group: pd.DataFrame, provenance: dict) -> bool:
     """Return whether the plotted series' projection comes from ATB.
 
     The answer is the technology's ``future_data`` config entry, which the
-    formatter validates against the ATB mapping: ``atb`` series are projected
-    by the current release, ``manual`` ones (Gas-CT_aero, the old coal
-    designs) are retained from the ReEDS baseline in historical/manual.csv.
+    formatter validates against the ATB mapping: ``atb_flatfile`` and
+    ``atb_workbook`` series are projected by the current release, ``manual``
+    ones (Gas-CT_aero, the old coal designs, beccs_max) are retained from the
+    ReEDS baseline in historical/manual.csv.
     """
     future_data = provenance["future_data"]
     if not isinstance(future_data, dict):
-        return future_data == "atb"
+        return future_data in ATB_FUTURE_SOURCES
     class_column = provenance["history_class_column"]
     values = set(final_group[class_column].dropna().unique())
     if len(values) != 1:
@@ -705,7 +707,7 @@ def series_has_atb_data(final_group: pd.DataFrame, provenance: dict) -> bool:
             f"{provenance['technology']} plots classes {sorted(values)} in one "
             "series; one series must plot one class to have one future_data source."
         )
-    return future_data[values.pop()] == "atb"
+    return future_data[values.pop()] in ATB_FUTURE_SOURCES
 
 
 def series_boundary(final_group: pd.DataFrame, provenance: dict) -> int:

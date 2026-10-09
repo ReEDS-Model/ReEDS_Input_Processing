@@ -135,6 +135,14 @@ observed or calculated points before filling.
 | biopower | fom | biopower | broadcast | - | - | - |
 | biopower | vom | biopower | broadcast | - | - | - |
 | biopower | heatrate | biopower | broadcast | - | - | - |
+| beccs | capcost | beccs_mod | unavailable | - | - | - |
+| beccs | capcost | beccs_max | manual | - | - | - |
+| beccs | fom | beccs_mod | broadcast | - | - | - |
+| beccs | fom | beccs_max | manual | - | - | - |
+| beccs | vom | beccs_mod | broadcast | - | - | - |
+| beccs | vom | beccs_max | manual | - | - | - |
+| beccs | heatrate | beccs_mod | broadcast | - | - | - |
+| beccs | heatrate | beccs_max | manual | - | - | - |
 <!-- coverage:end -->
 
 ## Cost scope

@@ -452,7 +452,7 @@
         {
           "properties": {
             "historical_data": {"$ref": "#/definitions/historyUpv"},
-            "future_data": {"const": "atb"}
+            "future_data": {"$ref": "#/definitions/atbFutureData"}
           }
         }
       ]
@@ -491,7 +491,7 @@
       "additionalProperties": false,
       "required": ["115hh_170rd"],
       "properties": {
-        "115hh_170rd": {"const": "atb"}
+        "115hh_170rd": {"$ref": "#/definitions/atbFutureData"}
       }
     },
     "technologyWindOns": {
@@ -542,8 +542,8 @@
       "additionalProperties": false,
       "required": ["fixed", "floating"],
       "properties": {
-        "fixed": {"const": "atb"},
-        "floating": {"const": "atb"}
+        "fixed": {"$ref": "#/definitions/atbFutureData"},
+        "floating": {"$ref": "#/definitions/atbFutureData"}
       }
     },
     "technologyWindOfs": {
@@ -593,7 +593,7 @@
       "additionalProperties": false,
       "required": ["battery_li"],
       "properties": {
-        "battery_li": {"const": "atb"}
+        "battery_li": {"const": "atb_flatfile"}
       }
     },
     "technologyBattery": {
@@ -646,10 +646,10 @@
       "additionalProperties": false,
       "required": ["csp1", "csp2", "csp3", "csp4"],
       "properties": {
-        "csp1": {"const": "atb"},
-        "csp2": {"const": "atb"},
-        "csp3": {"const": "atb"},
-        "csp4": {"const": "atb"}
+        "csp1": {"$ref": "#/definitions/atbFutureData"},
+        "csp2": {"$ref": "#/definitions/atbFutureData"},
+        "csp3": {"$ref": "#/definitions/atbFutureData"},
+        "csp4": {"$ref": "#/definitions/atbFutureData"}
       }
     },
     "technologyCsp": {
@@ -693,8 +693,8 @@
       "additionalProperties": false,
       "required": ["Coal-new", "Coal-IGCC", "CoalOldScr", "CoalOldUns", "CofireNew", "CofireOld"],
       "properties": {
-        "Coal-new": {"const": "atb"},
-        "Coal-IGCC": {"const": "atb"},
+        "Coal-new": {"$ref": "#/definitions/atbFutureData"},
+        "Coal-IGCC": {"$ref": "#/definitions/atbFutureData"},
         "CoalOldScr": {"const": "manual"},
         "CoalOldUns": {"const": "manual"},
         "CofireNew": {"const": "manual"},
@@ -737,7 +737,7 @@
       "additionalProperties": false,
       "required": ["coal-CCS_mod"],
       "properties": {
-        "coal-CCS_mod": {"const": "atb"}
+        "coal-CCS_mod": {"$ref": "#/definitions/atbFutureData"}
       }
     },
     "technologyCoalCcs": {
@@ -793,10 +793,10 @@
       "additionalProperties": false,
       "required": ["Gas-CC", "Gas-CT", "Gas-CC_H_1x1", "Gas-CC_H_2x1", "Gas-CT_aero"],
       "properties": {
-        "Gas-CC": {"const": "atb"},
-        "Gas-CT": {"const": "atb"},
-        "Gas-CC_H_1x1": {"const": "atb"},
-        "Gas-CC_H_2x1": {"const": "atb"},
+        "Gas-CC": {"$ref": "#/definitions/atbFutureData"},
+        "Gas-CT": {"$ref": "#/definitions/atbFutureData"},
+        "Gas-CC_H_1x1": {"$ref": "#/definitions/atbFutureData"},
+        "Gas-CC_H_2x1": {"$ref": "#/definitions/atbFutureData"},
         "Gas-CT_aero": {"const": "manual"}
       }
     },
@@ -838,9 +838,9 @@
       "additionalProperties": false,
       "required": ["Gas-CC-CCS_mod", "Gas-CC_H_1x1-CCS_mod", "Gas-CC_H_2x1-CCS_mod"],
       "properties": {
-        "Gas-CC-CCS_mod": {"const": "atb"},
-        "Gas-CC_H_1x1-CCS_mod": {"const": "atb"},
-        "Gas-CC_H_2x1-CCS_mod": {"const": "atb"}
+        "Gas-CC-CCS_mod": {"$ref": "#/definitions/atbFutureData"},
+        "Gas-CC_H_1x1-CCS_mod": {"$ref": "#/definitions/atbFutureData"},
+        "Gas-CC_H_2x1-CCS_mod": {"$ref": "#/definitions/atbFutureData"}
       }
     },
     "technologyGasCcs": {
@@ -879,7 +879,7 @@
       "additionalProperties": false,
       "required": ["ng-fuel-cell"],
       "properties": {
-        "ng-fuel-cell": {"const": "atb"}
+        "ng-fuel-cell": {"$ref": "#/definitions/atbFutureData"}
       }
     },
     "technologyFuelcell": {
@@ -927,7 +927,7 @@
       "additionalProperties": false,
       "required": ["Nuclear"],
       "properties": {
-        "Nuclear": {"const": "atb"}
+        "Nuclear": {"$ref": "#/definitions/atbFutureData"}
       }
     },
     "technologyNuclear": {
@@ -966,7 +966,7 @@
       "additionalProperties": false,
       "required": ["Nuclear-SMR"],
       "properties": {
-        "Nuclear-SMR": {"const": "atb"}
+        "Nuclear-SMR": {"$ref": "#/definitions/atbFutureData"}
       }
     },
     "technologyNuclearSmr": {
@@ -1014,7 +1014,7 @@
       "additionalProperties": false,
       "required": ["biopower"],
       "properties": {
-        "biopower": {"const": "atb"}
+        "biopower": {"$ref": "#/definitions/atbFutureData"}
       }
     },
     "technologyBiopower": {
@@ -1027,6 +1027,51 @@
           }
         }
       ]
+    },
+    "historyModeByBeccsNoReal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["beccs_mod", "beccs_max"],
+      "description": "One history mode per beccs sub-technology; beccs_max is not in ATB and keeps the ReEDS baseline.",
+      "properties": {
+        "beccs_mod": {"$ref": "#/definitions/historyModeWithoutReal"},
+        "beccs_max": {"const": "manual"}
+      }
+    },
+    "historyBeccs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "fom", "vom", "heatrate"],
+      "properties": {
+        "capcost": {"$ref": "#/definitions/historyModeByBeccsNoReal"},
+        "fom": {"$ref": "#/definitions/historyModeByBeccsNoReal"},
+        "vom": {"$ref": "#/definitions/historyModeByBeccsNoReal"},
+        "heatrate": {"$ref": "#/definitions/historyModeByBeccsNoReal"}
+      }
+    },
+    "futureDataByBeccs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["beccs_mod", "beccs_max"],
+      "properties": {
+        "beccs_mod": {"$ref": "#/definitions/atbFutureData"},
+        "beccs_max": {"const": "manual"}
+      }
+    },
+    "technologyBeccs": {
+      "allOf": [
+        {"$ref": "#/definitions/technologyConfigBase"},
+        {
+          "properties": {
+            "historical_data": {"$ref": "#/definitions/historyBeccs"},
+            "future_data": {"$ref": "#/definitions/futureDataByBeccs"}
+          }
+        }
+      ]
+    },
+    "atbFutureData": {
+      "description": "ATB release file an ATB-backed series is read from; all ATB series of one technology must agree.",
+      "enum": ["atb_flatfile", "atb_workbook"]
     },
     "technologyName": {
       "enum": [
@@ -1042,7 +1087,8 @@
         "fuelcell",
         "nuclear",
         "nuclear-smr",
-        "biopower"
+        "biopower",
+        "beccs"
       ]
     },
     "smoothing": {
@@ -1114,7 +1160,8 @@
             "fuelcell": {"$ref": "#/definitions/technologyFuelcell"},
             "nuclear": {"$ref": "#/definitions/technologyNuclear"},
             "nuclear-smr": {"$ref": "#/definitions/technologyNuclearSmr"},
-            "biopower": {"$ref": "#/definitions/technologyBiopower"}
+            "biopower": {"$ref": "#/definitions/technologyBiopower"},
+            "beccs": {"$ref": "#/definitions/technologyBeccs"}
           }
         }
       }
