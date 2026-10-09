@@ -14,7 +14,7 @@ County-level operational and pump power capacity [MW] as well as energy capacity
 3. Run `python calculate_existing_psh_capacities.py`:
     * NOTE: Run `python calculate_existing_psh_capacities.py -c True` to automatically copy outputs to the ReEDS inputs folder
 4. Check the output data in `psh/outputs/cap_existing_psh.csv`:
-    * The operational capacity [MW], pump capacity [MW], and max energy capcaity [MW] of a given county should be equal to the sum of the capacity values of all plants in said county
+    * The operational generator capacity [MW], pump capacity [MW], and max energy capacity [MWh] of a given county should be equal to the sum of the capacity across of all plants in said county
     * All entries should be assigned the `init-1` vintage and `pumped-hydro` technology name
 
 ## PSH Supply Curve Processing
