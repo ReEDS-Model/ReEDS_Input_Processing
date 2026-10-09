@@ -9,7 +9,7 @@ County-level operational and pump power capacity [MW] as well as energy capacity
 
 **To process existing PSH power/energy capacities:**
 1. Validate the data in `psh/data/GESDB_Projects_complete RS_v3_fromORNL.xlsx`
-    * Double-check plants listed in the "Summary" tab: ensure each plant is both existing and currently operational, and confirm any potential changes to operational/pump capacity and energy capacity resulting from recent plant upgrades and/or reservoir expansions
+    * Double-check plants listed in the "Summary" tab: ensure each plant is both existing and currently operational, and confirm any potential changes to operational generation/pump power capacity and energy capacity that might have resulted from recent changes to plant equipment or operations.
 2. Update the `reeds_path` variable in `calculate_existing_psh_capacities.py` to point to the desired ReEDS repository
 3. Run `python calculate_existing_psh_capacities.py`:
     * NOTE: Run `python calculate_existing_psh_capacities.py -c True` to automatically copy outputs to the ReEDS inputs folder
