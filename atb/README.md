@@ -12,6 +12,9 @@ formats projections, joins prepared history, applies configured smoothing, and
 creates plots. It never downloads data or rewrites historical inputs. Use
 `--only format` to generate CSVs without plots. Outputs go to `output/`;
 `processing.copy_to_reeds` controls copying them into ReEDS.
+`streamlit run dashboard/app.py` opens a local page that edits the same
+switches, previews technologies with the source of each point, and exports by
+running the same stages (see `dashboard/README.md`).
 
 Each series' `future_data` entry in `config.yaml` names the release file it is
 read from: `atb_flatfile` (the ATBe csv), `atb_workbook` (the technology

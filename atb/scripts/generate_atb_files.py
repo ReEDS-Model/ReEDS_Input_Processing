@@ -177,7 +177,28 @@ def load_atb_workbook_rows(tech, settings):
     return rows
 
 
-def load_atb_data(settings, args, techs_to_run):
+def read_atb_flat_file(settings):
+    """
+    read the raw ATB flat file and apply the ATBe column mapping
+
+    Parameters
+    ----------
+    settings: dict
+        Parameter settings from settings.yaml
+    """
+    filepath = settings['flat_file_path']
+    if not os.path.isfile(filepath):
+        raise FileNotFoundError(
+            f"Raw ATB flat file not found: {filepath}\n"
+            "Run 'python future_atb_scraper.py' before formatting ReEDS inputs."
+        )
+    print(f"Loading raw ATB flat file: {filepath}")
+    atb_data_in = pd.read_csv(filepath, low_memory=False)
+    # Apply the same mapping for downloaded ATBe files and canonical flat files.
+    return atb_data_in.rename(columns=ATBE_COLUMN_MAPPING)
+
+
+def load_atb_data(settings, args, techs_to_run, atb_data_in=None, report_changes=True):
     """
     load ATB data with all inputs for specified techs
 
@@ -194,18 +215,16 @@ def load_atb_data(settings, args, techs_to_run):
         Used for debug mode
     techs_to_run: list[str]
         Ordered list of tech keys (matching keys in settings['techs'])
+    atb_data_in: pd.DataFrame, optional
+        Flat file already read by read_atb_flat_file, so a caller that formats
+        technologies one at a time (the dashboard) reads it once
+    report_changes: bool, optional
+        Print the technology and display-name changes since the previous release
     """
-    filepath = settings['flat_file_path']
-    if not os.path.isfile(filepath):
-        raise FileNotFoundError(
-            f"Raw ATB flat file not found: {filepath}\n"
-            "Run 'python future_atb_scraper.py' before formatting ReEDS inputs."
-        )
-    print(f"Loading raw ATB flat file: {filepath}")
-    atb_data_in = pd.read_csv(filepath, low_memory=False)
-    # Apply the same mapping for downloaded ATBe files and canonical flat files.
-    atb_data_in = atb_data_in.rename(columns=ATBE_COLUMN_MAPPING)
-    report_atb_changes(settings, atb_data_in)
+    if atb_data_in is None:
+        atb_data_in = read_atb_flat_file(settings)
+    if report_changes:
+        report_atb_changes(settings, atb_data_in)
 
     if args.debug:
         breakpoint()
@@ -1398,6 +1417,14 @@ def write_technology_outputs(
     return written
 
 
+# list of supported custom functions to call from settings.yml
+FUNCTION_MAPPING = {
+    'normalize_cf': normalize_cf,
+    'apply_offshore_cost_multipliers': apply_offshore_cost_multipliers,
+    'add_csp_techs': add_csp_techs,
+}
+
+
 def process_tech_file(atb_data, tech, settings, filenames, dollaryear, deflator, sensitivity_name, outfolder, args):
     """
     function to format per-technology output files
@@ -1887,11 +1914,4 @@ if __name__ == "__main__":
         ),
     )
     args = parser.parse_args()
-
-    # list of supported custom functions to call from settings.yml
-    FUNCTION_MAPPING = {
-        'normalize_cf': normalize_cf,
-        'apply_offshore_cost_multipliers': apply_offshore_cost_multipliers,
-        'add_csp_techs': add_csp_techs,
-    }
     main(args)
