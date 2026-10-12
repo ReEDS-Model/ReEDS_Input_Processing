@@ -1,0 +1,36 @@
+fips_code_2020,county_name_2020,fips_code_2022,county_name_2022,pct_overlap
+9001,Fairfield,9170,South Central Connecticut,0.052313091
+9001,Fairfield,9120,Greater Bridgeport,22.15601622
+9001,Fairfield,9140,Naugatuck Valley,4.985399177
+9001,Fairfield,9190,Western Connecticut,72.80523417
+9001,Fairfield,9160,Northwest Hills,0.001037342
+9003,Hartford,9170,South Central Connecticut,0.052786349
+9003,Hartford,9180,Southeastern Connecticut,8.92E-05
+9003,Hartford,9130,Lower Connecticut River Valley,0.018001561
+9003,Hartford,9110,Capitol,87.65313889
+9003,Hartford,9160,Northwest Hills,8.691485994
+9003,Hartford,9140,Naugatuck Valley,3.584498003
+9005,Litchfield,9190,Western Connecticut,8.542648359
+9005,Litchfield,9160,Northwest Hills,78.70784073
+9005,Litchfield,9140,Naugatuck Valley,12.71952713
+9005,Litchfield,9110,Capitol,0.029983779
+9007,Middlesex,9170,South Central Connecticut,0.164073133
+9007,Middlesex,9180,Southeastern Connecticut,0.437814509
+9007,Middlesex,9130,Lower Connecticut River Valley,99.35728962
+9007,Middlesex,9110,Capitol,0.040822738
+9009,New Haven,9140,Naugatuck Valley,39.0804749
+9009,New Haven,9190,Western Connecticut,0.103847273
+9009,New Haven,9120,Greater Bridgeport,0.009100216
+9009,New Haven,9130,Lower Connecticut River Valley,0.212856645
+9009,New Haven,9110,Capitol,0.074727568
+9009,New Haven,9170,South Central Connecticut,60.5189934
+9011,New London,9130,Lower Connecticut River Valley,8.622800193
+9011,New London,9180,Southeastern Connecticut,85.51336765
+9011,New London,9150,Northeastern Connecticut,5.739104635
+9011,New London,9110,Capitol,0.124727517
+9013,Tolland,9180,Southeastern Connecticut,0.102482512
+9013,Tolland,9150,Northeastern Connecticut,7.215864035
+9013,Tolland,9110,Capitol,92.68165345
+9015,Windham,9180,Southeastern Connecticut,5.272778564
+9015,Windham,9150,Northeastern Connecticut,94.62385072
+9015,Windham,9110,Capitol,0.103370716
