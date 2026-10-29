@@ -1,5 +1,6 @@
 import os
 import sys
+import glob
 import pandas as pd
 from itertools import product
 import altair as alt
@@ -7,13 +8,12 @@ reeds_path = os.environ.get('REEDS_PATH', os.path.expanduser('~/Documents/Github
 sys.path.append(reeds_path)
 
 '''
-This script processes the raw LBNL's interconnection queues data (https://emp.lbl.gov/queues) to
-apply capacity deployment limit in ReEDS. Specifically, it determines 2028 and 2031 cumulative queues
-at FIPS level by technology:
-- 2028 cumulative queues: q_status = "active" and IA_status_clean = "IA Executed"
-- 2031 cumulative queues: q_status = "active" regardless of IA_status_clean status
-- 2029-2030 cumulative values are interpolated from 2028 and 2031 values
-- 2027 values are interpolated from 0 and 2028 values (half of 2028 values)
+This script processes the raw LBNL's interconnection queues data (https://emp.lbl.gov/queues) into
+the active queue capacity at FIPS level by technology, split by interconnection agreement (IA) status:
+- ia_executed = 1: q_status = "active" and IA_phase_clean = "IA Executed"
+- ia_executed = 0: q_status = "active" with any other IA_phase_clean, including missing
+The two categories are mutually exclusive, so "All Active" capacity is the sum of both rows.
+The annual capacity deployment limit trajectory built from these values is determined in ReEDS.
 '''
 
 dir = os.getcwd()
@@ -24,12 +24,17 @@ filename = 'LBNL_Ix_Queue_Data_File_thru2025.xlsx'
 # LBNL supplement with the detailed types behind "Other"/"Other Storage"
 filename_other = 'queues_other_forNLR_2025.xlsx'
 version = 2025              # data year (matches the year in the LBNL filenames)
-t_1 = 2028                  # first year to calculate queue
-t_2 = 2031                  # last year to calculate queue
-year_range = list(range(t_1-1, t_2+1))
-year_range_str = [str(x) for x in year_range]
+# Number of technology type (as specified in the queue data file)
+type_no = 3
 
 ###################################################
+
+# Technology groups (tg) in ReEDS that the queue data is mapped to
+reeds_techset = ['battery', 'biomass', 'coal', 'gas', 'geothermal', 'h2', 'hydro',
+                 'nuclear', 'pumped-hydro', 'pv', 'wind-ofs', 'wind-ons']
+# Labels used in the diagnostics and figures for the two IA categories and their sum
+ia_labels = {1: 'IA Executed', 0: 'IA Not Executed'}
+all_active_label = 'All Active'
 
 def add_detailed_types(queue_data, filename_other, type_cols, folded2aggregated):
     """Relabel the aggregated LBNL resource types using the detailed types from LBNL's supplement.
@@ -75,9 +80,95 @@ def add_detailed_types(queue_data, filename_other, type_cols, folded2aggregated)
               + ', '.join(q_id + ' (' + entity + ')' for q_id, entity in missing))
     return queue_data
 
+def aggregate_active_queue(queue_data, county_state, type_no=3):
+    """Sum the active queue capacity by ReEDS county, technology group, and IA category.
+
+    Each of the type_1..type_N / mw_1..mw_N slots of a request is counted separately, so a hybrid
+    request contributes its own capacity to each of its technologies. Requests are matched to
+    ReEDS counties on their FIPS code first and on county name + state as a fallback; requests that
+    match neither are out of scope. ia_executed is 1 only when IA_phase_clean is "IA Executed";
+    any other or missing phase is 0, so the two categories never overlap.
+
+    Returns a frame with columns r, tg, ia_executed, capacity_mw that covers every ReEDS county
+    with at least one active request, every ReEDS technology group with active queue capacity, and
+    both IA categories; a 0 row means no active queue capacity in that category, not missing data.
+    """
+    active_queue = pd.DataFrame()
+
+    # Iterate over the tech types (3)
+    for pt in list(range(type_no)):
+        item = pt+1
+
+        # Filter out tech type
+        queue_data_temp = queue_data[['q_status', 'county', 'state', 'fips_code', 'IA_phase_clean', 'type_'+str(item),'mw_'+str(item)]]
+        queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'fips_code': 'FIPS',
+                                                          'IA_phase_clean': 'IA_status_clean',
+                                                          'type_'+str(item): 'tech','mw_'+str(item):'cap'})
+
+        # Capacities are read as objects because of the header offset, so cast them back to numbers
+        queue_data_temp['cap'] = pd.to_numeric(queue_data_temp['cap'], errors='coerce')
+
+        # Only consider queues that have active status
+        queue_data_active_temp = queue_data_temp[queue_data_temp['q_status']=='active'].copy()
+
+        # Flag queues with an executed IA; every other status (including missing) is not executed
+        queue_data_active_temp['ia_executed'] = (queue_data_active_temp['IA_status_clean']=='IA Executed').astype(int)
+
+        # Remove the queues with negative capacity and clean up
+        queue_data_active_temp.loc[queue_data_active_temp['cap']<0,'cap'] = 0
+        queue_data_active_temp['cap'] = queue_data_active_temp['cap'].fillna(0)
+        queue_data_active_temp['type'] = 'type'+str(item)
+        active_queue = pd.concat([active_queue, queue_data_active_temp], axis=0).reset_index(drop=True)
+
+    # Match each queue to a ReEDS county on its FIPS code, falling back to county name + state
+    fips_reported = 'p' + pd.to_numeric(active_queue['FIPS'], errors='coerce').map(
+        lambda x: str(int(x)).zfill(5) if pd.notna(x) else '')
+    name2fips = county_state.set_index(county_state['county_name']+'|'+county_state['state'])['FIPS']
+    fips_byname = (active_queue['county_name'].str.lower()+'|'+active_queue['state']).map(name2fips)
+    active_queue['FIPS'] = fips_reported.where(fips_reported.isin(county_state['FIPS']), fips_byname)
+
+    # Rename tech to match with ReEDS symbols
+    active_queue['tech'] = active_queue['tech'].apply(lambda x: x.lower() if isinstance(x, str) else x)
+    active_queue.loc[active_queue['tech']=='wind','tech'] = 'wind-ons'
+    active_queue.loc[active_queue['tech']=='offshore wind','tech'] = 'wind-ofs'
+    active_queue.loc[active_queue['tech']=='solar','tech'] = 'pv'
+    active_queue.loc[active_queue['tech']=='hydrogen','tech'] = 'h2'
+    active_queue.loc[active_queue['tech']=='pumped storage','tech'] = 'pumped-hydro'
+    active_queue.loc[active_queue['tech']=='biofuel','tech'] = 'biomass'
+    active_queue.loc[active_queue['tech']=='biogas','tech'] = 'biomass'
+
+    # Queues in a ReEDS county with a ReEDS technology group are in scope; report the rest
+    in_county = active_queue['FIPS'].isin(county_state['FIPS'])
+    in_techset = active_queue['tech'].isin(reeds_techset)
+    active_queue_county = active_queue[in_county & in_techset]
+
+    print('Active queue capacity (MW) in ReEDS counties and technology groups by IA phase:')
+    by_phase = active_queue_county.groupby(
+        active_queue_county['IA_status_clean'].fillna('(missing IA_phase_clean)'))['cap'].sum()
+    for phase, cap in by_phase.sort_values(ascending=False).items():
+        print('  ' + phase + ': ' + str(round(cap, 1)))
+    print('  Missing IA_phase_clean is counted as ia_executed = 0')
+    print('Active queue capacity (MW) excluded from the output:')
+    print('  ' + str(round(active_queue.loc[~in_county, 'cap'].sum(), 1)) + ' in requests not matched to a ReEDS county')
+    out_of_scope = active_queue[in_county & ~in_techset]
+    print('  ' + str(round(out_of_scope['cap'].sum(), 1)) + ' in resource types outside the ReEDS technology groups ('
+          + ', '.join(sorted(out_of_scope['tech'].dropna().unique())) + ')')
+
+    # Sum up the queue capacities by county, tech, and IA category
+    active_queue_agg = active_queue_county.groupby(['FIPS','tech','ia_executed'])['cap'].sum().reset_index()
+
+    # Assign 0 queue cap value to county-tech-IA category with no value, covering every ReEDS county
+    # with an active request and every technology group with active queue capacity
+    counties = active_queue.loc[in_county, 'FIPS'].unique()
+    techs = active_queue_county['tech'].unique()
+    unique_FIPS_tech_ia = pd.DataFrame(product(counties, techs, [1, 0]), columns=['FIPS','tech','ia_executed'])
+    active_queue_agg = unique_FIPS_tech_ia.merge(active_queue_agg, on=['FIPS','tech','ia_executed'], how='left')
+    active_queue_agg['cap'] = active_queue_agg['cap'].fillna(0)
+
+    ### Final dataset to use in ReEDS
+    return active_queue_agg.rename(columns={'FIPS':'r', 'tech':'tg', 'cap':'capacity_mw'})
+
 def main():
-    # Number of technology type (as specified in the queue data file)
-    type_no = 3
     queue_data = pd.read_excel(os.path.join(dir,'inputs',filename), sheet_name='03. Complete Queue Data')
     # First row is a title row; check the real header is in the second row before using it
     if 'q_id' in queue_data.columns:
@@ -102,140 +193,55 @@ def main():
     county_state = pd.read_csv(os.path.join(reeds_path,'inputs','zones','county_state.csv'))
     county_state['FIPS'] = 'p' + county_state['FIPS'].astype(str).str.zfill(5)
 
-    # Assuming zero queue for csp
+    active_queue_county = aggregate_active_queue(queue_data, county_state, type_no)
+
+    # Assuming zero queue for csp (in both IA categories)
     csp_queue = pd.read_csv(os.path.join(dir,'inputs','csp_queues.csv'))
+    csp_queue = csp_queue.merge(pd.DataFrame({'ia_executed': [1, 0]}), how='cross')
+    active_queue_county = active_queue_county.merge(csp_queue, on=['r','tg','ia_executed'], how='outer').fillna(0)
+    active_queue_county = active_queue_county.sort_values(['r','tg','ia_executed'], ascending=[True, True, False])
+    active_queue_county = active_queue_county[['r','tg','ia_executed','capacity_mw']].reset_index(drop=True)
 
-    active_queue = pd.DataFrame()
-
-    # Function to add zero value rows for tech with no queues
-    no_queue_tech = 'csp'
-    def insert_rows(group):
-        first_row = group.iloc[[0]]
-        first_row['tg'] = no_queue_tech
-        for year in year_range:
-            first_row[str(year)] = 0 
-        return first_row.append(group)
-
-    # Iterate over the tech types (3)
-    for pt in list(range(type_no)):
-        item = pt+1
-
-        # Filter out tech type
-        queue_data_temp = queue_data[['q_status', 'county', 'state', 'fips_code', 'IA_phase_clean', 'type_'+str(item),'mw_'+str(item)]]
-        queue_data_temp = queue_data_temp.rename(columns={'county': 'county_name', 'fips_code': 'FIPS',
-                                                          'IA_phase_clean': 'IA_status_clean',
-                                                          'type_'+str(item): 'tech','mw_'+str(item):'cap'+str(item)})
-
-        # Capacities are read as objects because of the header offset, so cast them back to numbers
-        queue_data_temp['cap'+str(item)] = pd.to_numeric(queue_data_temp['cap'+str(item)], errors='coerce')
-
-        # Only consider queues that have active status
-        queue_data_active_temp = queue_data_temp[queue_data_temp['q_status']=='active']
-
-        # Assign initial queue year (in this case 2028) to queues with IA_status_clean = 'IA Executed' and regardless of
-        # IA_status_clean to final queue year (in this case 2031)
-        queue_data_active_temp['online_year'] = t_1
-        queue_data_active_temp.loc[queue_data_active_temp['IA_status_clean']!='IA Executed','online_year'] = t_2
-    
-        # Remove the queues with negative capacity and clean up
-        queue_data_active_temp.loc[queue_data_active_temp['cap'+str(item)]<0,'cap'+str(item)] = 0
-        queue_data_active_temp['cap'+str(item)] = queue_data_active_temp['cap'+str(item)].fillna(0)
-        queue_data_active_temp['type'] = 'type'+str(item)
-        queue_data_active_temp = queue_data_active_temp.rename(columns={'cap'+str(item):'cap'})
-        active_queue = pd.concat([active_queue, queue_data_active_temp], axis=0).reset_index(drop=True)
-    
-    # Sum up the queue capacities by county, tech, and online year
-    fips_reported = 'p' + pd.to_numeric(active_queue['FIPS'], errors='coerce').map(
-        lambda x: str(int(x)).zfill(5) if pd.notna(x) else '')
-    name2fips = county_state.set_index(county_state['county_name']+'|'+county_state['state'])['FIPS']
-    fips_byname = (active_queue['county_name'].str.lower()+'|'+active_queue['state']).map(name2fips)
-    active_queue['FIPS'] = fips_reported.where(fips_reported.isin(county_state['FIPS']), fips_byname)
-    active_queue_agg = active_queue.groupby(['FIPS','tech','online_year'])['cap'].sum().reset_index()
-    active_queue_county = active_queue_agg[active_queue_agg['FIPS'].isin(county_state['FIPS'])].copy()
-
-    # Assign 0 queue cap value to county-year pair with no value
-    unique_year_FIPS = pd.DataFrame(product(active_queue_county['FIPS'].unique(),[t_1,t_2]),columns=['FIPS','online_year'])
-    unique_year_tech = pd.DataFrame(product(active_queue_county['tech'].unique(),[t_1,t_2]),columns=['tech','online_year'])
-    unique_year_FIPS_tech =unique_year_FIPS.merge(unique_year_tech, on='online_year', how='outer')
-
-    active_queue_county = active_queue_county.merge(unique_year_FIPS_tech, on=['FIPS','tech','online_year'], how='outer')
-    active_queue_county = active_queue_county[['FIPS','tech','online_year','cap']]
-    active_queue_county['cap'] = active_queue_county['cap'].fillna(0)
-
-    # Sum queue capacity by year to get cumulative queue cap by year
-    active_queue_county[str(t_2)] = active_queue_county['cap'].where(active_queue_county['online_year']==t_2, 0)
-    active_queue_county[str(t_2)] = active_queue_county.groupby(['FIPS','tech'])[str(t_2)].transform("sum")
-
-    active_queue_county =active_queue_county.rename(columns={'cap': str(t_1)})
-    active_queue_county = active_queue_county[active_queue_county['online_year']==t_1]
-
-    # Interpolate queue capacity for years in between initial and final queue years
-    active_queue_county[str(t_2)] = active_queue_county[str(t_2)] + active_queue_county[str(t_1)]
-    active_queue_county = active_queue_county[['FIPS','tech',str(t_1),str(t_2)]]
-    active_queue_county['slope'] = (active_queue_county[str(t_2)] - active_queue_county[str(t_1)])/(t_2-t_1)
-    active_queue_county['intercept'] = active_queue_county[str(t_2)] - active_queue_county['slope']*t_2
-
-    for t in list(range(t_2-t_1)):
-        if t_1 + t + 1 == t_2:
-            continue
-        active_queue_county[str(t_1+t+1)] = active_queue_county['slope']*(t_1+t+1) + active_queue_county['intercept']
-    active_queue_county[str(t_1-1)] = active_queue_county[str(t_1)]/2
-    active_queue_county = active_queue_county[['FIPS','tech',str(t_1-1),str(t_1),str(t_1+1),str(t_1+2),str(t_2)]]
-
-    ### Final dataset to use in ReEDS
-    # Rename tech to match with ReEDS symbols
-    active_queue_county['tech'] = active_queue_county['tech'].apply(lambda x: x.lower() if isinstance(x, str) else x)
-    active_queue_county.loc[active_queue_county['tech']=='wind','tech'] = 'wind-ons'
-    active_queue_county.loc[active_queue_county['tech']=='offshore wind','tech'] = 'wind-ofs'
-    active_queue_county.loc[active_queue_county['tech']=='solar','tech'] = 'pv'
-    active_queue_county.loc[active_queue_county['tech']=='hydrogen','tech'] = 'h2'
-    active_queue_county.loc[active_queue_county['tech']=='pumped storage','tech'] = 'pumped-hydro'
-    active_queue_county.loc[active_queue_county['tech']=='biofuel','tech'] = 'biomass'
-    active_queue_county.loc[active_queue_county['tech']=='biogas','tech'] = 'biomass'
-
-    active_queue_county = active_queue_county.groupby(['FIPS','tech'])[year_range_str].sum().reset_index()
-
-    # Filter out tech to match with tg set in ReEDS
-    reeds_techset = ['battery', 'biomass', 'coal', 'gas', 'geothermal', 'h2', 'hydro',
-                     'nuclear', 'pumped-hydro', 'pv', 'wind-ofs', 'wind-ons']
-    active_queue_county_filtered = active_queue_county[active_queue_county['tech'].isin(reeds_techset)]
-
-    active_queue_county_filtered = active_queue_county_filtered.rename(columns={'FIPS':'r', 'tech':'tg'})
-
-    # Add tech with no queue (cap limit = 0)
-    #active_queue_county_filtered = (active_queue_county_filtered.groupby('r', as_index=False, group_keys=False).
-    #                                apply(insert_rows).reset_index(drop=True))
-
-    active_queue_county_filtered = active_queue_county_filtered.merge(csp_queue, on=['r','tg'], how='outer').fillna(0)
+    ia_executed_total = active_queue_county.loc[active_queue_county['ia_executed']==1, 'capacity_mw'].sum()
+    print('Output: ' + ia_labels[1] + ' ' + str(round(ia_executed_total, 1)) + ' MW; '
+          + all_active_label + ' ' + str(round(active_queue_county['capacity_mw'].sum(), 1)) + ' MW')
 
     ##################### SAVE OUTPUTS ######################
-    active_queue_county_filtered.to_csv(os.path.join(dir,'outputs','interconnection_queues_'+str(version)+'.csv'),index=False)
-    active_queue_county_filtered.to_csv(os.path.join(dir,'outputs','interconnection_queues.csv'),index=False)
+    active_queue_county.to_csv(os.path.join(dir,'outputs','interconnection_queues_'+str(version)+'.csv'),index=False)
+    active_queue_county.to_csv(os.path.join(dir,'outputs','interconnection_queues.csv'),index=False)
     #########################################################
 
 
     ############### QUEUE PLOT #######################
-    queue_plot = pd.melt(active_queue_county_filtered, id_vars=['r','tg'], value_vars=year_range_str)
-    queue_plot = queue_plot.rename(columns={'variable':'year', 'value':'cap'})
-    queue_plot = queue_plot.groupby(['tg','year'])['cap'].sum().reset_index()
+    # Sum each vintage by technology and IA category, and add the All Active (sum of both) category
+    def sum_by_category(queue, vintage):
+        by_ia = queue.groupby(['tg','ia_executed'])['capacity_mw'].sum().reset_index()
+        by_ia['category'] = by_ia['ia_executed'].map(ia_labels)
+        all_active = queue.groupby('tg')['capacity_mw'].sum().reset_index()
+        all_active['category'] = all_active_label
+        out = pd.concat([by_ia, all_active], axis=0)[['tg','category','capacity_mw']]
+        out['vintage'] = str(vintage)
+        return out
 
-    sch_order = year_range
+    queue_plot = sum_by_category(active_queue_county, version)
+
+    category_order = [ia_labels[1], ia_labels[0], all_active_label]
     status_cat = ['pv','csp','wind-ons', 'wind-ofs', 'nuclear', 'battery', 'pumped-hydro',
                   'biomass', 'gas', 'coal','hydro', 'geothermal', 'h2']
 
     resource_order_idx = {
-        resource: idx 
+        resource: idx
         for idx, resource in enumerate(status_cat[::-1]) # Reverse list to align colors with legend order
-    }        
+    }
 
     # Create "idx" column with integer values indicating order in stacked bar
     queue_plot["idx"] = queue_plot["tg"].map(resource_order_idx)
 
     chart = alt.Chart(queue_plot).mark_bar(size=30).encode(
-        x=alt.X('year:N', title=None, sort=sch_order),
-        y=alt.Y('sum(cap):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), scale=alt.Scale(domain=[0, 2200000]),
+        x=alt.X('category:N', title=None, sort=category_order),
+        y=alt.Y('sum(capacity_mw):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), scale=alt.Scale(domain=[0, 2200000]),
                 sort=status_cat),
-        color=alt.Color('tg', 
+        color=alt.Color('tg',
                         scale=alt.Scale(range=['gold','goldenrod','skyblue','aqua','lightpink','darkseagreen','aquamarine',
                                                'saddlebrown','grey','black','lightblue','violet','turquoise']),
                         sort=status_cat),
@@ -249,24 +255,28 @@ def main():
     chart.save(os.path.join(dir,'outputs','figures','queue_versions_'+str(version)+'.html'))
 
     ############### COMPARISON PLOT #######################
-    queue_previous = pd.read_csv(os.path.join(dir,'outputs','interconnection_queues_'+str(version-1)+'.csv'))
-    previous_years = [col for col in queue_previous.columns if col.isdigit()]
-    queue_previous = pd.melt(queue_previous, id_vars=['r','tg'], value_vars=previous_years,
-                             var_name='year', value_name='cap_previous')
-    queue_previous = queue_previous.groupby(['tg','year'])['cap_previous'].sum().reset_index()
-
-    queue_compare = queue_plot.merge(queue_previous, on=['tg','year'], how='outer')
-    queue_compare[['cap','cap_previous']] = queue_compare[['cap','cap_previous']].fillna(0)
-    queue_compare['cap_diff'] = queue_compare['cap'] - queue_compare['cap_previous']
+    # Compare every vintage in outputs/ (interconnection_queues_<vintage>.csv) by IA category
+    queue_compare = []
+    for path in sorted(glob.glob(os.path.join(dir,'outputs','interconnection_queues_*.csv'))):
+        vintage = os.path.basename(path).split('_')[-1].split('.')[0]
+        queue_compare.append(sum_by_category(pd.read_csv(path), vintage))
+    queue_compare = pd.concat(queue_compare, axis=0)
     queue_compare['idx'] = queue_compare['tg'].map(resource_order_idx)
 
-    chart_compare = chart.properties(
-        data=queue_compare,
-        title='Interconnection Queue Difference (Version ' + str(version) + ' - Version ' + str(version-1) + ')'
-    ).encode(
-        x=alt.X('year:N', title=None, sort=sorted(set(previous_years + year_range_str), key=int)),
-        y=alt.Y('sum(cap_diff):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), sort=status_cat)
-    )
+    chart_compare = alt.Chart(queue_compare).mark_bar(size=30).encode(
+        x=alt.X('vintage:N', title='Data vintage'),
+        y=alt.Y('sum(capacity_mw):Q', axis=alt.Axis(grid=False, title='Capacity (MW)'), scale=alt.Scale(domain=[0, 2200000]),
+                sort=status_cat),
+        color=alt.Color('tg',
+                        scale=alt.Scale(range=['gold','goldenrod','skyblue','aqua','lightpink','darkseagreen','aquamarine',
+                                               'saddlebrown','grey','black','lightblue','violet','turquoise']),
+                        sort=status_cat),
+        order=alt.Order('idx'),
+        column=alt.Column('category:N', title=None, sort=category_order)
+    ).properties(width=200, height=300, title='Interconnection Queue by Data Vintage and IA Category'
+    ).configure_axis(titleFontSize=15, labelFontSize=15, grid=False
+    ).configure_legend(labelFontSize=15, titleFontSize=15
+    ).configure_header(labelFontSize=15)
     chart_compare.save(os.path.join(dir,'outputs','figures','compare_queue_versions.html'))
 
 

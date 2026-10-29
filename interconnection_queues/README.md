@@ -3,31 +3,43 @@ This repo includes scripts and inputs to preprocess interconnection queues that 
 
 # Scripts
 - Script is run in `process_interconnection_queues.py`
-- This script takes original interconnection queue data file from LBNL:
-    - Determine cumulative queues between 2 years at FIPS level by technology
-    - First year (`t_1`) cumulative queues: `q_status = ‘active’` and `IA_status_clean = ‘IA Executed’`
-    - Final year (`t_2`) cumulative queues: `q_status = ‘active’` regardless of `IA_status_clean` status
-    - Cumulative values for all the years in between `t_1` and `t_2` are interpolated from these two years' values
-    - To run the script, the input filenames, the data year (`version`) and `t_1` and `t_2` are set at the top of the script:
+- This script takes the original interconnection queue data file from LBNL and sums the active queue capacity at FIPS level by technology and interconnection agreement (IA) status:
+    - `ia_executed = 1`: `q_status = ‘active’` and `IA_phase_clean = ‘IA Executed’`
+    - `ia_executed = 0`: `q_status = ‘active’` with any other `IA_phase_clean`, including a missing value
+    - The two categories are mutually exclusive, so each queue request is counted once
+    - The script does not assign online years or interpolate an annual capacity limit. The annual capacity deployment limit trajectory (`cap_limit`) is built from these two categories within the ReEDS repository.
+    - To run the script, the input filenames and the data year (`version`) are set at the top of the script:
 
 | Parameter | Current value | Description |
 |---|---|---|
 | `filename` | `LBNL_Ix_Queue_Data_File_thru2025.xlsx` | Most recent LBNL queue data file |
 | `filename_other` | `queues_other_forNLR_2025.xlsx` | LBNL supplement with the detailed types behind `Other`/`Other Storage` |
 | `version` | 2025 | Data year (matches the year in the LBNL filenames) |
-| `t_1` | 2028 | First year to calculate queue |
-| `t_2` | 2031 | Last year to calculate queue |
 
 # Input files and params to run process_interconnection_queues.py
 All the input files to run the scripts are located in `inputs` folder, including original queue data from LBNL (most recently `LBNL_Ix_Queue_Data_File_thru2025.xlsx`), the supplement `queues_other_forNLR_2025.xlsx` and `county_state.csv` (read from the `inputs/zones` folder of the ReEDS repo) to match ReEDS counties to appropriate bas. Set `REEDS_PATH` to your ReEDS checkout.
 
 The 2025 supplement restores pumped-storage and biofuel/biomass types grouped under `Other Storage`/`Other` in the public file. Requests are matched on `q_id` + `entity` and resource category, preserving public-file capacities; see `add_detailed_types` for hybrid matching details.
 
+Requests are matched to ReEDS counties on their FIPS code first, with county name + state as a fallback. Each of the three resource-type slots of a request (`type_1`/`mw_1`, ...) is counted separately, so a hybrid request contributes its own capacity to each of its technologies. Negative capacities are set to zero. Requests that match no ReEDS county, or whose resource type has no ReEDS technology group (diesel, oil, other), are excluded; the script prints the excluded capacity, the capacity by `IA_phase_clean`, and the capacity with a missing `IA_phase_clean` (counted as `ia_executed = 0`).
+
 # Output
 - Located in the `outputs` folder
-- Final file that will be used to run ReEDS: `interconnection_queues.csv`
-- Previous version files are also kept there
+- Final file that will be used to run ReEDS: `interconnection_queues.csv` (identical to `interconnection_queues_<version>.csv`)
+- Previous version files are also kept there in the same schema. The 2023 and 2024 files were converted from the earlier annual-limit outputs: `ia_executed = 1` is the first anchor year (IA Executed) and `ia_executed = 0` is the last anchor year (All Active) minus the first.
+
+| Column | Description |
+|---|---|
+| `r` | ReEDS county (`p` + 5-digit FIPS, e.g. `p01001`) |
+| `tg` | ReEDS technology group (`battery`, `biomass`, `coal`, `csp`, `gas`, `geothermal`, `h2`, `hydro`, `nuclear`, `pumped-hydro`, `pv`, `wind-ofs`, `wind-ons`) |
+| `ia_executed` | 1 = active request with an executed IA; 0 = active request without a confirmed executed IA (any other or missing `IA_phase_clean`) |
+| `capacity_mw` | Sum of active queue capacity (MW) for the region, technology group, and IA category |
+
+- IA Executed capacity for a region and technology = `capacity_mw` where `ia_executed = 1`
+- All Active capacity = sum of `capacity_mw` over both `ia_executed` rows, so All Active >= IA Executed
+- Zero rows: the file has both `ia_executed` rows for every ReEDS county with at least one active request (of any resource type) and every technology group with active queue capacity, plus `csp` rows (assumed zero queue) for the counties in `inputs/csp_queues.csv`. A `capacity_mw` of 0 means no active queue capacity in that category, not missing data. Counties absent from the file had no active requests matched to them.
 
 # Comparison figures
-- Interconnection queue figures are generated from `process_interconnection_queues.py` for the current vintage (`version`) and its difference from the previous vintage, using `outputs/interconnection_queues_<version-1>.csv`. Update the input filenames, data year `version` (the year in the LBNL filename), and `t_1`/`t_2` for a new vintage; comparison years are selected automatically.
-- Years present in only one vintage are plotted against zero for the difference calculation; this does not mean the missing vintage imposed a zero-capacity limit.
+- `outputs/figures/queue_versions_<version>.html` shows the current vintage's IA Executed, IA Not Executed, and All Active capacity stacked by technology group.
+- `outputs/figures/compare_queue_versions.html` shows the same three categories for every vintage in `outputs/interconnection_queues_<vintage>.csv` side by side. Both are generated by `process_interconnection_queues.py`; update the input filenames and data year `version` (the year in the LBNL filename) for a new vintage.
+
