@@ -28,6 +28,18 @@ import bridge
 
 st.set_page_config(page_title="ATB inputs dashboard", layout="wide")
 
+# Text size. Streamlit sizes its text in rem, so one root font size scales the
+# page, sidebar, labels, and headings together; charts take PLOT_FONT_SIZE.
+BASE_FONT_SIZE_PX = 18
+PLOT_FONT_SIZE = 14
+# All-technologies page: charts per row and their height in pixels.
+OVERVIEW_COLUMNS = 2
+OVERVIEW_CHART_HEIGHT = 450
+st.markdown(
+    f"<style>html {{ font-size: {BASE_FONT_SIZE_PX}px; }}</style>",
+    unsafe_allow_html=True,
+)
+
 CATEGORY_COLORS = {
     "ATB projection (raw) · flat file": "#444444",
     "ATB projection (raw) · workbook": "#2b6cb0",
@@ -47,6 +59,8 @@ CATEGORY_COLORS = {
     "Manual history (ReEDS ATB baseline)": "#ff7f0e",
 }
 DASHES = ["solid", "dash", "dot", "dashdot", "longdash", "longdashdot"]
+# Line color of a series that is identical in every scenario.
+ALL_SCENARIOS_COLOR = "#555555"
 
 
 
@@ -214,28 +228,41 @@ def edit_technology(tech: str) -> None:
 
 # --------------------------------------------------------------------------- plots
 def plot_metric(points: pd.DataFrame, metric: str, dollar_year, hide_placeholder, title=None,
-                height=380, show_legend=True) -> go.Figure:
+                height=380, show_legend=True, scenarios_shown=None) -> go.Figure:
     data = points.loc[points.metric.eq(metric)].copy()
     if hide_placeholder is not None:
         data = data.loc[~data.value.eq(float(hide_placeholder))]
+    all_scenarios = set(data.scenario)
+    if scenarios_shown is not None:
+        data = data.loc[data.scenario.isin(scenarios_shown)]
     figure = go.Figure()
     series = sorted(data.series.unique())
     scenarios = [s for s in bridge.SCENARIO_ORDER if s in set(data.scenario)] + \
         sorted(set(data.scenario) - set(bridge.SCENARIO_ORDER))
-    for scenario in scenarios:
-        for index, label in enumerate(series):
-            group = data.loc[data.scenario.eq(scenario) & data.series.eq(label)].sort_values("t")
-            if group.empty:
-                continue
+    for index, label in enumerate(series):
+        groups = {scenario: data.loc[data.scenario.eq(scenario) & data.series.eq(label)].sort_values("t")
+                  for scenario in scenarios}
+        groups = {scenario: group for scenario, group in groups.items() if not group.empty}
+        # A series whose values are the same in every scenario (for example a
+        # ReEDS-only legacy series) is drawn once instead of as stacked copies.
+        first = next(iter(groups.values()))
+        if len(groups) > 1 and all(
+            group[["t", "value"]].to_numpy().tolist() == first[["t", "value"]].to_numpy().tolist()
+            for group in groups.values()
+        ):
+            merged = "all scenarios" if set(groups) == all_scenarios else " + ".join(groups)
+            groups = {merged: first}
+        for scenario, group in groups.items():
             name = scenario if label == "all" else f"{scenario} · {label}"
             figure.add_trace(go.Scatter(
                 x=group.t, y=group.value, mode="lines", name=name,
-                line=dict(color=bridge.SCENARIO_COLORS.get(scenario, "#333"), dash=DASHES[index % len(DASHES)]),
+                line=dict(color=bridge.SCENARIO_COLORS.get(scenario, ALL_SCENARIOS_COLOR),
+                          dash=DASHES[index % len(DASHES)]),
                 customdata=group[["category", "history_mode", "file"]].to_numpy(),
                 hovertemplate=(f"<b>{name}</b><br>%{{x}}: %{{y:,.3f}}<br>source: %{{customdata[0]}}"
                                "<br>file: %{customdata[2]}<br>history mode: %{customdata[1]}<extra></extra>"),
             ))
-    for category, group in data.groupby("category"):
+    for category, group in data.drop_duplicates(["t", "value", "category"]).groupby("category"):
         figure.add_trace(go.Scatter(
             x=group.t, y=group.value, mode="markers", name=category, legendgroup="source",
             legendgrouptitle_text="Source of each point",
@@ -244,13 +271,14 @@ def plot_metric(points: pd.DataFrame, metric: str, dollar_year, hide_placeholder
         ))
     figure.update_layout(
         title=title or bridge.metric_label(metric, dollar_year), height=height,
-        margin=dict(l=40, r=20, t=50, b=40), legend=dict(font=dict(size=10)), showlegend=show_legend,
+        margin=dict(l=40, r=20, t=50, b=40), showlegend=show_legend,
+        font=dict(size=PLOT_FONT_SIZE), legend=dict(font=dict(size=PLOT_FONT_SIZE - 2)),
         xaxis_title="year", hovermode="closest",
     )
     return figure
 
 
-def show_result(result: dict, hide_placeholder: bool) -> None:
+def show_result(result: dict, hide_placeholder: bool, scenarios_shown: list[str]) -> None:
     settings = result["settings"]
     points = result["points"]
     placeholder = settings["config"]["processing"]["smooth_cost_curves"].get("unavailable_value") \
@@ -260,7 +288,8 @@ def show_result(result: dict, hide_placeholder: bool) -> None:
     columns = st.columns(2)
     for index, metric in enumerate(metrics):
         with columns[index % 2]:
-            st.plotly_chart(plot_metric(points, metric, settings["dollaryear"], placeholder), use_container_width=True)
+            st.plotly_chart(plot_metric(points, metric, settings["dollaryear"], placeholder,
+                                        scenarios_shown=scenarios_shown), use_container_width=True)
 
     st.subheader("Where each stretch of the curve comes from")
     spans = (
@@ -287,6 +316,8 @@ with st.sidebar:
     with st.expander("Global settings", expanded=False):
         edit_global_settings()
     hide_placeholder = st.checkbox("Hide 99999 placeholders in plots", True, key="hide")
+    scenarios_shown = st.multiselect("Scenarios in plots", bridge.SCENARIO_ORDER, bridge.SCENARIO_ORDER,
+                                     key="scenarios_shown")
     st.divider()
     do_preview = st.button("Preview this technology", type="primary", use_container_width=True,
                            help="Formats only this technology with the draft, into a scratch folder.")
@@ -330,7 +361,7 @@ with tab_tech:
     if result is None:
         st.info("Press **Preview this technology** to format it with the current draft and plot the result.")
     else:
-        show_result(result, hide_placeholder)
+        show_result(result, hide_placeholder, scenarios_shown)
     with st.expander("Draft vs. saved config.yaml"):
         hunks = bridge.config_diff_hunks(config)
         if not hunks:
@@ -351,7 +382,7 @@ with tab_all:
             metric for name in previewed for metric in st.session_state.results[name]["points"].metric))
         metric = st.selectbox("Metric", all_metrics, key="overview_metric")
         st.caption(f"{len(previewed)} of {len(technologies)} technologies previewed with the current draft.")
-        grid = st.columns(3)
+        grid = st.columns(OVERVIEW_COLUMNS)
         for index, name in enumerate(previewed):
             result = st.session_state.results[name]
             points = result["points"]
@@ -359,11 +390,12 @@ with tab_all:
                 continue
             placeholder = result["settings"]["config"]["processing"]["smooth_cost_curves"].get("unavailable_value") \
                 if hide_placeholder else None
-            with grid[index % 3]:
+            with grid[index % OVERVIEW_COLUMNS]:
                 st.plotly_chart(
                     plot_metric(points, metric, result["settings"]["dollaryear"], placeholder,
                                 title=f"{name}: {bridge.metric_label(metric, result['settings']['dollaryear'])}",
-                                height=300, show_legend=False),
+                                height=OVERVIEW_CHART_HEIGHT, show_legend=False,
+                                scenarios_shown=scenarios_shown),
                     use_container_width=True)
 
 # --------------------------------------------------------------------------- export page

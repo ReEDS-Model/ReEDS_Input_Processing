@@ -368,8 +368,9 @@ def series_table(result: dict) -> pd.DataFrame:
     """Long table of every output point with its provenance category.
 
     Columns: scenario, series, metric, t, value, category, history_mode, file.
-    The categories come from the comparison stage's own labeler; ATB
-    projection points also name the release file they were read from.
+    The categories come from the comparison stage's own labeler. ATB
+    projection points name the release file they were read from; history
+    points name the source file recorded in historical/real.csv or manual.csv.
     """
     settings = result["settings"]
     files = result["files"]
@@ -381,6 +382,7 @@ def series_table(result: dict) -> pd.DataFrame:
     future_data = provenance["future_data"]
     raw_files = {kind: Path(settings[f"{kind}_path"]).name for kind in ATB_FUTURE_SOURCES.values()}
     unsmoothed = Path(settings.get("unsmoothed_output_dir") or UNSMOOTHED_DIR)
+    history_file = _history_file_lookup(settings, provenance["technology"])
 
     def projection_file(group):
         """Name the ATB release file this series' projection was read from."""
@@ -400,6 +402,7 @@ def series_table(result: dict) -> pd.DataFrame:
         metrics = [c for c in final.columns if c != "t" and pd.api.types.is_numeric_dtype(final[c])]
         for label, group in grouped_series(final, identifiers):
             kind, raw_file = projection_file(group)
+            series = str(group[class_column].iloc[0]) if class_column in group else "*"
             for metric in metrics:
                 categories = provenance_categories(group, baseline_groups.get(label), metric, provenance)
                 try:
@@ -412,8 +415,39 @@ def series_table(result: dict) -> pd.DataFrame:
                                  "t": int(t), "value": float(value),
                                  "category": f"{category} · {kind}" if projected else category,
                                  "history_mode": mode,
-                                 "file": raw_file if projected else ""})
+                                 "file": raw_file if projected
+                                 else history_file(category, series, scenario, metric, int(t))})
     return pd.DataFrame(rows, columns=columns)
+
+
+def _history_file_lookup(settings: dict, tech: str):
+    """Return a function naming the prepared-history source file of one point.
+
+    Manual categories are looked up in manual.csv by series, scenario, metric
+    and year; every other history category in real.csv (mapped rows). A
+    series without its own rows falls back to the technology-wide "*" rows,
+    and indexed metrics to their "<metric>_index" rows. Unknown points get "".
+    """
+    manual = load_history(settings, "manual")
+    manual = manual.loc[manual.technology.eq(tech)]
+    manual_files = {
+        (row.series, str(row.scenario).lower(), row.metric, int(row.year)): row.source_file
+        for row in manual.itertuples()
+    }
+    real = load_history(settings, "real")
+    real = real.loc[real.technology.eq(tech) & real.scope.eq("reeds")]
+    real_files = {(row.series, row.metric, int(row.year)): row.source_file for row in real.itertuples()}
+
+    def lookup(category: str, series: str, scenario: str, metric: str, year: int) -> str:
+        if category.startswith("Manual"):
+            return manual_files.get((series, scenario.lower(), metric, year), "")
+        for name in (series, "*"):
+            for column in (metric, f"{metric}_index"):
+                if (name, column, year) in real_files:
+                    return real_files[(name, column, year)]
+        return ""
+
+    return lookup
 
 
 def metric_label(metric: str, dollar_year) -> str:

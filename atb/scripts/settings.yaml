@@ -251,7 +251,6 @@ techs:
     subset_rows:
       Case: Market
       CRPYears: 30
-      Scenario: Moderate
     renamecols:
       DisplayName: i
       variable: t
@@ -309,7 +308,6 @@ techs:
     subset_rows:
       Case: Market
       CRPYears: 30
-      Scenario: Moderate
     renamecols:
       DisplayName: i
       variable: t
