@@ -135,3 +135,18 @@ history needs no local ReEDS checkout. A local repository is still needed for
 comparison baselines and optional copying. Technology formatting rules are in
 `scripts/settings.yaml`; review year-specific files under `manual_input/`
 when changing the ATB release.
+
+## CCS retrofit upgrade inputs
+
+`scripts/ccs_retrofit_inputs.py` builds the ReEDS `inputs/upgrades/` CCS
+retrofit files from the cached flat file (`--copy-to-reeds` also copies them):
+`upgrade_mult_atb<yy>_ccs_{mid,adv,con}.csv`, unitless multipliers on the EIA
+unit-level retrofit cost of existing plants (`GSw_UpgradeCost_Mult`), and
+`upgrade_costs_ccs_{coal,gas}.csv`, retrofit capital cost in 2004$/kW
+(`ccs_upgrade_cost_case`). Both use the ATB retrofit "Additional OCC" series
+of one 95%-CCS technology per fuel, mapped under `ccs_retrofits` in
+`scripts/settings.yaml`. A multiplier is each scenario's cost divided by the
+Moderate cost in 2028, which reproduces the ATB 2023 files in ReEDS exactly
+(those used the 90%-CCS series). Costs are converted with the ReEDS deflator.
+Years before the ATB base year hold the base-year value; rows follow ReEDS
+`upgrade_link.csv`, and upgrades that are not CCS retrofits get 1.

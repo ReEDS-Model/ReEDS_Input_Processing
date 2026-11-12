@@ -11,6 +11,7 @@
 | `atb_workbook.py` | Extract battery power/energy capital components and technology-sheet metrics from the ATB workbook. |
 | `downloads.py`, `atb_config.py` | Shared download and configuration helpers. |
 | `atb_plotting.py` | Plot the current ATB flat file. |
+| `ccs_retrofit_inputs.py` | Build the ReEDS `inputs/upgrades` CCS retrofit multipliers and costs from the ATB flat file. |
 | `settings.yaml` | Internal technology mappings and ReEDS output schemas. |
 
 User choices belong in `../config.yaml`. In `settings.yaml`, `reeds_name`
