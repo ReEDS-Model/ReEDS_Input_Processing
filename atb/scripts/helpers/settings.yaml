@@ -216,7 +216,7 @@ techs:
     DisplayName:
       # mapping to csp2 since that corresponds to ATB storage + solar multiple assumption
       # 'add_csp_techs' expands this base series to the other CSP configurations
-      # using the year-specific ratios in manual_input/csp_cost_ratios_<year>.csv.
+      # using the year-specific ratios in inputs/manual/csp_cost_ratios_<year>.csv.
       CSP - Class 2: csp2
     subset_rows:
       Case: Market
@@ -491,7 +491,7 @@ techs:
       - fom
       - vom
       - heatrate
-    # ReEDS has no beccs ATB files, so the manual baseline (and the retained
+    # ReEDS has no beccs ATB files, so the ReEDS baseline (and the retained
     # beccs_max series) comes from this ReEDS plant_characteristics file.
     baseline_file: beccs_reference
 

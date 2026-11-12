@@ -10,7 +10,7 @@
   Island 2016, CVOW pilot 2020, South Fork 2024) with reported costs and source
   notes. Vineyard Wind 1 is omitted until it declares commercial operation.
   Both project files share one schema and are registered in
-  `config.yaml` under `historical_cost_sources.project_files`.
+  `config_history.yaml` under `historical_cost_sources.project_files`.
 
-Historical values are consolidated in `../historical/manual.csv`, sourced from
-ReEDS ATB 2024. Review year-specific projection inputs when updating ATB.
+The ReEDS baseline curves are in `../historical/reeds_baseline.csv`, sourced
+from ReEDS ATB 2024. Review year-specific projection inputs when updating ATB.

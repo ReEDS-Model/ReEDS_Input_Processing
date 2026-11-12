@@ -6,8 +6,9 @@ import yaml
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-ATB_DIR = SCRIPT_DIR.parent
+ATB_DIR = SCRIPT_DIR.parents[1]
 DEFAULT_CONFIG_PATH = ATB_DIR / "config.yaml"
+HISTORY_CONFIG_PATH = ATB_DIR / "config_history.yaml"
 TECH_SETTINGS_PATH = SCRIPT_DIR / "settings.yaml"
 
 ATBE_COLUMN_MAPPING = {
@@ -34,17 +35,17 @@ def technology_atb_source(tech, future_data):
 
     ``future_data`` is the technology's config entry: one value, or one value
     per sub-technology. Every ATB-backed series must name the same file, so a
-    technology is never assembled from both. ``manual`` series do not count.
+    technology is never assembled from both. ``reeds_baseline`` series do not count.
     """
     label = f"processing.smooth_cost_curves.technologies.{tech}.future_data"
     if future_data is None:
         return "flat_file"
     values = future_data.values() if isinstance(future_data, dict) else [future_data]
-    unknown = sorted({str(v) for v in values if v not in ATB_FUTURE_SOURCES and v != "manual"})
+    unknown = sorted({str(v) for v in values if v not in ATB_FUTURE_SOURCES and v != "reeds_baseline"})
     if unknown:
         raise ValueError(
             f"{label} has unknown values {unknown}; choose from "
-            f"{sorted(ATB_FUTURE_SOURCES)} or 'manual'."
+            f"{sorted(ATB_FUTURE_SOURCES)} or 'reeds_baseline'."
         )
     files = sorted({ATB_FUTURE_SOURCES[v] for v in values if v in ATB_FUTURE_SOURCES})
     if len(files) > 1:
@@ -55,10 +56,17 @@ def technology_atb_source(tech, future_data):
 
 
 def load_config(config_path=None):
-    """Load the user-facing workflow configuration."""
+    """Load the user-facing workflow configuration.
+
+    The history settings in config_history.yaml are added to it; a section the
+    config file itself carries takes precedence.
+    """
     path = Path(config_path).resolve() if config_path else DEFAULT_CONFIG_PATH
     with path.open(encoding="utf-8") as stream:
         config = yaml.safe_load(stream)
+    with HISTORY_CONFIG_PATH.open(encoding="utf-8") as stream:
+        for section, value in yaml.safe_load(stream).items():
+            config.setdefault(section, value)
     config["_config_path"] = str(path)
     return config
 

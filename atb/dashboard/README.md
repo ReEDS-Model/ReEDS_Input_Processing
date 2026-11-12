@@ -21,7 +21,7 @@ in `reeds2`; the launcher uses base. To run it from `reeds2` instead, first
 | Page | What it does |
 | --- | --- |
 | Sidebar | Pick a technology; global settings (dollar year, ATB case, output years, smoothing, copy to ReEDS); Preview, Preview all, Save, Reset. |
-| Technology | Every `future_data` and `historical_data` entry of one technology as a drop-down. Option lists come from `config.schema.json`, so they always match what the formatter accepts. Preview plots one chart per metric: one line per scenario and sub-technology, hover shows value, source category, release file, and history mode; dots color each point by source. Tables list year ranges per source and the prepared history rows (`real.csv`, `manual.csv`) with file, URL, and method. |
+| Technology | Every `future_data` and `historical_data` entry of one technology as a drop-down. Option lists come from `config.schema.json`, so they always match what the formatter accepts. Preview plots one chart per metric: one line per scenario and sub-technology, hover shows value, source category, release file, and history mode; dots color each point by source. Tables list year ranges per source and the prepared history rows (`real.csv`, `reeds_baseline.csv`) with file and method. |
 | All technologies | The whole configuration as one table (one row per series), and one small chart per previewed technology for a chosen metric. |
 | Export | Save the draft to `config.yaml`, then run the chosen stages (format, plot, compare) exactly as `run_pipeline.py` does. Shows the log and the files in the configured output folder. |
 

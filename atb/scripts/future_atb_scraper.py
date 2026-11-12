@@ -1,15 +1,16 @@
 """Download and summarize the raw NLR ATB inputs configured in config.yaml."""
 
 import argparse
+import sys
 from pathlib import Path
 
 import openpyxl
 import pandas as pd
 
-from atb_config import load_config, raw_file_path
+sys.path.insert(0, str(Path(__file__).resolve().parent / "helpers"))
 
-
-from downloads import download_file
+from atb_config import load_config, raw_file_path  # noqa: E402
+from downloads import download_file  # noqa: E402
 
 
 def summarize_flat_file(path):
@@ -69,6 +70,7 @@ def scrape(config, selected="all", force=False):
 
 
 def main():
+    """Parse the command line and download the configured raw ATB files."""
     parser = argparse.ArgumentParser(
         description="Download and summarize the raw NLR ATB flat file and workbook."
     )

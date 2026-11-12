@@ -17,13 +17,11 @@ from pandas.errors import EmptyDataError
 import sys
 
 from atb_config import (
-    ATB_FUTURE_SOURCES, ATBE_COLUMN_MAPPING, load_processing_settings, technology_atb_source,
+    ATB_DIR, ATB_FUTURE_SOURCES, ATBE_COLUMN_MAPPING, load_processing_settings, technology_atb_source,
 )
 
-# directory containing this script (atb/scripts); settings.yaml lives here.
-THISDIR = os.path.dirname(os.path.abspath(__file__))
-# parent atb/ directory; used to build paths to input/, manual_input/, output/.
-ATBDIR = os.path.dirname(THISDIR)
+# atb/ directory; used to build paths to inputs/ and output/.
+ATBDIR = str(ATB_DIR)
 
 # define zero marginal cost technologies (to assign zero 'vom' if input data is missing)
 zero_vom_techs = {'upv', 'wind-ons', 'wind-ofs', 'battery'}
@@ -438,7 +436,7 @@ def _normalize_reeds_history(frame, tech, settings):
 
 def load_csp_cost_ratios(settings):
     """Read the shared historical/projection CSP configuration multipliers."""
-    path = os.path.join(ATBDIR, 'manual_input',
+    path = os.path.join(ATBDIR, 'inputs', 'manual',
                         f"csp_cost_ratios_{settings['atbyear']}.csv")
     ratios = pd.read_csv(path)
     if (ratios.empty or ratios['type'].isna().any() or ratios['type'].duplicated().any()
@@ -460,7 +458,7 @@ def merge_historical_atb_data(
     The local history is stored in a fixed dollar year. For each active series,
     only rows before the first current scraped year are used. Series no longer
     published by ATB are retained from history. Archived base-year estimates
-    are applied separately; formatting never appends to manual history.
+    are applied separately; formatting never appends to the ReEDS baseline.
     """
     tech_settings = settings['techs'][tech]
     idcols = [
@@ -474,8 +472,8 @@ def merge_historical_atb_data(
 
     for scenario in tech_data['Scenario'].unique():
         current = tech_data.loc[tech_data['Scenario'] == scenario].copy()
-        from historical_data import manual_history
-        history_stored = manual_history(settings, tech, scenario, deflator)
+        from historical_data import reeds_baseline_history
+        history_stored = reeds_baseline_history(settings, tech, scenario, deflator)
 
         history_stored_for_output = history_stored
         history_for_output = _select_pre_projection_history(
@@ -560,7 +558,7 @@ def apply_offshore_cost_multipliers(tech, settings, df):
     """Apply ReEDS offshore configuration adjustments to ATB class proxies."""
     multiplier_path = os.path.join(
         ATBDIR,
-        "manual_input",
+        "inputs", "manual",
         f"offshore_cost_multipliers_{settings['atbyear']}.csv",
     )
     multipliers = pd.read_csv(multiplier_path).set_index("turbine")
@@ -668,10 +666,10 @@ def _selective_smooth_cost_values(
         )
     anchor = int(anchor_candidates[0])
 
-    # Broadcast the first ATB projection value backward across the complete
-    # historical period. This makes `broadcast` an exclusive generated history
-    # rather than a selective treatment mixed with manual input values.
-    if historical_data_mode == 'broadcast':
+    # Backfill the first ATB projection value backward across the complete
+    # historical period. This makes `backfill` an exclusive generated history
+    # rather than a selective treatment mixed with ReEDS baseline values.
+    if historical_data_mode == 'backfill':
         smoothed[:anchor] = smoothed[anchor]
     if not smooth_projection_curve:
         return smoothed
@@ -689,7 +687,7 @@ def _selective_smooth_cost_values(
 FUTURE_SMOOTHING_TREATMENTS = (
     'smooth_projection_curve',
 )
-HISTORICAL_DATA_MODES = ('real', 'manual', 'broadcast', 'indexed', 'unavailable')
+HISTORICAL_DATA_MODES = ('real', 'reeds_baseline', 'backfill', 'indexed', 'unavailable')
 NON_HISTORY_COLUMNS = {'Scenario', 'i', 't', 'turbine', 'type'}
 
 
@@ -726,7 +724,7 @@ def _historical_mode_for_metric(historical_data, metric, class_value=None):
         ) from error
 
 
-FUTURE_DATA_SOURCES = (*ATB_FUTURE_SOURCES, 'manual')
+FUTURE_DATA_SOURCES = (*ATB_FUTURE_SOURCES, 'reeds_baseline')
 
 
 def atb_backed_classes(tech, settings):
@@ -734,7 +732,7 @@ def atb_backed_classes(tech, settings):
 
     These are the labels mapped from ATB display names, plus the CSP
     configurations scaled from the mapped base type. Any other output series
-    is retained from the ReEDS baseline in historical/manual.csv.
+    is retained from the ReEDS baseline in inputs/historical/reeds_baseline.csv.
     """
     tech_settings = settings['techs'][tech]
     names = tech_settings['DisplayName']
@@ -755,7 +753,7 @@ def _validate_future_data_config(tech, future_data, settings):
     The section must agree with what the pipeline does: an ATB file
     (``atb_flatfile`` or ``atb_workbook``, the same one for every ATB series
     of the technology) only for labels mapped from ATB (or scaled from a
-    mapped CSP type) and ``manual`` only for series ATB does not publish.
+    mapped CSP type) and ``reeds_baseline`` only for series ATB does not publish.
     """
     label = f"processing.smooth_cost_curves.technologies.{tech}.future_data"
     class_column = settings['techs'][tech].get('history_class_column')
@@ -788,7 +786,7 @@ def _validate_future_data_config(tech, future_data, settings):
             why, expected = (
                 ("is mapped from an ATB display name in settings.yaml", sorted(ATB_FUTURE_SOURCES))
                 if from_atb
-                else ("is not in the ATB mapping, so it is retained from the ReEDS baseline", 'manual')
+                else ("is not in the ATB mapping, so it is retained from the ReEDS baseline", 'reeds_baseline')
             )
             raise ValueError(
                 f"{label}{'.' + cls if cls else ''} says {source!r} but {cls or tech} {why}; "
@@ -1147,7 +1145,7 @@ def smooth_cost_curve(tech, settings, df):
         historical_index = group.index[group['t'] < series_start]
         broadcast_columns = [
             column for column in history_columns
-            if group_modes[column] == 'broadcast'
+            if group_modes[column] == 'backfill'
         ]
         if broadcast_columns:
             output.loc[historical_index, broadcast_columns] = output.loc[
@@ -1190,7 +1188,7 @@ def smooth_cost_curve(tech, settings, df):
         target_index = target_rows.index[0]
         broadcast_columns = [
             column for column in columns
-            if group_modes[column] == 'broadcast'
+            if group_modes[column] == 'backfill'
         ]
         if broadcast_columns:
             historical_index = group.index[group['t'] <= anchor_year]
@@ -1212,7 +1210,7 @@ def smooth_cost_curve(tech, settings, df):
 
     # Respect the published ATB trajectory when smoothing proposes only a
     # negligible future adjustment. Historical mode changes (including a full
-    # broadcast) are intentionally outside this filter.
+    # backfill) are intentionally outside this filter.
     future_mask = output['t'] >= row_series_start
     candidate_values = output.loc[future_mask, columns]
     source_values = original_values.loc[future_mask, columns]
@@ -1621,13 +1619,9 @@ def get_financials(atb_data, settings, tech, financial_params, scenarios=["Moder
         avail_params = atb_data.loc[(atb_data.Technology == tech) 
                                     & (atb_data.Scenario.isin(scenarios)), "Parameter"
                                     ].unique()
-        if args.debug:
-            breakpoint()
-        else:
-
-            raise EmptyDataError(f"Looking for the following financial parameters for {tech}:\n{list(financial_params.keys())}.\n"
-                                 f"Found the following parameters:\n{list(avail_params)}"
-                                 )
+        raise EmptyDataError(f"Looking for the following financial parameters for {tech}:\n{list(financial_params.keys())}.\n"
+                             f"Found the following parameters:\n{list(avail_params)}"
+                             )
     techfinancial = techfinancial.rename(columns={"variable":"t"})
     # reorder columns
     techfinancial = techfinancial.pivot(index="t", columns='Parameter', values='value').rename(columns=financial_params)
@@ -1776,6 +1770,7 @@ def update_financials(settings, atb_data, outfolder):
 ### --- Main ---
 ### ===========================================================================
 def main(args):    
+    """Format the requested technologies into ReEDS input files and copy them to ReEDS when configured."""
     settings = load_processing_settings(args.config)
     settings['unsmoothed_output_dir'] = getattr(
         args, 'unsmoothed_output_dir', None
@@ -1789,23 +1784,8 @@ def main(args):
 
     smoothing = processing.get('smooth_cost_curves', {})
     if smoothing.get('enabled', False):
-        smoothing_techs = smoothing.get('technologies', {})
-        if not isinstance(smoothing_techs, dict):
-            raise TypeError(
-                "processing.smooth_cost_curves.technologies must map each "
-                "technology name to its switches."
-            )
-        invalid_entries = [
-            tech for tech, config in smoothing_techs.items()
-            if config is not None and not isinstance(config, dict)
-        ]
-        if invalid_entries:
-            raise TypeError(
-                "Each processing.smooth_cost_curves.technologies entry "
-                f"must be a mapping: {invalid_entries}"
-            )
         unknown_smoothing_techs = [
-            tech for tech in smoothing_techs
+            tech for tech in smoothing.get('technologies', {})
             if tech not in settings['techs']
         ]
         if unknown_smoothing_techs:
@@ -1851,7 +1831,7 @@ def main(args):
                            index_col='*Dollar.Year').squeeze()
     if not args.skip_costs:
         from historical_data import load_history
-        for kind in ('real', 'manual'):
+        for kind in ('real', 'reeds_baseline'):
             load_history(settings, kind)
     # load ATB data from the configured source of each technology
     atb_data = load_atb_data(settings, args, techs_to_run)

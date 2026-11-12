@@ -13,7 +13,7 @@ import pandas as pd
 
 
 ATB_DIR = Path(__file__).resolve().parents[1]
-SCRIPT_DIR = ATB_DIR / "scripts"
+SCRIPT_DIR = ATB_DIR / "scripts" / "helpers"
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from atb_config import (
@@ -89,19 +89,19 @@ def reeds_dollar_years(reeds_dir: Path) -> dict[str, int]:
     frame = pd.read_csv(table)
     return dict(zip(frame["Scenario"], frame["Dollar.Year"].astype(int)))
 
-# Values copied from historical/manual.csv, the deflated ReEDS ATB baseline
-# scraped from the pinned ReEDS repository. Pre-ATB years in "manual" mode use
+# Values copied from inputs/historical/reeds_baseline.csv, the deflated ReEDS ATB baseline
+# scraped from the pinned ReEDS repository. Pre-ATB years in "reeds_baseline" mode use
 # it, and so do whole series the current ATB no longer publishes.
-MANUAL_CATEGORY = "Manual history (ReEDS ATB baseline)"
+BASELINE_CATEGORY = "ReEDS baseline history"
 
 PROVENANCE_COLORS = {
-    MANUAL_CATEGORY: "#0072B2",
+    BASELINE_CATEGORY: "#0072B2",
     "Observed history (real)": "#009E73",
     "Calculated project history": "#117A65",
     "Scaled real history": "#A6761D",
     "Split real history": "#56B4E9",
     "Filled real history": "#D55E00",
-    "Broadcast history": "#CC79A7",
+    "Backfill history": "#CC79A7",
     "Unavailable placeholder": "#999999",
     "Indexed history (ATB level, observed trend)": "#009E73",
     "Indexed anchor (observed O&M)": "#00553F",
@@ -569,7 +569,7 @@ def smoothing_provenance(settings: dict, generated_path: Path) -> dict:
     )
     from historical_data import load_history
     observed = load_history(settings, 'real')
-    observed = observed.loc[observed.scope.eq('reeds') & observed.technology.eq(technology)]
+    observed = observed.loc[observed.technology.eq(technology)]
     observed_series = {}
     boundary = atb_start_year(settings, technology, int(smoothing.get('projection_start_year', 2022)))
     default_boundary = int(smoothing.get('projection_start_year', 2022))
@@ -693,9 +693,9 @@ def series_has_atb_data(final_group: pd.DataFrame, provenance: dict) -> bool:
 
     The answer is the technology's ``future_data`` config entry, which the
     formatter validates against the ATB mapping: ``atb_flatfile`` and
-    ``atb_workbook`` series are projected by the current release, ``manual``
+    ``atb_workbook`` series are projected by the current release, ``reeds_baseline``
     ones (Gas-CT_aero, the old coal designs, beccs_max) are retained from the
-    ReEDS baseline in historical/manual.csv.
+    ReEDS baseline in inputs/historical/reeds_baseline.csv.
     """
     future_data = provenance["future_data"]
     if not isinstance(future_data, dict):
@@ -735,7 +735,7 @@ def provenance_categories(
     """Label each final point by its exclusive data source or treatment."""
     years = pd.to_numeric(final_group["t"], errors="raise").astype(int)
     # A series the current ATB no longer publishes keeps the ReEDS baseline
-    # from historical/manual.csv for every year at or after the boundary; its
+    # from inputs/historical/reeds_baseline.csv for every year at or after the boundary; its
     # earlier years still follow the configured history mode like any other.
     reeds_only = not series_has_atb_data(final_group, provenance)
     final_values = pd.to_numeric(final_group[metric], errors="coerce")
@@ -765,8 +765,6 @@ def provenance_categories(
         from historical_data import select_history
         identity = next((c for c in ('i', 'type', 'turbine') if c in final_group), None)
         series = str(final_group[identity].iloc[0]) if identity else '*'
-        if provenance['technology'] == 'wind-ons':
-            series = '*'
         selected = select_history(provenance['settings'], 'real', provenance['technology'], series, metric)
         anchors = selected.loc[selected.source_type.isin(['real', 'calculated']), 'year']
         real_years = set(anchors)
@@ -782,10 +780,10 @@ def provenance_categories(
                         and boundary <= year <= provenance['settings']['atbyear']
                         and year in real_years)
         if year < boundary or real_overlap:
-            if historical_mode == "manual":
-                final_categories.append(MANUAL_CATEGORY)
-            elif historical_mode == "broadcast":
-                final_categories.append("Broadcast history")
+            if historical_mode == "reeds_baseline":
+                final_categories.append(BASELINE_CATEGORY)
+            elif historical_mode == "backfill":
+                final_categories.append("Backfill history")
             elif historical_mode == "unavailable":
                 final_categories.append("Unavailable placeholder")
             elif historical_mode == "indexed":
@@ -832,7 +830,7 @@ def provenance_categories(
                     f"{provenance['technology']}.{metric}: {historical_mode!r}"
                 )
         elif reeds_only:
-            final_categories.append(MANUAL_CATEGORY)
+            final_categories.append(BASELINE_CATEGORY)
         else:
             final_categories.append(
                 "ATB projection (smoothed)"
@@ -848,7 +846,7 @@ def input_point_categories(
     provenance: dict,
     final_categories: list[str],
 ) -> list[str | None]:
-    """Show selected source anchors; omit filled and broadcast points.
+    """Show selected source anchors; omit filled and backfill points.
 
     ATB markers appear only in years whose final value is an ATB projection,
     so years inside the ATB range that real history replaced get no ATB dot.
@@ -862,8 +860,8 @@ def input_point_categories(
             categories.append(category)
         elif category in PROJECTION_CATEGORIES:
             categories.append("ATB projection (raw)")
-        elif category == MANUAL_CATEGORY or historical_mode == "manual":
-            categories.append(MANUAL_CATEGORY)
+        elif category == BASELINE_CATEGORY or historical_mode == "reeds_baseline":
+            categories.append(BASELINE_CATEGORY)
         elif historical_mode == "real" and is_observed_history_point(
             final_group, metric, int(year), provenance
         ):
@@ -1409,6 +1407,7 @@ def write_plots(
 
 
 def main() -> None:
+    """Compare the generated outputs with the ReEDS files and write the comparison plots."""
     parser = argparse.ArgumentParser(
         description="Compare generated ATB outputs with current ReEDS inputs."
     )

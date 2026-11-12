@@ -54,9 +54,9 @@ CATEGORY_COLORS = {
     "Calculated project history": "#8c564b",
     "Indexed anchor (observed O&M)": "#9467bd",
     "Indexed history (ATB level, observed trend)": "#c5b0d5",
-    "Broadcast history": "#17becf",
+    "Backfill history": "#17becf",
     "Unavailable placeholder": "#c7c7c7",
-    "Manual history (ReEDS ATB baseline)": "#ff7f0e",
+    "ReEDS baseline history": "#ff7f0e",
 }
 DASHES = ["solid", "dash", "dot", "dashdot", "longdash", "longdashdot"]
 # Line color of a series that is identical in every scenario.
@@ -91,20 +91,24 @@ def diff_hunk_html(hunk: dict) -> str:
 # --------------------------------------------------------------------------- state
 @st.cache_resource(show_spinner=False)
 def cached_flat_file(path: str, mtime: float) -> pd.DataFrame:
+    """Read the ATB flat file once per file version (cached on its path and modified time)."""
     return bridge.read_flat_file()
 
 
 def flat_file() -> pd.DataFrame:
+    """Return the cached ATB flat file."""
     path = bridge.flat_file_path()
     return cached_flat_file(str(path), path.stat().st_mtime)
 
 
 @st.cache_data(show_spinner=False)
 def baseline_years() -> tuple[int, int]:
+    """Return the first and last year of the ReEDS baseline."""
     return bridge.baseline_year_range()
 
 
 def reset_config() -> None:
+    """Reload config.yaml and clear the previews and the export log."""
     st.session_state.config = bridge.load_config()
     st.session_state.results = {}
     st.session_state.export_log = None
@@ -128,6 +132,7 @@ def show_error(error: Exception) -> None:
 
 
 def preview(tech: str, settings: dict | None = None) -> bool:
+    """Format one technology with the draft config; return False and show the error if it fails."""
     try:
         st.session_state.results[tech] = bridge.run_technology(config, tech, flat_file(), settings)
         return True
@@ -154,6 +159,7 @@ def choose(label: str, current, options: list | None, key: str):
 
 
 def edit_global_settings() -> None:
+    """Sidebar inputs for the settings shared by all technologies."""
     atb = config["atb"]
     processing = config["processing"]
     smoothing = processing["smooth_cost_curves"]
@@ -166,7 +172,7 @@ def edit_global_settings() -> None:
     processing["reeds_start_year"] = st.number_input(
         "First output year", first_baseline_year, 2100,
         max(int(processing["reeds_start_year"]), first_baseline_year), key="g_start",
-        help=f"The prepared ReEDS baseline (historical/manual.csv) starts in {first_baseline_year}.")
+        help=f"The prepared ReEDS baseline (inputs/historical/reeds_baseline.csv) starts in {first_baseline_year}.")
     if "reeds_end_year" in processing:
         processing["reeds_end_year"] = st.number_input("Last output year", 2000, 2200,
                                                        int(processing["reeds_end_year"]), key="g_end")
@@ -183,6 +189,7 @@ def edit_global_settings() -> None:
 
 
 def edit_technology(tech: str) -> None:
+    """Drop-downs for one technology's future_data, historical_data, and smoothing switches."""
     node = bridge.technology_config(config, tech)
     history = node["historical_data"]
     future = node["future_data"]
@@ -229,6 +236,7 @@ def edit_technology(tech: str) -> None:
 # --------------------------------------------------------------------------- plots
 def plot_metric(points: pd.DataFrame, metric: str, dollar_year, hide_placeholder, title=None,
                 height=380, show_legend=True, scenarios_shown=None) -> go.Figure:
+    """Return a chart of one metric: a line per scenario and series, with points colored by source."""
     data = points.loc[points.metric.eq(metric)].copy()
     if hide_placeholder is not None:
         data = data.loc[~data.value.eq(float(hide_placeholder))]
@@ -279,6 +287,7 @@ def plot_metric(points: pd.DataFrame, metric: str, dollar_year, hide_placeholder
 
 
 def show_result(result: dict, hide_placeholder: bool, scenarios_shown: list[str]) -> None:
+    """Show the charts and source tables of one previewed technology."""
     settings = result["settings"]
     points = result["points"]
     placeholder = settings["config"]["processing"]["smooth_cost_curves"].get("unavailable_value") \
@@ -300,13 +309,13 @@ def show_result(result: dict, hide_placeholder: bool, scenarios_shown: list[str]
     )
     st.dataframe(spans, use_container_width=True, hide_index=True)
 
-    st.subheader("Prepared history sources (historical/real.csv and manual.csv)")
+    st.subheader("Prepared history sources (inputs/historical/real.csv and reeds_baseline.csv)")
     sources = result["sources"]
     if sources.empty:
         st.caption("No prepared history rows for this technology.")
     else:
-        st.dataframe(sources, use_container_width=True, hide_index=True,
-                     column_config={"source_url": st.column_config.LinkColumn("source_url")})
+        st.dataframe(sources, use_container_width=True, hide_index=True)
+        st.caption("URLs and checksums of the source files are in inputs/historical/sources.csv.")
 
 
 # --------------------------------------------------------------------------- sidebar

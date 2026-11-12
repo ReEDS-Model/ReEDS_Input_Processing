@@ -92,6 +92,7 @@ EIA_TABLES = (
 
 
 def _base_row(source_id, source, filename, sheet, metric="capital_cost"):
+    """Return the source columns shared by every row extracted from one sheet."""
     return {
         "metric": metric,
         # Cost boundary; set by capital-cost extractors, blank elsewhere.
@@ -105,6 +106,7 @@ def _base_row(source_id, source, filename, sheet, metric="capital_cost"):
 
 
 def _find_header_row(sheet, required_text):
+    """Return the number of the first row containing the given text."""
     required = required_text.lower()
     for row_number, row in enumerate(sheet.iter_rows(values_only=True), 1):
         if any(required in str(value).lower() for value in row if value is not None):
@@ -631,6 +633,7 @@ def extract_battery_duration(path, source, report_year, data_url):
     return rows
 
 def _sha256(path):
+    """Return the SHA256 checksum of a file, read in chunks."""
     digest = hashlib.sha256()
     with Path(path).open("rb") as stream:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
@@ -784,6 +787,7 @@ def extract_pv_om_by_age(path, source, index_settings):
 
 
 def _artifact(source_id, source, year=None):
+    """Return the local filename and download URL of one source file (per year for the EIA sources)."""
     if source_id in ("eia_generator_costs", "eia860_storage"):
         filename = source["filename"].format(year=year)
         if year == int(source["last_year"]):
@@ -797,6 +801,7 @@ def _artifact(source_id, source, year=None):
 
 
 def scrape(config, selected="all", force=False, no_download=False):
+    """Download the enabled sources and write the normalized observations and their manifest."""
     settings = config["historical_cost_sources"]
     output_dir = resolve_atb_path(settings["directory"])
     output_dir.mkdir(parents=True, exist_ok=True)

@@ -55,12 +55,12 @@ color (purple conservative, dark gray moderate, teal advanced) and marker
 shape (down-triangle, square, up-triangle); historical input values stay round
 dots in their provenance color. Final processed values are lines, while
 markers identify input data values. Observed real
-anchors, indexed O&M anchors, and manual history receive dots; broadcast,
-placeholder, and filled years do not. "Manual history (ReEDS ATB baseline)" is
-blue and means the value was copied from `historical/manual.csv`, the deflated
+anchors, indexed O&M anchors, and ReEDS baseline history receive dots; backfill,
+placeholder, and filled years do not. "ReEDS baseline history" is
+blue and means the value was copied from `inputs/historical/reeds_baseline.csv`, the deflated
 ReEDS ATB baseline scraped from the pinned ReEDS repository. It covers pre-ATB
-years of metrics in `manual` mode, and the boundary year onward of a series
-whose `future_data` source in `config.yaml` is `manual` (Gas-CT_aero and the
+years of metrics in `reeds_baseline` mode, and the boundary year onward of a series
+whose `future_data` source in `config.yaml` is `reeds_baseline` (Gas-CT_aero and the
 old coal designs), which the pipeline retains from that baseline because the
 current ATB no longer publishes it; the earlier years of such a
 series follow the configured history mode like any other, and the series adds

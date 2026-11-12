@@ -7,13 +7,15 @@ import sys
 import tempfile
 from pathlib import Path
 
-from atb_config import DEFAULT_CONFIG_PATH, load_config
-
-
 SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPT_DIR / "helpers"))
+
+from atb_config import DEFAULT_CONFIG_PATH, load_config  # noqa: E402
+
+
 STAGES = {
-    "format": ("format_reeds_inputs", "generate_atb_files.py"),
-    "plot": ("make_plots", "atb_plotting.py"),
+    "format": ("format_reeds_inputs", "helpers/generate_atb_files.py"),
+    "plot": ("make_plots", "helpers/atb_plotting.py"),
     "compare": (
         "make_comparison_plots",
         "../comparison/compare_atb_outputs.py",
@@ -27,6 +29,7 @@ def run_stage(
     config_path,
     unsmoothed_dir=None,
 ):
+    """Run one stage script as a subprocess with the shared config."""
     command = [sys.executable, str(SCRIPT_DIR / script), "--config", str(config_path)]
     if unsmoothed_dir is not None and name == "format":
         command.extend(["--unsmoothed-output-dir", str(unsmoothed_dir)])
@@ -37,6 +40,7 @@ def run_stage(
 
 
 def main():
+    """Run the stages enabled in config.yaml, or those named with --only, in order."""
     parser = argparse.ArgumentParser(
         description="Run ReEDS formatting and plotting from config.yaml."
     )

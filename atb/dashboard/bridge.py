@@ -39,12 +39,13 @@ PREVIEW_DIR = WORK_DIR / "preview"
 UNSMOOTHED_DIR = WORK_DIR / "unsmoothed"
 DRAFT_CONFIG = WORK_DIR / "config_dashboard.yaml"
 
-for folder in (ATB_DIR / "scripts", ATB_DIR / "comparison"):
+for folder in (ATB_DIR / "scripts", ATB_DIR / "scripts" / "helpers", ATB_DIR / "comparison"):
     if str(folder) not in sys.path:
         sys.path.insert(0, str(folder))
 
 from atb_config import ATB_FUTURE_SOURCES, load_processing_settings, resolve_atb_path  # noqa: E402
 from compare_atb_outputs import (  # noqa: E402
+    BASELINE_CATEGORY,
     METRIC_LABELS,
     PROJECTION_CATEGORIES,
     SCENARIO_COLORS,
@@ -83,17 +84,20 @@ def yaml_handler() -> YAML:
 
 
 def load_config(path: Path = CONFIG_PATH):
+    """Read config.yaml, keeping its comments."""
     with Path(path).open(encoding="utf-8") as stream:
         return yaml_handler().load(stream)
 
 
 def dump_config(config) -> str:
+    """Return the config as YAML text."""
     buffer = io.StringIO()
     yaml_handler().dump(config, buffer)
     return buffer.getvalue()
 
 
 def write_config(config, path: Path) -> Path:
+    """Write the config to a file and return its path."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(dump_config(config), encoding="utf-8", newline="\n")
@@ -141,6 +145,7 @@ def config_diff_hunks(config, path: Path = CONFIG_PATH, context: int = 4) -> lis
 
 
 def technologies(config) -> list[str]:
+    """Return the technology names configured under smooth_cost_curves."""
     node = config
     for key in TECHNOLOGIES_PATH:
         node = node[key]
@@ -148,6 +153,7 @@ def technologies(config) -> list[str]:
 
 
 def technology_config(config, tech: str):
+    """Return one technology's config node."""
     node = config
     for key in TECHNOLOGIES_PATH:
         node = node[key]
@@ -180,16 +186,19 @@ def config_matrix(config) -> pd.DataFrame:
 
 # --------------------------------------------------------------------------- schema
 def load_schema(path: Path = SCHEMA_PATH) -> dict:
+    """Read config.schema.json."""
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
 def _deref(schema: dict, node):
+    """Follow $ref links until reaching a schema definition."""
     while isinstance(node, dict) and "$ref" in node:
         node = schema["definitions"][node["$ref"].rsplit("/", 1)[1]]
     return node
 
 
 def _enum(schema: dict, node) -> list | None:
+    """Return the values a schema node allows (enum or const), or None."""
     node = _deref(schema, node)
     if not isinstance(node, dict):
         return None
@@ -201,6 +210,7 @@ def _enum(schema: dict, node) -> list | None:
 
 
 def _technology_properties(schema: dict, tech: str) -> dict:
+    """Return the schema properties of one technology."""
     technologies_schema = schema["definitions"]["smoothing"]["properties"]["technologies"]["properties"]
     node = _deref(schema, technologies_schema[tech])
     properties = {}
@@ -210,6 +220,7 @@ def _technology_properties(schema: dict, tech: str) -> dict:
 
 
 def _options(schema: dict, node, cls: str | None) -> list | None:
+    """Return the allowed values of a schema node, for one sub-technology class or for the whole entry."""
     node = _deref(schema, node)
     candidates = node.get("oneOf", [node]) if isinstance(node, dict) else []
     for candidate in candidates:
@@ -236,6 +247,7 @@ def future_options(schema: dict, tech: str, cls: str | None) -> list | None:
 
 # --------------------------------------------------------------------------- preview
 def flat_file_path(config_path: Path = CONFIG_PATH) -> Path:
+    """Return the configured ATB flat file path."""
     return Path(load_processing_settings(config_path)["flat_file_path"])
 
 
@@ -245,12 +257,12 @@ def read_flat_file(config_path: Path = CONFIG_PATH) -> pd.DataFrame:
 
 
 def baseline_year_range(config_path: Path = CONFIG_PATH) -> tuple[int, int]:
-    """First and last year of the prepared ReEDS baseline (historical/manual.csv).
+    """First and last year of the prepared ReEDS baseline (inputs/historical/reeds_baseline.csv).
 
     Outputs cannot start before the baseline begins, so the dashboard uses the
     first year as the lower bound of ``reeds_start_year``.
     """
-    years = load_history(load_processing_settings(config_path), "manual")["year"]
+    years = load_history(load_processing_settings(config_path), "reeds_baseline")["year"]
     return int(years.min()), int(years.max())
 
 
@@ -288,7 +300,7 @@ def run_technology(config, tech: str, flat_file: pd.DataFrame, settings: dict | 
                              index_col="Scenario").squeeze()
     deflator = pd.read_csv(reeds / "inputs" / "financials" / "deflator.csv",
                            index_col="*Dollar.Year").squeeze()
-    for kind in ("real", "manual"):
+    for kind in ("real", "reeds_baseline"):
         load_history(settings, kind)
 
     args = types.SimpleNamespace(debug=False)
@@ -370,7 +382,7 @@ def series_table(result: dict) -> pd.DataFrame:
     Columns: scenario, series, metric, t, value, category, history_mode, file.
     The categories come from the comparison stage's own labeler. ATB
     projection points name the release file they were read from; history
-    points name the source file recorded in historical/real.csv or manual.csv.
+    points name the source file recorded in inputs/historical/real.csv or reeds_baseline.csv.
     """
     settings = result["settings"]
     files = result["files"]
@@ -423,24 +435,24 @@ def series_table(result: dict) -> pd.DataFrame:
 def _history_file_lookup(settings: dict, tech: str):
     """Return a function naming the prepared-history source file of one point.
 
-    Manual categories are looked up in manual.csv by series, scenario, metric
+    ReEDS baseline points are looked up in reeds_baseline.csv by series, scenario, metric
     and year; every other history category in real.csv (mapped rows). A
     series without its own rows falls back to the technology-wide "*" rows,
     and indexed metrics to their "<metric>_index" rows. Unknown points get "".
     """
-    manual = load_history(settings, "manual")
-    manual = manual.loc[manual.technology.eq(tech)]
-    manual_files = {
+    reeds_baseline = load_history(settings, "reeds_baseline")
+    reeds_baseline = reeds_baseline.loc[reeds_baseline.technology.eq(tech)]
+    baseline_files = {
         (row.series, str(row.scenario).lower(), row.metric, int(row.year)): row.source_file
-        for row in manual.itertuples()
+        for row in reeds_baseline.itertuples()
     }
     real = load_history(settings, "real")
-    real = real.loc[real.technology.eq(tech) & real.scope.eq("reeds")]
+    real = real.loc[real.technology.eq(tech)]
     real_files = {(row.series, row.metric, int(row.year)): row.source_file for row in real.itertuples()}
 
     def lookup(category: str, series: str, scenario: str, metric: str, year: int) -> str:
-        if category.startswith("Manual"):
-            return manual_files.get((series, scenario.lower(), metric, year), "")
+        if category == BASELINE_CATEGORY:
+            return baseline_files.get((series, scenario.lower(), metric, year), "")
         for name in (series, "*"):
             for column in (metric, f"{metric}_index"):
                 if (name, column, year) in real_files:
@@ -451,22 +463,23 @@ def _history_file_lookup(settings: dict, tech: str):
 
 
 def metric_label(metric: str, dollar_year) -> str:
+    """Return the axis label of a metric, with its dollar year."""
     return METRIC_LABELS.get(metric, metric).format(d=dollar_year)
 
 
 def source_table(settings: dict, tech: str) -> pd.DataFrame:
     """Where each metric's history came from, from the prepared history tables."""
     frames = []
-    for kind in ("real", "manual"):
+    for kind in ("real", "reeds_baseline"):
         data = load_history(settings, kind)
         data = data.loc[data.technology.eq(tech)]
-        if kind == "real":
-            data = data.loc[data.scope.eq("reeds")]
         if data.empty:
             continue
+        if kind == "reeds_baseline":
+            data = data.assign(source_type=kind, method="ReEDS file at the pinned ref, deflated to the history dollar year")
         anchors = data.loc[data.source_type.ne("filled")]
         summary = (
-            anchors.groupby(["metric", "series", "source_type", "source_file", "source_url", "method"], dropna=False)
+            anchors.groupby(["metric", "series", "source_type", "source_file", "method"], dropna=False)
             .agg(first_year=("year", "min"), last_year=("year", "max"), points=("year", "nunique"))
             .reset_index()
         )
@@ -478,6 +491,7 @@ def source_table(settings: dict, tech: str) -> pd.DataFrame:
 
 
 def copy_target(config_path: Path = CONFIG_PATH) -> Path:
+    """Return the ReEDS plant_characteristics folder that exports are copied to."""
     settings = load_processing_settings(config_path)
     return Path(settings["reedspath"]) / "inputs" / "plant_characteristics"
 

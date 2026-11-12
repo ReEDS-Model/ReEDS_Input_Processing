@@ -11,10 +11,13 @@ import argparse
 import os
 import re
 import shutil
+import sys
 
 import pandas as pd
 
-from atb_config import ATBE_COLUMN_MAPPING, load_processing_settings
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "helpers"))
+
+from atb_config import ATBE_COLUMN_MAPPING, load_processing_settings  # noqa: E402
 
 
 CSV_LINE_TERMINATOR = "\n"
@@ -132,6 +135,7 @@ def build_costs(costs, settings):
 
 
 def write_outputs(multipliers, cost_tables, settings, copy_to_reeds):
+    """Write the multiplier and cost tables to the output folder and optionally copy them to ReEDS."""
     rules = settings["ccs_retrofits"]
     outfolder = settings["output_dir"]
     os.makedirs(outfolder, exist_ok=True)
@@ -157,6 +161,7 @@ def write_outputs(multipliers, cost_tables, settings, copy_to_reeds):
 
 
 def main():
+    """Build the CCS retrofit multiplier and cost files from the configured ATB flat file."""
     parser = argparse.ArgumentParser(description="Build ReEDS CCS retrofit upgrade inputs from ATB.")
     parser.add_argument("--config", help="path to config.yaml (default: ../config.yaml)")
     parser.add_argument(

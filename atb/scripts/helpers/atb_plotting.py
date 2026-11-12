@@ -1,3 +1,4 @@
+"""Plot ATB metrics by technology straight from the ATBe flat file."""
 #%% Imports
 import pandas as pd
 import matplotlib as mpl
@@ -12,12 +13,14 @@ from atb_config import ATB_DIR, load_config, raw_file_path, resolve_atb_path
 
 #############################################################################################################
 def main():
+    """Plot each configured metric for the technologies listed under plotting in config.yaml."""
 
     ########################################## USER-DEFINED INPUTS ##########################################
     parser = argparse.ArgumentParser(description="Plotting ATB")
     parser.add_argument('--config', help='Path to the shared ATB workflow config.')
     parser.add_argument('--version', '-v', type=int,
-                        help='version of ATB to plot.')
+                        help='version of ATB to plot (default: atb.year in config.yaml; the dollar year '
+                             'and the plotted financial case are always read from config.yaml).')
     parser.add_argument('--metric', '-m', type=str,
                         help='metric to plot, default is CAPEX, other options are Fixed O&M and Variable O&M')
     parser.add_argument('--crpyears', '-y', type=int,
@@ -39,32 +42,12 @@ def main():
     atb_version = args.version or config['atb']['year']                      # ATB version
     core_metric_parameters = [args.metric] if args.metric else config['plotting']['metrics']             # Metric to plot: 'CAPEX', 'Fixed O&M','Variable O&M'
     crpyears = args.crpyears or config['plotting']['crp_years']                        # crpyears
-    atb_inputs = args.inputs                        # Read in ATBe.csv input file from 'url' or 'local' inputs folder
-                                                    # (if a version of ATB is not yet available online, read from 'inputs')
-                                                    # Link to past ATBe versions: https://data.openei.org/s3_viewer?bucket=oedi-data-lake&prefix=ATB%2Felectricity%2Fcsv%2F&limit=50
-                                                    # 2024 atb_path = 'https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2024/v3.0.0/ATBe.csv'
-                                                    # 2025 atb is not yet available online, so only option is reading it from inputs folder.
+    atb_inputs = args.inputs                        # 'url' or 'local' (inputs/ATBe_<year>.csv); default is the configured flat file
     figure_format = args.format or config['plotting']['figure_format']                     # 'png' or 'pdf'
     save_data = args.save                          # Save the version of ATBe that has been cleaned and ready for plotting to csv
 
-    ######################################### FOR TESTING/DEBUGGING #########################################
-    # atb_version = 2024                              # ATB version
-    # core_metric_parameter = 'CAPEX'                 # Metric to plot: 'CAPEX', 'Fixed O&M','Variable O&M'
-    # crpyears = 20
-    # atb_inputs = 'url'                              # Read in ATBe.csv input file from 'url' or 'local' inputs folder
-                                                      # (if a version of ATB is not yet available online, read from 'inputs')
-                                                      # Link to past ATBe versions: https://data.openei.org/s3_viewer?bucket=oedi-data-lake&prefix=ATB%2Felectricity%2Fcsv%2F&limit=50
-                                                      # 2024 atb_path = 'https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2024/v3.0.0/ATBe.csv'
-                                                      # 2025 atb is not yet available online, so only option is reading it from inputs folder.
-    # figure_format = 'png'                           # 'png' or 'pdf'
-    # save_data = False                               # Print the version of ATBe that has been cleaned and ready for plotting to csv
-    #########################################################################################################
-
-    # Specify dollar year:
-    if atb_version == 2024:
-        dollar_year = 2022
-    elif atb_version == 2025:
-        dollar_year = 2023
+    # Dollar year of the configured ATB release:
+    dollar_year = config['atb']['dollar_year']
 
     # Get the path for ATB data and clean the data:
     if atb_inputs is not None or args.version is not None:
@@ -78,13 +61,13 @@ def main():
         os.makedirs(figures_path, exist_ok=True)
         atb_inputs = 'local'
     for core_metric_parameter in core_metric_parameters:
-        (technologies, dfplot) = clean_atb_data(atb_inputs, atb_path, atb_version, core_metric_parameter, crpyears)
+        (technologies, dfplot) = clean_atb_data(atb_inputs, atb_path, atb_version, core_metric_parameter, crpyears, config['plotting'])
         if save_data:
             print("Saving the version of ATBe that has been cleaned and ready for plotting to csv file...")
             dfplot.to_csv(os.path.join(inputs_path, "ATB_"+str(atb_version)+"_cleaned.csv"))
 
         # Define plot attributes:
-        (traces, colors, tracelabels, legendtitle, plottitle) = plot_attributes(ATB_DIR / 'plot_style', atb_version)
+        (traces, colors, tracelabels, legendtitle, plottitle) = plot_attributes(ATB_DIR / 'inputs' / 'plot_style', atb_version)
 
         # Plot ATB:
         plot_atb(figures_path, atb_version, technologies, dfplot, traces, colors, legendtitle, plottitle,
@@ -93,6 +76,7 @@ def main():
 ######################################################################################################
 #%% FUNCTIONS ###
 def read_path(atb_inputs, atb_version):
+    """Return the inputs folder, the ATBe file location (local file or URL), and the figures folder."""
     # Iputs path:
     inputs_path = os.path.join(ATB_DIR,'inputs')
     if not os.path.exists(inputs_path):
@@ -114,70 +98,38 @@ def read_path(atb_inputs, atb_version):
 
     return (inputs_path, atb_path, figures_path)
 
-def clean_atb_data(atb_inputs, atb_path, atb_version, core_metric_parameter, crpyears):
+def clean_atb_data(atb_inputs, atb_path, atb_version, core_metric_parameter, crpyears, plotting):
+    """Read the ATBe file and keep the rows to plot for one metric.
+
+    ``plotting`` is the config.yaml section naming the technologies and the
+    financial case to plot.
+    """
     # Read ATB data
     try:
         atb = pd.read_csv(atb_path, index_col=0, low_memory=False)
-    except Exception:
+    except (OSError, pd.errors.ParserError, pd.errors.EmptyDataError):
         if atb_inputs == 'url':
             raise FileNotFoundError('URL is incorrect')
         elif atb_inputs == 'local':
             raise FileNotFoundError('ATBe file is missing or incorrect. Please provide data file with name ATBe_' + str(atb_version) + '.csv in the "inputs" folder.')
-    atb.technology.unique()
 
-    # Use 'Market' case for 2024 version, which is equivalent to 'Exp + TC' in 2025 version
-    if atb_version == 2024:
-        core_metric_case = 'Market'
-    elif atb_version == 2025:
-        core_metric_case = 'Exp + TC'
-
-    # Technology to plot
-    technologies = [
-        'Biopower',
-        'Coal_FE',
-        'CSP',
-        'Geothermal',
-        'LandbasedWind',
-        'NaturalGas_FE',
-        'Nuclear',
-        'OffShoreWind',
-        'Utility-Scale Battery Storage',
-        'UtilityPV',
-    #     'CommPV',
-    #     'Hydropower',
-    #     'Pumped Storage Hydropower',
-    #     'ResPV',
-    #     'Utility-Scale PV-Plus-Battery',
-    #     'Commercial Battery Storage',
-    #     'Residential Battery Storage',
-    ]
+    # Technologies to plot (ATB technology names; the figure has 10 panels)
+    technologies = plotting['technologies']
 
     # Clean the raw ATB data in the right format for plotting
     dictplot = {}
     keepcols = ['technology','techdetail','scenario','core_metric_variable','value']
     for technology in technologies:
-        # In ATB 2025 version, some technologies do not have 'Exp + TC' case, so use 'R&D' for them
-        if atb_version == 2025:
-            if technology in [
-                'Biopower',
-                'Coal_FE',
-                'CSP',
-                'Geothermal',
-                'NaturalGas_FE',
-                'Nuclear',
-                'OffShoreWind',
-            ]:
-                core_metric_case = 'R&D'
-            else:
-                core_metric_case = 'Exp + TC'
+        # A technology the release does not publish under the configured case
+        # (several have no 'Exp + TC' in ATB 2025) uses the fallback case
+        cases = atb.loc[atb.technology==technology, 'core_metric_case'].unique()
+        core_metric_case = plotting['case'] if plotting['case'] in cases else plotting['fallback_case']
 
         dictplot[technology] = atb.loc[
             (atb.technology==technology)
             & (atb.core_metric_parameter==core_metric_parameter)
             & (atb.core_metric_case==core_metric_case)
             & (atb.crpyears==crpyears)
-            # & (atb.techdetail==techdetail)
-            # & (atb.core_metric_variable==2050)
             , keepcols
         ]
     dfplot = pd.concat(dictplot, ignore_index=True).set_index('technology')
@@ -185,7 +137,7 @@ def clean_atb_data(atb_inputs, atb_path, atb_version, core_metric_parameter, crp
     return (technologies, dfplot)
 
 def plot_attributes(inputs_path, atb_version):
-    cm = plt.cm.coolwarm
+    """Load the trace, label, and color settings from inputs/plot_style/ and return them with the panel titles."""
     cm = plt.cm.RdBu
     d = 0.06
     # traces setting
@@ -245,6 +197,7 @@ def plot_attributes(inputs_path, atb_version):
 
 def plot_atb(figures_path, atb_version, technologies, dfplot, traces, colors, legendtitle, plottitle,
              tracelabels, core_metric_parameter, figure_format, dollar_year):
+    """Draw one 2x5 figure of a metric by technology and save it to figures_path."""
 
     # Set up number of panels for figure
     alpha = 0.4
@@ -268,7 +221,6 @@ def plot_atb(figures_path, atb_version, technologies, dfplot, traces, colors, le
         if technology not in dfplot.index:
             ax[coords[technology]].set_visible(False)
             continue
-        #scenarios = ['Moderate'] if technology == 'Nuclear' else ['Moderate', 'Advanced', 'Conservative']
         scenarios = ['Moderate', 'Advanced', 'Conservative']
         for scenario in scenarios:
             df[scenario] = (
@@ -287,8 +239,6 @@ def plot_atb(figures_path, atb_version, technologies, dfplot, traces, colors, le
             ax[coords[technology]].legend(
                 fontsize=8,   #'small',
                 loc = ('upper right'),
-                #loc=('center left' if coords[technology][1]==2 else 'lower left'),
-                #bbox_to_anchor=((1,0.5) if coords[technology][1]==2 else (0.,0.)),
                 ncol=(2 if technology == 'OffShoreWind' else 1),
                 handlelength=0.7, handletextpad=0.3, columnspacing=0.5,
                 title=legendtitle[technology],
@@ -298,8 +248,6 @@ def plot_atb(figures_path, atb_version, technologies, dfplot, traces, colors, le
         ax[coords[technology]].set_title(plottitle[technology], weight='bold')
         ax[coords[technology]].grid(which='major',axis='y',ls=':',lw=0.5,c='0.5')
         ### Range
-        #if technology == 'Nuclear':
-        #    continue
         for trace in df['Advanced']:
             ax[coords[technology]].fill_between(
                 df['Advanced'].index, df['Conservative'][trace].values, df['Advanced'][trace].values,

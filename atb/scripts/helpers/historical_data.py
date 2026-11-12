@@ -1,7 +1,5 @@
 """Read prepared history without accessing scraped historical inputs."""
 
-import json
-
 import numpy as np
 import pandas as pd
 
@@ -13,10 +11,21 @@ UNITS = {'capcost': 'USD/kW', 'capcost_energy': 'USD/kWh',
          'fom': 'USD/kW-yr', 'fom_energy': 'USD/kWh-yr',
          'vom': 'USD/MWh', 'heatrate': 'MMBtu/MWh',
          'cf_improvement': 'fraction', 'rte': 'fraction'}
-KEYS = ['scope', 'technology', 'series', 'scenario', 'identifiers', 'metric', 'year']
+# Columns of the two committed history tables; KEYS identify one row.
+KEYS = {'real': ['technology', 'series', 'metric', 'year'],
+        'reeds_baseline': ['technology', 'series', 'scenario', 'metric', 'year']}
+COLUMNS = {'real': [*KEYS['real'], 'value', 'unit', 'dollar_year',
+                    'source_type', 'source_file', 'method', 'cost_scope'],
+           'reeds_baseline': [*KEYS['reeds_baseline'], 'value', 'unit', 'dollar_year', 'source_file']}
+
+
+def identity_column(tech_settings):
+    """Return the column naming a technology's series (i, type, or turbine); None when it has one series."""
+    return next((c for c in ('i', 'type', 'turbine') if c in tech_settings['indexcols']), None)
 
 
 def load_history(settings, kind):
+    """Read and validate one history table (real or reeds_baseline) once per run."""
     cache = settings.setdefault('_prepared_history', {})
     if kind not in cache:
         config = settings['config']['historical_data']
@@ -24,33 +33,34 @@ def load_history(settings, kind):
         if not path.is_file():
             raise FileNotFoundError(f'Missing {path}; run scripts/historical_data_scraper.py.')
         data = pd.read_csv(path, keep_default_na=False)
-        required = KEYS + ['value', 'unit', 'dollar_year', 'source_type', 'source_file',
-                           'source_url', 'source_years', 'method']
-        if set(required) - set(data):
-            raise ValueError(f'Missing history columns in {path}: {set(required) - set(data)}')
-        if data.duplicated(KEYS).any() or not np.isfinite(data.value).all():
+        if set(COLUMNS[kind]) - set(data):
+            raise ValueError(f'Missing history columns in {path}: {set(COLUMNS[kind]) - set(data)}')
+        if data.duplicated(KEYS[kind]).any() or not np.isfinite(data.value).all():
             raise ValueError(f'Duplicate or nonfinite history values in {path}')
         if (data.value < 0).any():
             raise ValueError(f'Negative history values in {path}')
-        if kind != 'manual':
-            mapped = data.loc[data.scope.eq('reeds')]
-            if mapped.duplicated(['technology', 'series', 'metric', 'year']).any():
-                raise ValueError(f'Ambiguous mapped history in {path}')
-            fractions = mapped.loc[mapped.metric.isin(['cf_improvement', 'rte'])]
+        if kind == 'real':
+            fractions = data.loc[data.metric.isin(['cf_improvement', 'rte'])]
             if not fractions.unit.eq('fraction').all() or not fractions.value.between(0, 1).all():
                 raise ValueError(f'Invalid capacity-factor or efficiency fractions in {path}')
         monetary = data.unit.str.startswith('USD/')
         if pd.to_numeric(data.loc[monetary, 'dollar_year'], errors='coerce').isna().any():
             raise ValueError(f'Monetary history requires a dollar year in {path}')
-        if data[['source_type', 'source_file', 'source_url', 'method']].eq('').any().any():
+        provenance = ['source_type', 'source_file', 'method'] if kind == 'real' else ['source_file']
+        if data[provenance].eq('').any().any():
             raise ValueError(f'Incomplete history provenance in {path}')
         cache[kind] = data
     return cache[kind]
 
 
 def select_history(settings, kind, tech, series, metric):
+    """Return one series' prepared rows for a metric, sorted by year.
+
+    A technology with a single modeled series stores it as ``*`` (upv,
+    wind-ons), so a series name with no rows of its own falls back to ``*``.
+    """
     data = load_history(settings, kind)
-    data = data.loc[data.scope.eq('reeds') & data.technology.eq(tech) & data.metric.eq(metric)]
+    data = data.loc[data.technology.eq(tech) & data.metric.eq(metric)]
     selected = data.loc[data.series.eq(str(series))]
     if selected.empty:
         selected = data.loc[data.series.eq('*')]
@@ -58,6 +68,7 @@ def select_history(settings, kind, tech, series, metric):
 
 
 def converted_values(data, dollar_year, deflator):
+    """Return the rows' values with monetary ones converted to ``dollar_year``."""
     values = data.value.astype(float).copy()
     monetary = data.unit.str.startswith('USD/')
     years = pd.to_numeric(data.loc[monetary, 'dollar_year']).astype(int)
@@ -68,19 +79,21 @@ def converted_values(data, dollar_year, deflator):
     return values
 
 
-def manual_history(settings, tech, scenario, deflator):
-    data = load_history(settings, 'manual')
+def reeds_baseline_history(settings, tech, scenario, deflator):
+    """Return the ReEDS baseline curves of one technology and scenario as a wide frame."""
+    data = load_history(settings, 'reeds_baseline')
     data = data.loc[data.technology.eq(tech) & data.scenario.eq(str(scenario))].copy()
     if data.empty:
-        raise ValueError(f'Missing prepared manual baseline for {tech}/{scenario}')
+        raise ValueError(f'Missing prepared ReEDS baseline for {tech}/{scenario}')
     data['value'] = converted_values(data, settings['history_dollar_year'], deflator)
-    frame = data.pivot(index=['identifiers', 'year'], columns='metric', values='value').reset_index()
-    identifiers = pd.DataFrame(frame.pop('identifiers').map(json.loads).tolist())
-    frame = pd.concat([identifiers, frame.rename(columns={'year': 't'})], axis=1)
+    frame = data.pivot(index=['series', 'year'], columns='metric', values='value').reset_index()
+    identity = identity_column(settings['techs'][tech])
+    frame = frame.rename(columns={'year': 't', **({'series': identity} if identity else {})})
     return frame[settings['techs'][tech]['cols']]
 
 
 def apply_history(frame, tech, settings, deflator):
+    """Fill the years before each series' first projection year for real and indexed metrics."""
     from generate_atb_files import _historical_mode_for_metric, _technology_smoothing_config
 
     smoothing = _technology_smoothing_config(tech, settings)
@@ -89,14 +102,14 @@ def apply_history(frame, tech, settings, deflator):
     modes = smoothing['historical_data']
     tech_settings = settings['techs'][tech]
     ids = [c for c in tech_settings['indexcols'] if c not in ('Scenario', 't')]
-    identity = next((c for c in ('i', 'type', 'turbine') if c in ids), None)
+    identity = identity_column(tech_settings)
     result = frame.copy()
     for keys, group in frame.groupby(['Scenario', *ids], dropna=False):
         keys = keys if isinstance(keys, tuple) else (keys,)
         labels = dict(zip(['Scenario', *ids], keys))
         boundary = settings['atb_series_start'][tech].get(keys, smoothing['projection_start_year'])
         history = group.index[group.t.lt(boundary)]
-        series = labels.get(identity, '*') if tech != 'wind-ons' else '*'
+        series = labels.get(identity, '*')
         for metric in modes:
             mode = _historical_mode_for_metric(modes, metric, labels.get(tech_settings.get('history_class_column')))
             if not len(history):
@@ -160,13 +173,13 @@ def apply_real_overlap(frame, tech, settings, deflator):
         return frame
     config = settings['techs'][tech]
     ids = [c for c in config['indexcols'] if c not in ('Scenario', 't')]
-    identity = next((c for c in ('i', 'type', 'turbine') if c in ids), None)
+    identity = identity_column(config)
     result = frame.copy()
     for keys, group in frame.groupby(['Scenario', *ids], dropna=False):
         keys = keys if isinstance(keys, tuple) else (keys,)
         labels = dict(zip(['Scenario', *ids], keys))
         boundary = settings['atb_series_start'][tech].get(keys, smoothing['projection_start_year'])
-        series = labels.get(identity, '*') if tech != 'wind-ons' else '*'
+        series = labels.get(identity, '*')
         for metric in smoothing['historical_data']:
             if _historical_mode_for_metric(smoothing['historical_data'], metric,
                                            labels.get(config.get('history_class_column'))) != 'real':
