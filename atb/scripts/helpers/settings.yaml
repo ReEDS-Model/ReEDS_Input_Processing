@@ -512,9 +512,9 @@ ccs_retrofits:
   fuels:
     gas:
       Technology: NaturalGas_Retrofits
-      DisplayName: NG Combined Cycle F-Class integrated retrofit 95%-CCS
+      DisplayName: NG Combined Cycle F-Class integrated retrofit 90%-CCS
       delta_pattern: ^Gas-CC.*-CCS_
     coal:
       Technology: Coal_Retrofits
-      DisplayName: Coal integrated retrofit 95%-CCS
+      DisplayName: Coal integrated retrofit 90%-CCS
       delta_pattern: ^coal-CCS_
