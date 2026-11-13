@@ -403,8 +403,9 @@ def read_retrofit_costs(config) -> pd.DataFrame:
 def ccs_retrofit_preview(config, costs: pd.DataFrame) -> dict:
     """Build the CCS retrofit files with the draft config, without writing them.
 
-    Returns the file names, the ATB series behind each fuel, and a table of
-    every value with columns output, fuel, scenario, t, value.
+    Returns one row per fuel (its ATB series and how many rows of the
+    multiplier files use its curve) and a table of every value with columns
+    output, fuel, scenario, t, value.
     """
     settings = preview_settings(config)
     rules = settings["ccs_retrofits"]
@@ -414,23 +415,30 @@ def ccs_retrofit_preview(config, costs: pd.DataFrame) -> dict:
     cost_tables = ccs_retrofit_inputs.build_costs(costs, settings)
     deltas = pd.read_csv(Path(settings["reedspath"]) / "inputs" / "upgrades" / "upgrade_link.csv",
                          index_col="*TO")["DELTA"]
+    fuels = sorted(rules["fuels"])
+    # The fuel whose curve each upgrade row uses; None for upgrades that are not CCS retrofits (multiplier 1).
+    row_fuel = {
+        name: next((fuel for fuel in fuels if re.search(rules["fuels"][fuel]["delta_pattern"], delta)), None)
+        for name, delta in deltas.items()
+    }
     frames = []
     for scenario, table in multipliers.items():
-        for fuel, mapping in rules["fuels"].items():
+        for fuel in fuels:
             # Every upgrade row of a fuel carries the same multipliers; take the first.
-            row = next(name for name, delta in deltas.items() if re.search(mapping["delta_pattern"], delta))
+            row = next(name for name, used in row_fuel.items() if used == fuel)
             frames.append(pd.DataFrame({"output": "multiplier", "fuel": fuel, "scenario": scenario.lower(),
                                         "t": table.columns, "value": table.loc[row].to_numpy()}))
     for fuel, table in cost_tables.items():
         for column in table.columns:
             frames.append(pd.DataFrame({"output": "cost", "fuel": fuel, "scenario": column.split("_", 1)[1],
                                         "t": table.index, "value": table[column].to_numpy()}))
-    yy = str(settings["atbyear"])[-2:]
     return {
         "points": pd.concat(frames, ignore_index=True),
-        "files": [f"upgrade_mult_atb{yy}_ccs_{suffix}.csv" for suffix in rules["scenario_suffix"].values()]
-        + [f"upgrade_costs_ccs_{fuel}.csv" for fuel in rules["fuels"]],
-        "series": {fuel: mapping["DisplayName"] for fuel, mapping in rules["fuels"].items()},
+        "series": pd.DataFrame({
+            "series": fuels,
+            "atb_series": [rules["fuels"][fuel]["DisplayName"] for fuel in fuels],
+            "multiplier_rows": [list(row_fuel.values()).count(fuel) for fuel in fuels],
+        }),
         "normalization": f"{rules['normalization_scenario']} in {rules['normalization_year']}",
     }
 

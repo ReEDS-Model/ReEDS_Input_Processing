@@ -26,6 +26,7 @@ st.set_page_config(page_title="ATB inputs dashboard", layout="wide")
 BASE_FONT_SIZE_PX = 18
 PLOT_FONT_SIZE = 14
 CHART_HEIGHT = 380
+CCS_SECTION = "CCS retrofit"
 st.markdown(
     f"<style>html {{ font-size: {BASE_FONT_SIZE_PX}px; }}</style>",
     unsafe_allow_html=True,
@@ -276,26 +277,21 @@ def refresh_ccs_retrofit() -> None:
 def show_ccs_retrofit() -> None:
     """Show the CCS retrofit multipliers and costs, which have no settings on this page."""
     changed = bridge.ccs_retrofit_key(config) != bridge.ccs_retrofit_key(default)
-    st.subheader("CCS retrofit" + (" :orange[· changed from default]" if changed else ""))
+    st.subheader(CCS_SECTION + (" :orange[· changed from default]" if changed else ""))
     result = previews[bridge.CCS_STAGE][1]
     if isinstance(result, Exception):
         st.error(f"{type(result).__name__}: {result}")
         return
     left, right = st.columns([5, 6])
     with left:
-        st.markdown("Cost of adding CCS to an existing plant, for ReEDS `inputs/upgrades/`. Files: "
-                    + ", ".join(f"`{name}`" for name in result["files"]) + ".")
-        st.dataframe(pd.DataFrame({"fuel": list(result["series"]), "ATB series": list(result["series"].values())}),
-                     use_container_width=True, hide_index=True)
-        st.caption("The ATB series and the normalization year are set in scripts/helpers/settings.yaml. "
-                   "Of the settings on this page, only the global ones change these files.")
+        st.dataframe(result["series"], use_container_width=True, hide_index=True)
     titles = {"multiplier": f"Retrofit cost multiplier (1 = {result['normalization']})",
               "cost": "Retrofit capital cost (2004$/kW)"}
     with right:
         output = st.radio("Output", list(titles), horizontal=True, key="ccs_output", label_visibility="collapsed")
         data = result["points"].loc[result["points"].output.eq(output)]
         figure = go.Figure()
-        for index, fuel in enumerate(result["series"]):
+        for index, fuel in enumerate(result["series"]["series"]):
             for scenario in bridge.SCENARIO_ORDER:
                 group = data.loc[data.fuel.eq(fuel) & data.scenario.eq(scenario)]
                 figure.add_trace(go.Scatter(
@@ -371,7 +367,12 @@ hide_placeholder = st.checkbox("Hide unavailable placeholders (99999) in charts"
 rejected_before, st.session_state.rejected = st.session_state.rejected, {}
 rejected = {}
 charts = {}
-for tech in technologies:
+ccs_section = None
+for tech in sorted([*technologies, CCS_SECTION], key=str.lower):
+    if tech == CCS_SECTION:
+        ccs_section = st.container()
+        st.divider()
+        continue
     heading = st.empty()
     left, charts[tech] = st.columns([5, 6])
     with left:
@@ -415,4 +416,5 @@ with summary:
 for tech in technologies:
     with charts[tech]:
         show_chart(tech, hide_placeholder)
-show_ccs_retrofit()
+with ccs_section:
+    show_ccs_retrofit()

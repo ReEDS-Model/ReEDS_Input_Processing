@@ -17,12 +17,13 @@ The Windows launcher uses the Anaconda **base** Python and the macOS one uses
 
 ## The page
 
-- **Each technology** has its settings next to its chart: a table with the
+- **Each technology**, in alphabetical order, has its settings next to its
+  chart: a table with the
   projection source and history mode of each series, and the
   technology-wide switches below it. Change a setting and the chart is
   redrawn. Hover a point for its value, source, and history mode.
-- **CCS retrofit**, at the bottom, charts the `inputs/upgrades/` multipliers
-  and costs. It has no settings of its own on the page.
+- **CCS retrofit** charts the `inputs/upgrades/` multipliers and costs. It
+  has no settings of its own on the page.
 - **Global settings** hold the settings shared by all technologies and the
   stages to run.
 - **Changes from the default** are listed at the top, and the changed
