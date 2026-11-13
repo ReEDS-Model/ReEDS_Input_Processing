@@ -10,5 +10,5 @@ if not exist "%PY%" (
     exit /b 1
 )
 cd /d "%~dp0.."
-"%PY%" -m streamlit run dashboard\app.py
+"%PY%" -m streamlit run dashboard\app.py --theme.base light
 pause

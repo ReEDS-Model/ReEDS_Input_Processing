@@ -50,9 +50,8 @@ processing:
   decimals: 6
   smooth_cost_curves:
     # Applies each technology's historical_data modes below; when false, all
-    # history comes from the ReEDS baseline (reeds_baseline). Smoothing of projection
-    # years is the separate per-technology smooth_projection_curve switch,
-    # which is off for every technology.
+    # history comes from the ReEDS baseline. Smoothing of projection years is
+    # the per-technology smooth_projection_curve switch.
     enabled: true
     method: selective
     columns: all
@@ -72,19 +71,11 @@ processing:
     max_kink_years: 4
     major_step_relative_threshold: 0.1
     minimum_adjustment_relative_threshold: 0.001
-    # future_data names where each sub-technology's projection comes from:
-    #   atb_flatfile   - the current ATB release's flat file (raw_data.flat_file)
-    #   atb_workbook   - the current ATB release's workbook (raw_data.workbook),
-    #                    read from the sheet settings.yaml names as workbook_sheet
-    #   reeds_baseline - retained from the ReEDS baseline (reeds_baseline.csv)
-    #                    because the current ATB does not publish the series
-    # Whether a series is ATB or reeds_baseline is fixed by the settings.yaml mapping;
-    # the formatter rejects any other value. All ATB series of one technology
-    # must name the same file, and a file missing any of that technology's
-    # display names or metrics stops the run instead of falling back. Battery
-    # is the one standing exception: its power/energy split exists only in the
-    # workbook, so format_continuous_battery always overlays it on the flat
-    # file rows. ATB 2025 publishes Biopower - 95% CCS (beccs) only in the workbook.
+    # future_data: where each sub-technology's projection comes from.
+    #   atb_flatfile   - the ATB flat file (raw_data.flat_file)
+    #   atb_workbook   - the ATB workbook sheet settings.yaml names as workbook_sheet
+    #   reeds_baseline - kept from reeds_baseline.csv; ATB does not publish the series
+    # All ATB series of one technology must name the same file.
     technologies:
       upv:
         historical_data:
@@ -176,10 +167,8 @@ processing:
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       coal:
-        # Coal-new and Coal-IGCC come from ATB. The four other designs are not
-        # in ATB; the pipeline retains them from the ReEDS ATB 2024 baseline in
-        # inputs/historical/reeds_baseline.csv, so reeds_baseline keeps that baseline for their history
-        # too instead of backfilling the first projection year backward.
+        # Only Coal-new and Coal-IGCC are in ATB. The other four designs are
+        # kept from the ReEDS ATB 2024 baseline (reeds_baseline.csv).
         historical_data:
           capcost:
             Coal-new: backfill  # options: reeds_baseline / backfill / unavailable
@@ -233,9 +222,8 @@ processing:
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       gas:
-        # Gas-CT_aero is not in ATB; the pipeline retains it from the ReEDS ATB
-        # 2024 baseline in inputs/historical/reeds_baseline.csv, so reeds_baseline keeps that baseline
-        # for its history too.
+        # Gas-CT_aero is not in ATB; it is kept from the ReEDS ATB 2024
+        # baseline (reeds_baseline.csv).
         historical_data:
           capcost:
             Gas-CC: real  # options: real / reeds_baseline / backfill / unavailable

@@ -1,24 +1,17 @@
-"""ATB inputs dashboard.
+"""ATB inputs dashboard: every technology on one page.
 
 Run from ``atb/``::
 
     streamlit run dashboard/app.py
 
-Three pages share one draft of ``config.yaml``:
-
-* **Technology**: edit one technology's switches, preview it in seconds, see
-  every scenario's trajectory with the source of each point.
-* **All technologies**: the whole configuration as one table, and one chart
-  per technology for a chosen metric.
-* **Export**: save the draft to ``config.yaml`` and run the pipeline stages
-  exactly as ``run_pipeline.py`` does, so ``output/`` (and ReEDS when
-  ``copy_to_reeds`` is on) matches the saved config.
+Each technology has its settings next to its chart; changing a setting redraws
+the charts it affects. The top of the page lists every setting that differs
+from the default, which is ``config.yaml`` as committed in git. Nothing is
+written until **Save and run**, which saves the settings to ``config.yaml``
+and runs the pipeline stages as ``run_pipeline.py`` does.
 """
 
 from __future__ import annotations
-
-import html
-import traceback
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -29,12 +22,10 @@ import bridge
 st.set_page_config(page_title="ATB inputs dashboard", layout="wide")
 
 # Text size. Streamlit sizes its text in rem, so one root font size scales the
-# page, sidebar, labels, and headings together; charts take PLOT_FONT_SIZE.
+# page, labels, and headings together; charts take PLOT_FONT_SIZE.
 BASE_FONT_SIZE_PX = 18
 PLOT_FONT_SIZE = 14
-# All-technologies page: charts per row and their height in pixels.
-OVERVIEW_COLUMNS = 2
-OVERVIEW_CHART_HEIGHT = 450
+CHART_HEIGHT = 380
 st.markdown(
     f"<style>html {{ font-size: {BASE_FONT_SIZE_PX}px; }}</style>",
     unsafe_allow_html=True,
@@ -63,31 +54,6 @@ DASHES = ["solid", "dash", "dot", "dashdot", "longdash", "longdashdot"]
 ALL_SCENARIOS_COLOR = "#555555"
 
 
-
-DIFF_ROW_STYLE = {
-    "removed": "background:rgba(220,60,60,.28)",
-    "added": "background:rgba(60,170,90,.28)",
-    "context": "opacity:.55",
-}
-
-
-def diff_hunk_html(hunk: dict) -> str:
-    """Render one config diff hunk: a YAML-path breadcrumb, then colored lines."""
-    crumbs = [html.escape(part) for part in hunk["path"] or []]
-    if "technologies" in crumbs and crumbs.index("technologies") + 1 < len(crumbs):
-        tech = crumbs.index("technologies") + 1
-        crumbs[tech] = f"<b>{crumbs[tech]}</b>"
-    signs = {"removed": "- ", "added": "+ "}
-    rows = "".join(
-        f'<div style="{DIFF_ROW_STYLE[kind]};white-space:pre;padding:0 .4em">'
-        f'{signs.get(kind, "  ")}{html.escape(text)}</div>'
-        for kind, text in hunk["lines"]
-    )
-    return (
-        '<div style="font-family:monospace;font-size:.85em;margin-bottom:.9em">'
-        f'<div style="margin-bottom:.25em">{" › ".join(crumbs) or "(top level)"}</div>{rows}</div>'
-    )
-
 # --------------------------------------------------------------------------- state
 @st.cache_resource(show_spinner=False)
 def cached_flat_file(path: str, mtime: float) -> pd.DataFrame:
@@ -102,151 +68,131 @@ def flat_file() -> pd.DataFrame:
 
 
 @st.cache_data(show_spinner=False)
+def cached_retrofit_costs(path: str, mtime: float, case: str, _config) -> pd.DataFrame:
+    """Read the ATB retrofit costs once per flat file version and ATB case."""
+    return bridge.read_retrofit_costs(_config)
+
+
+@st.cache_data(show_spinner=False)
 def baseline_years() -> tuple[int, int]:
     """Return the first and last year of the ReEDS baseline."""
     return bridge.baseline_year_range()
 
 
-def reset_config() -> None:
-    """Reload config.yaml and clear the previews and the export log."""
-    st.session_state.config = bridge.load_config()
-    st.session_state.results = {}
-    st.session_state.export_log = None
+def restart_widgets() -> None:
+    """Rebuild the settings tables from the config and give every widget a new key, so all show its values."""
+    config = st.session_state.config
+    st.session_state.tables = {tech: bridge.series_settings(config, tech) for tech in bridge.technologies(config)}
+    st.session_state.generation = st.session_state.get("generation", 0) + 1
 
 
 if "config" not in st.session_state:
-    reset_config()
-if "schema" not in st.session_state:
+    st.session_state.default = bridge.load_default_config()
+    st.session_state.config = bridge.load_config()
+    st.session_state.saved = bridge.load_config()
     st.session_state.schema = bridge.load_schema()
+    st.session_state.previews = {}
+    st.session_state.rejected = {}
+    st.session_state.run_log = None
+    st.session_state.run_result = None
+    restart_widgets()
 
 config = st.session_state.config
+default = st.session_state.default
 schema = st.session_state.schema
-technologies = bridge.technologies(config)
+previews = st.session_state.previews
+generation = st.session_state.generation
+technologies = sorted(bridge.technologies(config), key=str.lower)
 
 
-def show_error(error: Exception) -> None:
-    """The pipeline's own validation messages are the point; show them as-is."""
-    st.error(f"{type(error).__name__}: {error}")
-    with st.expander("Traceback"):
-        st.code(traceback.format_exc())
+def widget_key(name: str) -> str:
+    """Return a widget key that is new after a reset."""
+    return f"{name}_{generation}"
 
 
-def preview(tech: str, settings: dict | None = None) -> bool:
-    """Format one technology with the draft config; return False and show the error if it fails."""
-    try:
-        st.session_state.results[tech] = bridge.run_technology(config, tech, flat_file(), settings)
-        return True
-    except Exception as error:
-        show_error(error)
-        return False
-
-
-# --------------------------------------------------------------------------- widgets
-def choose(label: str, current, options: list | None, key: str):
-    """Selectbox over the schema's options; a value outside them is still shown."""
-    if not options:
-        st.text_input(label, value=str(current), key=key, disabled=True,
-                      help="config.schema.json gives this entry no option list.")
-        return current
-    options = list(options)
-    if current not in options:
-        options.append(current)
-    if len(options) == 1:
-        st.text_input(label, value=str(current), key=key, disabled=True,
-                      help="The only value the schema allows here.")
-        return current
-    return st.selectbox(label, options, index=options.index(current), key=key)
-
-
+# --------------------------------------------------------------------------- settings
 def edit_global_settings() -> None:
-    """Sidebar inputs for the settings shared by all technologies."""
+    """Inputs for the settings shared by all technologies."""
     atb = config["atb"]
     processing = config["processing"]
     smoothing = processing["smooth_cost_curves"]
-    st.caption(f"ATB {atb['year']} release {atb.get('release_version', '')}")
-    atb["dollar_year"] = st.number_input("Output dollar year (atb.dollar_year)", 1990, 2100,
-                                         int(atb["dollar_year"]), key="g_dollar_year")
-    processing["atb_case"] = st.text_input("ATB case (processing.atb_case)", processing.get("atb_case", ""),
-                                           key="g_case", help="Overrides per technology stay in atb_case_overrides.")
+    workflow = config["workflow"]
     first_baseline_year, _ = baseline_years()
-    processing["reeds_start_year"] = st.number_input(
+    columns = st.columns(4)
+    atb["dollar_year"] = columns[0].number_input(
+        "Output dollar year", 1990, 2100, int(atb["dollar_year"]), key=widget_key("dollar_year"))
+    processing["atb_case"] = columns[1].text_input(
+        "ATB case", processing["atb_case"], key=widget_key("case"),
+        help="A technology's own case override, if it has one, replaces this.")
+    processing["reeds_start_year"] = columns[2].number_input(
         "First output year", first_baseline_year, 2100,
-        max(int(processing["reeds_start_year"]), first_baseline_year), key="g_start",
-        help=f"The prepared ReEDS baseline (inputs/historical/reeds_baseline.csv) starts in {first_baseline_year}.")
+        max(int(processing["reeds_start_year"]), first_baseline_year), key=widget_key("start"),
+        help=f"The ReEDS baseline (inputs/historical/reeds_baseline.csv) starts in {first_baseline_year}.")
     if "reeds_end_year" in processing:
-        processing["reeds_end_year"] = st.number_input("Last output year", 2000, 2200,
-                                                       int(processing["reeds_end_year"]), key="g_end")
-    smoothing["enabled"] = st.checkbox("History and smoothing enabled", bool(smoothing["enabled"]), key="g_enabled")
-    smoothing["fill_atbstartyear2atbyear_with_real"] = st.checkbox(
+        processing["reeds_end_year"] = columns[3].number_input(
+            "Last output year", 2000, 2200, int(processing["reeds_end_year"]), key=widget_key("end"))
+    smoothing["index_reference_year"] = columns[0].number_input(
+        "Index reference year", 1990, 2100, int(smoothing["index_reference_year"]), key=widget_key("index"))
+    smoothing["enabled"] = columns[1].checkbox(
+        "Use the history modes", bool(smoothing["enabled"]), key=widget_key("enabled"),
+        help="When off, all history comes from the ReEDS baseline.")
+    smoothing["fill_atbstartyear2atbyear_with_real"] = columns[2].checkbox(
         "Fill ATB start year to ATB year with real data",
-        bool(smoothing.get("fill_atbstartyear2atbyear_with_real", False)), key="g_fill")
-    smoothing["index_reference_year"] = st.number_input(
-        "Index reference year", 1990, 2100, int(smoothing["index_reference_year"]), key="g_index")
-    processing["copy_to_reeds"] = st.checkbox(
-        "Copy exported files into ReEDS (processing.copy_to_reeds)", bool(processing.get("copy_to_reeds", False)),
-        key="g_copy", help=f"Export then also writes into {bridge.copy_target()}")
-    st.caption("Global changes apply to every technology; preview the ones you want to see.")
+        bool(smoothing.get("fill_atbstartyear2atbyear_with_real", False)), key=widget_key("fill"))
+    processing["copy_to_reeds"] = columns[3].checkbox(
+        "Copy outputs into ReEDS", bool(processing.get("copy_to_reeds", False)), key=widget_key("copy"),
+        help=f"Save and run then also writes into {bridge.copy_target()}")
+    st.caption("Stages that Save and run runs:")
+    columns = st.columns(4)
+    for column, (stage, switch) in zip(columns, bridge.stage_switches().items()):
+        workflow[switch] = column.checkbox(
+            stage, bool(workflow[switch]), key=widget_key(f"stage_{stage}"),
+            help="Also writes the CCS retrofit files." if stage == "format" else None)
+    processing["reeds_atb_year"] = columns[3].number_input(
+        "ReEDS ATB year to compare with", 2015, 2100, int(processing.get("reeds_atb_year", atb["year"])),
+        key=widget_key("reeds_atb_year"),
+        help=f"The compare stage plots the outputs against this ATB vintage in {bridge.copy_target()}.")
 
 
-def edit_technology(tech: str) -> None:
-    """Drop-downs for one technology's future_data, historical_data, and smoothing switches."""
-    node = bridge.technology_config(config, tech)
-    history = node["historical_data"]
-    future = node["future_data"]
+def edit_technology(tech: str) -> list[str]:
+    """Inputs for one technology's settings; return a message per rejected value."""
+    base = st.session_state.tables[tech]
+    edited = st.data_editor(
+        base, key=widget_key(f"{tech}_series"), hide_index=True, use_container_width=True, disabled=["series"],
+        column_config={column: st.column_config.SelectboxColumn(options=options, required=True)
+                       for column, options in bridge.series_options(schema, tech, base).items()})
+    rejected = bridge.apply_series_settings(config, schema, tech, edited)
 
-    st.markdown("**Projection source** (`future_data`)")
-    if isinstance(future, dict):
-        columns = st.columns(min(len(future), 4))
-        for index, cls in enumerate(list(future)):
-            with columns[index % len(columns)]:
-                future[cls] = choose(cls, future[cls], bridge.future_options(schema, tech, cls), f"{tech}_future_{cls}")
-    else:
-        node["future_data"] = choose(tech, future, bridge.future_options(schema, tech, None), f"{tech}_future")
-
-    st.markdown("**History mode per metric** (`historical_data`)")
-    for metric in list(history):
-        value = history[metric]
-        if isinstance(value, dict):
-            st.caption(metric)
-            columns = st.columns(min(len(value), 4))
-            for index, cls in enumerate(list(value)):
-                with columns[index % len(columns)]:
-                    value[cls] = choose(cls, value[cls], bridge.history_options(schema, tech, metric, cls),
-                                        f"{tech}_hist_{metric}_{cls}")
-        else:
-            history[metric] = choose(metric, value, bridge.history_options(schema, tech, metric, None),
-                                     f"{tech}_hist_{metric}")
-
-    treatments = node["future_smoothing_treatments"]
-    treatments["smooth_projection_curve"] = st.checkbox(
-        "Smooth the projection curve", bool(treatments.get("smooth_projection_curve", False)), key=f"{tech}_smooth")
-    if "fill_atbstartyear2atbyear_with_real" in node:
-        node["fill_atbstartyear2atbyear_with_real"] = st.checkbox(
-            "Fill ATB start year to ATB year with real data (this technology)",
-            bool(node["fill_atbstartyear2atbyear_with_real"]), key=f"{tech}_fill")
-    unavailable = config["processing"]["smooth_cost_curves"].get("unavailable_before", {})
-    if tech in unavailable:
-        unavailable[tech] = st.number_input("First buildable year (unavailable_before)", 1900, 2100,
-                                            int(unavailable[tech]), key=f"{tech}_unavailable")
-    overrides = config["processing"].get("atb_case_overrides", {})
-    if tech in overrides:
-        overrides[tech] = st.text_input("ATB case override", overrides[tech], key=f"{tech}_case")
+    processing = config["processing"]
+    smoothing = processing["smooth_cost_curves"]
+    treatments = bridge.technology_config(config, tech)["future_smoothing_treatments"]
+    columns = st.columns(3)
+    treatments["smooth_projection_curve"] = columns[0].checkbox(
+        "Smooth projection curve", bool(treatments["smooth_projection_curve"]), key=widget_key(f"{tech}_smooth"))
+    case = columns[1].text_input(
+        "ATB case override", processing.get("atb_case_overrides", {}).get(tech, ""),
+        placeholder=processing["atb_case"], key=widget_key(f"{tech}_case"))
+    bridge.set_optional(processing, "atb_case_overrides", tech, case.strip() or None)
+    uses_unavailable = "unavailable" in edited.drop(columns="series").to_numpy()
+    if uses_unavailable or tech in smoothing.get("unavailable_before", {}):
+        year = columns[2].number_input(
+            "First buildable year", 1900, 2100, smoothing.get("unavailable_before", {}).get(tech), step=1,
+            key=widget_key(f"{tech}_unavailable"), help="Years before it get the unavailable placeholder.")
+        bridge.set_optional(smoothing, "unavailable_before", tech, None if year is None else int(year))
+    return rejected
 
 
-# --------------------------------------------------------------------------- plots
-def plot_metric(points: pd.DataFrame, metric: str, dollar_year, hide_placeholder, title=None,
-                height=380, show_legend=True, scenarios_shown=None) -> go.Figure:
+# --------------------------------------------------------------------------- charts
+def plot_metric(points: pd.DataFrame, metric: str, dollar_year, hide_placeholder) -> go.Figure:
     """Return a chart of one metric: a line per scenario and series, with points colored by source."""
     data = points.loc[points.metric.eq(metric)].copy()
     if hide_placeholder is not None:
         data = data.loc[~data.value.eq(float(hide_placeholder))]
     all_scenarios = set(data.scenario)
-    if scenarios_shown is not None:
-        data = data.loc[data.scenario.isin(scenarios_shown)]
     figure = go.Figure()
     series = sorted(data.series.unique())
-    scenarios = [s for s in bridge.SCENARIO_ORDER if s in set(data.scenario)] + \
-        sorted(set(data.scenario) - set(bridge.SCENARIO_ORDER))
+    scenarios = [s for s in bridge.SCENARIO_ORDER if s in all_scenarios] + \
+        sorted(all_scenarios - set(bridge.SCENARIO_ORDER))
     for index, label in enumerate(series):
         groups = {scenario: data.loc[data.scenario.eq(scenario) & data.series.eq(label)].sort_values("t")
                   for scenario in scenarios}
@@ -278,184 +224,195 @@ def plot_metric(points: pd.DataFrame, metric: str, dollar_year, hide_placeholder
             hoverinfo="skip",
         ))
     figure.update_layout(
-        title=title or bridge.metric_label(metric, dollar_year), height=height,
-        margin=dict(l=40, r=20, t=50, b=40), showlegend=show_legend,
+        title=bridge.metric_label(metric, dollar_year), height=CHART_HEIGHT,
+        margin=dict(l=40, r=20, t=50, b=40),
         font=dict(size=PLOT_FONT_SIZE), legend=dict(font=dict(size=PLOT_FONT_SIZE - 2)),
         xaxis_title="year", hovermode="closest",
     )
     return figure
 
 
-def show_result(result: dict, hide_placeholder: bool, scenarios_shown: list[str]) -> None:
-    """Show the charts and source tables of one previewed technology."""
-    settings = result["settings"]
-    points = result["points"]
-    placeholder = settings["config"]["processing"]["smooth_cost_curves"].get("unavailable_value") \
-        if hide_placeholder else None
-    st.caption("Files: " + ", ".join(str(path) for path in result["files"]))
-    metrics = list(dict.fromkeys(points.metric))
-    columns = st.columns(2)
-    for index, metric in enumerate(metrics):
-        with columns[index % 2]:
-            st.plotly_chart(plot_metric(points, metric, settings["dollaryear"], placeholder,
-                                        scenarios_shown=scenarios_shown), use_container_width=True)
-
-    st.subheader("Where each stretch of the curve comes from")
-    spans = (
-        points.groupby(["metric", "scenario", "series", "category", "history_mode", "file"], sort=False)
-        .agg(first_year=("t", "min"), last_year=("t", "max"), points=("t", "size"))
-        .reset_index()
-        .sort_values(["metric", "scenario", "series", "first_year"])
-    )
-    st.dataframe(spans, use_container_width=True, hide_index=True)
-
-    st.subheader("Prepared history sources (inputs/historical/real.csv and reeds_baseline.csv)")
-    sources = result["sources"]
-    if sources.empty:
-        st.caption("No prepared history rows for this technology.")
-    else:
-        st.dataframe(sources, use_container_width=True, hide_index=True)
-        st.caption("URLs and checksums of the source files are in inputs/historical/sources.csv.")
-
-
-# --------------------------------------------------------------------------- sidebar
-with st.sidebar:
-    st.title("ATB inputs")
-    tech = st.selectbox("Technology", technologies, key="tech")
-    with st.expander("Global settings", expanded=False):
-        edit_global_settings()
-    hide_placeholder = st.checkbox("Hide 99999 placeholders in plots", True, key="hide")
-    scenarios_shown = st.multiselect("Scenarios in plots", bridge.SCENARIO_ORDER, bridge.SCENARIO_ORDER,
-                                     key="scenarios_shown")
-    st.divider()
-    do_preview = st.button("Preview this technology", type="primary", use_container_width=True,
-                           help="Formats only this technology with the draft, into a scratch folder.")
-    do_preview_all = st.button("Preview all technologies", use_container_width=True)
-    col_save, col_reset = st.columns(2)
-    do_save = col_save.button("Save config.yaml", use_container_width=True)
-    do_reset = col_reset.button("Reset draft", use_container_width=True)
-    draft_differs = bool(bridge.config_diff_hunks(config))
-    st.caption("Draft differs from config.yaml" if draft_differs else "Draft matches config.yaml")
-
-if do_reset:
-    reset_config()
-    st.rerun()
-if do_save:
-    bridge.write_config(config, bridge.CONFIG_PATH)
-    st.sidebar.success("Saved config.yaml")
-if do_preview:
-    with st.spinner(f"Formatting {tech}..."):
-        preview(tech)
-if do_preview_all:
-    progress = st.progress(0.0, text="Formatting every technology with the draft...")
+def refresh_previews() -> None:
+    """Format again every technology whose settings changed since its last preview."""
+    refresh_ccs_retrofit()
+    stale = [tech for tech in technologies
+             if previews.get(tech, (None, None))[0] != bridge.preview_key(config, tech)]
+    if not stale:
+        return
+    progress = st.progress(0.0, text="Reading the ATB flat file...")
     try:
+        data = flat_file()
         settings = bridge.preview_settings(config)
-        selected = bridge.configured_technologies(config)
-        for index, name in enumerate(selected):
-            progress.progress((index + 1) / len(selected), text=f"Formatting {name} ({index + 1}/{len(selected)})")
-            if not preview(name, settings):
-                break
-    except Exception as error:
-        show_error(error)
+    except Exception as error:  # the pipeline's own validation message is the point
+        for tech in stale:
+            previews[tech] = (bridge.preview_key(config, tech), error)
+        progress.empty()
+        return
+    for index, tech in enumerate(stale):
+        progress.progress(index / len(stale), text=f"Formatting {tech} ({index + 1}/{len(stale)})")
+        try:
+            result = bridge.run_technology(config, tech, data, settings)
+        except (Exception, SystemExit) as error:
+            result = error
+        previews[tech] = (bridge.preview_key(config, tech), result)
     progress.empty()
 
-tab_tech, tab_all, tab_export = st.tabs(["Technology", "All technologies", "Export"])
 
-# --------------------------------------------------------------------------- technology page
-with tab_tech:
-    st.header(tech)
-    with st.expander("Technology switches (config.yaml)", expanded=True):
-        edit_technology(tech)
-    result = st.session_state.results.get(tech)
-    if result is None:
-        st.info("Press **Preview this technology** to format it with the current draft and plot the result.")
-    else:
-        show_result(result, hide_placeholder, scenarios_shown)
-    with st.expander("Draft vs. saved config.yaml"):
-        hunks = bridge.config_diff_hunks(config)
-        if not hunks:
-            st.caption("No differences.")
-        for hunk in hunks:
-            st.markdown(diff_hunk_html(hunk), unsafe_allow_html=True)
+def refresh_ccs_retrofit() -> None:
+    """Build the CCS retrofit files again if a setting they depend on changed."""
+    key = bridge.ccs_retrofit_key(config)
+    if previews.get(bridge.CCS_STAGE, (None, None))[0] == key:
+        return
+    with st.spinner("Building the CCS retrofit files..."):
+        try:
+            path = bridge.flat_file_path()
+            costs = cached_retrofit_costs(str(path), path.stat().st_mtime, config["processing"]["atb_case"], config)
+            result = bridge.ccs_retrofit_preview(config, costs)
+        except Exception as error:
+            result = error
+    previews[bridge.CCS_STAGE] = (key, result)
 
-# --------------------------------------------------------------------------- overview page
-with tab_all:
-    st.header("All technologies")
-    st.markdown("**Configuration** (one row per series; edit on the Technology page)")
-    st.dataframe(bridge.config_matrix(config), use_container_width=True, hide_index=True)
-    previewed = [name for name in technologies if name in st.session_state.results]
-    if not previewed:
-        st.info("Press **Preview all technologies** to see every trajectory here.")
-    else:
-        all_metrics = list(dict.fromkeys(
-            metric for name in previewed for metric in st.session_state.results[name]["points"].metric))
-        metric = st.selectbox("Metric", all_metrics, key="overview_metric")
-        st.caption(f"{len(previewed)} of {len(technologies)} technologies previewed with the current draft.")
-        grid = st.columns(OVERVIEW_COLUMNS)
-        for index, name in enumerate(previewed):
-            result = st.session_state.results[name]
-            points = result["points"]
-            if metric not in set(points.metric):
-                continue
-            placeholder = result["settings"]["config"]["processing"]["smooth_cost_curves"].get("unavailable_value") \
-                if hide_placeholder else None
-            with grid[index % OVERVIEW_COLUMNS]:
-                st.plotly_chart(
-                    plot_metric(points, metric, result["settings"]["dollaryear"], placeholder,
-                                title=f"{name}: {bridge.metric_label(metric, result['settings']['dollaryear'])}",
-                                height=OVERVIEW_CHART_HEIGHT, show_legend=False,
-                                scenarios_shown=scenarios_shown),
-                    use_container_width=True)
 
-# --------------------------------------------------------------------------- export page
-with tab_export:
-    st.header("Export: save the draft and run the pipeline")
-    st.markdown(
-        "This is `python scripts/run_pipeline.py`. The draft is saved to `config.yaml` first, "
-        "so the files written below always match the saved configuration."
-    )
-    switches = bridge.stage_switches()
-    workflow = config["workflow"]
-    chosen = []
-    columns = st.columns(len(switches))
-    for column, (stage, switch) in zip(columns, switches.items()):
-        with column:
-            if st.checkbox(f"{stage} (`workflow.{switch}`)", bool(workflow.get(switch, False)), key=f"stage_{stage}"):
-                chosen.append(stage)
-    output_dir, listing = bridge.output_listing()
-    st.caption(f"Format writes to `{output_dir}`"
-               + (f" and copies into `{bridge.copy_target()}`" if config["processing"].get("copy_to_reeds") else "")
-               + ".")
-    if st.button("Save config.yaml and run", type="primary", disabled=not chosen):
-        bridge.write_config(config, bridge.CONFIG_PATH)
-        logs = []
-        failed = False
-        for stage in chosen:
-            with st.spinner(f"Running {stage}..."):
-                code, log = bridge.run_stage(stage, bridge.CONFIG_PATH, bridge.WORK_DIR / "unsmoothed_export")
-            logs.append(f"=== {stage} (exit {code}) ===\n{log}")
-            if code != 0:
-                failed = True
-                break
-        st.session_state.export_log = "\n".join(logs)
-        if failed:
-            st.error("A stage failed; see the log below.")
-        else:
-            st.success("Pipeline finished and config.yaml saved.")
-            # Plots on the other pages now reflect the exported files.
-            unsmoothed = bridge.WORK_DIR / "unsmoothed_export"
-            for name in bridge.configured_technologies(config):
-                exported = bridge.exported_result(name)
-                if exported is not None:
-                    exported["settings"]["unsmoothed_output_dir"] = str(unsmoothed)
-                    exported["points"] = bridge.series_table(exported)
-                    st.session_state.results[name] = exported
-        output_dir, listing = bridge.output_listing()
-    if st.session_state.get("export_log"):
-        with st.expander("Pipeline log", expanded=False):
-            st.code(st.session_state.export_log)
-    st.subheader(f"Files in {output_dir}")
-    if listing.empty:
-        st.caption("No ATB files for this release yet.")
+def show_ccs_retrofit() -> None:
+    """Show the CCS retrofit multipliers and costs, which have no settings on this page."""
+    changed = bridge.ccs_retrofit_key(config) != bridge.ccs_retrofit_key(default)
+    st.subheader("CCS retrofit" + (" :orange[· changed from default]" if changed else ""))
+    result = previews[bridge.CCS_STAGE][1]
+    if isinstance(result, Exception):
+        st.error(f"{type(result).__name__}: {result}")
+        return
+    left, right = st.columns([5, 6])
+    with left:
+        st.markdown("Cost of adding CCS to an existing plant, for ReEDS `inputs/upgrades/`. Files: "
+                    + ", ".join(f"`{name}`" for name in result["files"]) + ".")
+        st.dataframe(pd.DataFrame({"fuel": list(result["series"]), "ATB series": list(result["series"].values())}),
+                     use_container_width=True, hide_index=True)
+        st.caption("The ATB series and the normalization year are set in scripts/helpers/settings.yaml. "
+                   "Of the settings on this page, only the global ones change these files.")
+    titles = {"multiplier": f"Retrofit cost multiplier (1 = {result['normalization']})",
+              "cost": "Retrofit capital cost (2004$/kW)"}
+    with right:
+        output = st.radio("Output", list(titles), horizontal=True, key="ccs_output", label_visibility="collapsed")
+        data = result["points"].loc[result["points"].output.eq(output)]
+        figure = go.Figure()
+        for index, fuel in enumerate(result["series"]):
+            for scenario in bridge.SCENARIO_ORDER:
+                group = data.loc[data.fuel.eq(fuel) & data.scenario.eq(scenario)]
+                figure.add_trace(go.Scatter(
+                    x=group.t, y=group.value, mode="lines", name=f"{scenario} · {fuel}",
+                    line=dict(color=bridge.SCENARIO_COLORS[scenario], dash=DASHES[index % len(DASHES)]),
+                    hovertemplate=f"<b>{scenario} · {fuel}</b><br>%{{x}}: %{{y:,.3f}}<extra></extra>",
+                ))
+        figure.update_layout(
+            title=titles[output], height=CHART_HEIGHT, margin=dict(l=40, r=20, t=50, b=40),
+            font=dict(size=PLOT_FONT_SIZE), legend=dict(font=dict(size=PLOT_FONT_SIZE - 2)),
+            xaxis_title="year", hovermode="closest",
+        )
+        st.plotly_chart(figure, use_container_width=True, key="ccs_chart")
+
+
+def show_chart(tech: str, hide_placeholder: bool) -> None:
+    """Show one metric of a technology's preview, or the error that stopped it."""
+    result = previews[tech][1]
+    if isinstance(result, BaseException):
+        st.error(f"{type(result).__name__}: {result}")
+        return
+    points = result["points"]
+    settings = result["settings"]
+    # Metrics in the order of the settings table, then any the table does not list.
+    metrics = list(dict.fromkeys([*st.session_state.tables[tech].columns[2:], *points.metric]))
+    metric = st.radio("Metric", [m for m in metrics if m in set(points.metric)], horizontal=True,
+                      key=f"{tech}_metric", label_visibility="collapsed")
+    placeholder = settings["config"]["processing"]["smooth_cost_curves"]["unavailable_value"] \
+        if hide_placeholder else None
+    st.plotly_chart(plot_metric(points, metric, settings["dollaryear"], placeholder),
+                    use_container_width=True, key=f"{tech}_chart")
+
+
+# --------------------------------------------------------------------------- run
+def save_and_run() -> None:
+    """Save the settings to config.yaml, run the enabled pipeline stages, and say where the outputs are."""
+    bridge.write_config(config, bridge.CONFIG_PATH)
+    st.session_state.saved = bridge.load_config()
+    logs, ran, failed = [], [], None
+    stages = [stage for stage, switch in bridge.stage_switches().items() if config["workflow"][switch]]
+    if "format" in stages:
+        stages.insert(stages.index("format") + 1, bridge.CCS_STAGE)
+    for stage in stages:
+        with st.spinner(f"Running {stage}..."):
+            code, log = bridge.run_stage(stage, bridge.CONFIG_PATH, bridge.WORK_DIR / "unsmoothed_export")
+        logs.append(f"=== {stage} (exit {code}) ===\n{log}")
+        if code != 0:
+            failed = stage
+            break
+        ran.append(stage)
+    st.session_state.run_log = "\n".join(logs)
+    processing = config["processing"]
+    if failed:
+        reason = (log.strip().splitlines() or [""])[-1]
+        result = ("error", f"The {failed} stage failed: {reason} See the pipeline log. config.yaml was saved.")
+    elif "format" in ran:
+        message = f"Finished. The updated outputs are in `{bridge.resolve_atb_path(processing['output_directory'])}`"
+        if processing.get("copy_to_reeds"):
+            message += f" and were copied into `{bridge.copy_target().parent}` (plant_characteristics and upgrades)"
+        result = ("success", message + ".")
     else:
-        st.dataframe(listing, use_container_width=True, hide_index=True)
+        result = ("warning", "Saved config.yaml. The format stage is off, so the output files were not updated.")
+    st.session_state.run_result = result
+
+
+# --------------------------------------------------------------------------- page
+st.title("ATB inputs dashboard")
+summary = st.container()
+with st.expander("Global settings"):
+    edit_global_settings()
+hide_placeholder = st.checkbox("Hide unavailable placeholders (99999) in charts", True, key="hide")
+
+rejected_before, st.session_state.rejected = st.session_state.rejected, {}
+rejected = {}
+charts = {}
+for tech in technologies:
+    heading = st.empty()
+    left, charts[tech] = st.columns([5, 6])
+    with left:
+        rejected[tech] = edit_technology(tech)
+        for message in rejected_before.get(tech, []):
+            st.warning(message)
+    changed = bridge.preview_key(config, tech) != bridge.preview_key(default, tech)
+    heading.subheader(f"{tech} :orange[· changed from default]" if changed else tech)
+    st.divider()
+if any(rejected.values()):
+    # Redraw the tables from the config, which holds only the accepted values.
+    st.session_state.rejected = rejected
+    restart_widgets()
+    st.rerun()
+
+with summary:
+    changes = bridge.config_changes(default, config)
+    saved = bridge.config_changes(st.session_state.saved, config).empty
+    status, reset_column, run_column = st.columns([6, 2, 2])
+    status.markdown(f"**{len(changes)} setting(s) changed from the default.**" if len(changes)
+                    else "**All settings are at their default.**")
+    status.caption("The default is config.yaml as committed in git. "
+                   + ("config.yaml holds these settings." if saved else "These settings are not saved yet."))
+    if reset_column.button("Reset to default", use_container_width=True, disabled=changes.empty):
+        st.session_state.config = bridge.load_default_config()
+        restart_widgets()
+        st.rerun()
+    if run_column.button("Save and run", type="primary", use_container_width=True,
+                         help="Save the settings to config.yaml, then run the pipeline."):
+        save_and_run()
+    if not changes.empty:
+        st.dataframe(changes, use_container_width=True, hide_index=True)
+    if st.session_state.run_result:
+        kind, message = st.session_state.run_result
+        getattr(st, kind)(message)
+    if st.session_state.run_log:
+        with st.expander("Pipeline log"):
+            st.code(st.session_state.run_log)
+    refresh_previews()
+
+for tech in technologies:
+    with charts[tech]:
+        show_chart(tech, hide_placeholder)
+show_ccs_retrofit()

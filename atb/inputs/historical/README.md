@@ -1,21 +1,18 @@
 # Prepared historical inputs
 
-Commit these CSVs with the code. `run_pipeline.py` reads `real.csv` and
-`reeds_baseline.csv` without historical raw files or network access.
-`historical_data_scraper.py` is their only writer.
+Commit these CSVs with the code. `historical_data_scraper.py` is their only
+writer; `run_pipeline.py` reads `real.csv` and `reeds_baseline.csv` and needs
+no raw files or network access.
 
 | File | Contents |
 | --- | --- |
-| `real.csv` | The observed history of each ReEDS series: reviewed source mappings, calculated components, and annual fills. One row per technology, series, metric, and year. |
-| `reeds_baseline.csv` | The curves ReEDS ships today (its ATB 2024 files at the pinned commit), deflated to the history dollar year. One row per technology, series, scenario, metric, and year; every column of a ReEDS file other than its series name and year is a metric. It includes reference/projection rows needed for retired designs and backfilling. Any 9999 here is only what ReEDS published; the placeholders in outputs (99999) come from `unavailable_value` and `unavailable_before` in `config.yaml`. |
-| `observed.csv` | Every scraped observation as reported, including years and technologies that are not mapped. For review; the pipeline does not read it. The `reeds_mappings` filters in `config_history.yaml` select rows of this table by its columns. |
-| `sources.csv` | The URL and SHA256 checksum of every file named in a `source_file` column. Files kept in this repository have no checksum. |
+| `real.csv` | Observed history of each ReEDS series, in 2022 dollars. One row per technology, series, metric, and year. `source_type` is `real`, `calculated`, or `filled`, and `method` records how the value was derived. |
+| `reeds_baseline.csv` | The curves ReEDS ships today (its ATB 2024 files at the pinned commit), in 2022 dollars. One row per technology, series, scenario, metric, and year. A ReEDS snapshot, not observed data. |
+| `observed.csv` | Every scraped observation as reported, in its original dollar year, including unmapped years and technologies. For review; the pipeline does not read it. |
+| `sources.csv` | URL and SHA256 checksum of every file named in a `source_file` column. Files kept in this repository have no checksum. |
 
-`series` names a ReEDS sub-technology; `*` is a technology's single modeled
-series. Monetary rows carry their `dollar_year`; dimensionless values and
-durations leave it blank. `source_file` lists the files behind a value,
-separated by ` | `; baseline rows name only their ReEDS file, and their
-monetary values also use ReEDS `deflator.csv` and `dollaryear.csv`.
+`series` names a ReEDS sub-technology; `*` is a technology's single series.
+`source_file` lists the files behind a value, separated by ` | `.
 
 ## Coverage
 
@@ -150,15 +147,14 @@ observed or calculated points before filling.
 
 ## Cost scope
 
-ReEDS `capcost` is the ATB overnight capital cost (OCC), which excludes grid
-connection (GCC) and construction financing (CFC). Observed sources do not use
-that boundary, so every scraped capital cost declares a `cost_scope` and
-preparation rescales it onto OCC by `OCC / (OCC + removed components)`, taken
-from the ATB release pinned by `historical_data.reference_atb_year` at that
-release's base year. Rescaled points become `source_type=calculated` and record
-the release, technology, components, and factor in `method`. A single ratio per
-technology covers every history year; because `GCC` is a flat $/kW assumption,
-this over-adjusts years when equipment was more expensive than it is today.
+ReEDS `capcost` is the ATB overnight capital cost (OCC), without grid
+connection (GCC) or construction financing (CFC). Each scraped capital cost
+declares a `cost_scope`, and preparation rescales it by
+`OCC / (OCC + removed components)` using the ATB release in
+`historical_data.reference_atb_year`. Rescaled points are
+`source_type=calculated`, with the factor in `method`. One ratio per
+technology covers all years; because GCC is a flat $/kW, this over-adjusts
+years when equipment cost more than today.
 
 | `cost_scope` | Meaning | Removed | Sources |
 | --- | --- | --- | --- |
@@ -166,65 +162,39 @@ this over-adjusts years when equipment was more expensive than it is today.
 | `overnight_plus_grid` | Includes the interconnection tie-in, excludes financing | `GCC` | LBNL wind and solar, EIA-860 generator costs, LBNL storage and CSP, US offshore projects |
 | `installed_with_financing` | As-spent project cost | `GCC`, `CFC` | Watts Bar (TVA completion cost) |
 
-Form EIA-860 Schedule 5 asks for total construction cost including owner costs
-with "the electrical interconnection costs, including a tie-in to a nearby
-electrical transmission system," and instructs respondents to "exclude
-financing." LBNL's utility-scale solar CapEx comes from Schedule 5B, LBNL's
-recent wind CapEx is EIA-sourced, and LBNL's wind reports describe project costs
-as covering "turbine purchase and installation, balance of plant, and any
-substation and/or interconnection expenses." All therefore sit one component
-wider than OCC.
+EIA-860 Schedule 5 asks for construction cost including "the electrical
+interconnection costs" and excluding financing. LBNL's solar and recent wind
+CapEx come from it, so they sit one component wider than OCC.
 
-Fixed offshore history comes from the three completed US projects in
-`../manual/offshore_historical_projects.csv`: Block Island (2016, 30 MW),
-the CVOW pilot (2020, 12 MW), and South Fork (2024, 132 MW). Each declares its
-own boundary; all three include their export cable, so `GCC` is removed. The
-two pilots cost far more per kW than commercial projects or ATB, and the
-straight line between anchors carries that into 2017-2021. NLR's Figure 31
-Europe-and-US average remains in `observed.csv` for reference; select
-it again by pointing the wind-ofs mapping back at `source_id: offshore_wind`.
-Vineyard Wind 1 is added once it declares commercial operation.
+## Notes by technology
 
-In `real.csv`, `source_type` is `real`, `calculated`, or `filled`, and `method`
-records interpolation, endpoint filling, deflation, component splitting, or
-configuration scaling.
+- **Fixed offshore wind**: three completed US projects in
+  `../manual/offshore_historical_projects.csv`: Block Island (2016), CVOW
+  pilot (2020), South Fork (2024). All include their export cable, so GCC is
+  removed. The two pilots cost far more per kW than commercial projects, and
+  interpolation carries that into 2017-2021. NLR's Europe-and-US average stays
+  in `observed.csv`; point the wind-ofs mapping at `source_id: offshore_wind`
+  to use it. Vineyard Wind 1 is added once it declares commercial operation.
+- **Battery**: LBNL storage sample for 2018-2024, EIA for other years. LBNL's
+  total $/kWh is multiplied by `sum(MWh)/sum(MW)` of the same sample, then
+  split into power and energy with the ATB 2024 ratio.
+- **Nuclear**: Watts Bar 2 (2016) and Vogtle 3-4 (2024) from
+  `../manual/nuclear_historical_projects.csv`; its source notes give the cost
+  definitions.
+- **Wind-ons and upv FOM** (`indexed`): LBNL's O&M surveys cover only part of
+  the operating cost (the PV sheet excludes property taxes, insurance, land
+  royalties, bonds, fees, and overhead), so only their change over time is
+  used. The index is the mean over `om_index.ages` (1-3) at each vintage bin's
+  midpoint year; bins with fewer ages than `minimum_ages` are skipped. This
+  assumes the excluded costs moved in step with the included ones.
+- **CSP**: Crescent Dunes is the mapped cost proxy; the other designs have no
+  reviewed mapping. CSP capacity factors stay in `observed.csv` because CSP
+  outputs have no CF column.
+- **Capacity factors**: real values are fractions, divided by the current ATB
+  reference at runtime. Baseline values keep their ATB 2024 normalization.
 
-`observed.csv` includes observations outside the modeled period and unmapped
-technologies for review; only `real.csv` enters outputs. Missing real
-years are linearly interpolated internally and carried from the nearest
-endpoint externally. When formatting applies a prepared table, years between two
-anchors are interpolated, years before the first anchor carry it backward, and
-years between the last anchor and the first projection year are interpolated
-toward that projection value rather than held flat. These operations do not
-create observed measurements.
+## Filled years
 
-Real battery components prefer the LBNL storage sample (2018-2024), with EIA
-for other available years. LBNL's total system $/kWh is multiplied by
-`sum(MWh)/sum(MW)` from the same sample before the ATB-ratio split. Costs
-retain their original dollar year (2024 for LBNL) and mapped costs use 2022
-dollars. Alternate cost statistics and reported energy-weighted durations
-stay in `observed.csv` only; the latter are not used for this conversion.
-
-Nuclear capital history uses Watts Bar 2 (2016) and combined Vogtle 3-4 (2024)
-from `../manual/nuclear_historical_projects.csv`. Both are `calculated`;
-source notes document their cost definitions and assumptions.
-
-Wind-ons and upv FOM use `indexed` history. LBNL's O&M surveys cover only part
-of the operating cost (the PV sheet excludes property taxes, insurance, land
-royalties, bonds, fees, and overhead), so their level is not a ReEDS FOM; their
-movement is. The scraper stores median O&M by vintage bin and operating year,
-and the `fom_index` mapping takes the mean over `om_index.ages` (1-3) at each
-bin's midpoint year; bins with fewer available ages than `minimum_ages` stay
-in `observed.csv` only, which drops the single-year 2023 PV bin. Formatting then scales ATB's
-FOM at `index_reference_year` by the index ratio. This assumes the excluded
-cost components moved in step with the included ones.
-
-All seven CSP project costs and 171 annual plant CF observations are retained.
-Crescent Dunes remains the mapped cost proxy; the other designs lack a reviewed
-configuration mapping. CSP CF rows describe operating years, not build vintages,
-and stay in `observed.csv` only because current CSP outputs have no CF column.
-
-`reeds_baseline.csv` is a ReEDS snapshot, not a claim that every value was observed or
-published in that year. Baseline CF values retain their ATB 2024 normalization;
-real CF values are fractions normalized to the current projection reference at
-runtime.
+Years between two anchors are interpolated, years before the first anchor
+carry it back, and years from the last anchor to the first projection year
+are interpolated toward the projection. These are estimates, not observations.

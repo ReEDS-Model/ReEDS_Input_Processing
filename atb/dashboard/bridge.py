@@ -16,14 +16,16 @@ Two kinds of run exist:
 
 from __future__ import annotations
 
-import difflib
+import contextlib
 import io
 import json
+import re
 import subprocess
 import sys
 import tempfile
 import types
 from pathlib import Path
+from unittest import mock
 
 import pandas as pd
 from ruamel.yaml import YAML
@@ -43,6 +45,7 @@ for folder in (ATB_DIR / "scripts", ATB_DIR / "scripts" / "helpers", ATB_DIR / "
     if str(folder) not in sys.path:
         sys.path.insert(0, str(folder))
 
+import ccs_retrofit_inputs  # noqa: E402
 from atb_config import ATB_FUTURE_SOURCES, load_processing_settings, resolve_atb_path  # noqa: E402
 from compare_atb_outputs import (  # noqa: E402
     BASELINE_CATEGORY,
@@ -66,6 +69,8 @@ from historical_data import load_history  # noqa: E402
 from run_pipeline import SCRIPT_DIR, STAGES  # noqa: E402
 
 TECHNOLOGIES_PATH = ("processing", "smooth_cost_curves", "technologies")
+# Not a run_pipeline.py stage: the dashboard runs scripts/ccs_retrofit_inputs.py after format.
+CCS_STAGE = "ccs retrofit"
 
 
 # --------------------------------------------------------------------------- config
@@ -104,44 +109,35 @@ def write_config(config, path: Path) -> Path:
     return path
 
 
-def _yaml_path(lines: list[str], index: int) -> list[str]:
-    """Return the mapping keys enclosing one line, outermost first."""
-    path, indent = [], len(lines[index]) - len(lines[index].lstrip())
-    for text in reversed(lines[:index]):
-        stripped = text.strip()
-        level = len(text) - len(text.lstrip())
-        if stripped and not stripped.startswith("#") and level < indent and stripped.endswith(":"):
-            path.append(stripped[:-1])
-            indent = level
-            if level == 0:
-                break
-    return path[::-1]
+def load_default_config():
+    """Return the default config: config.yaml as committed in git, or the file on disk without git."""
+    try:
+        shown = subprocess.run(["git", "show", "HEAD:./config.yaml"], cwd=str(ATB_DIR),
+                               capture_output=True, text=True, encoding="utf-8")
+    except OSError:
+        return load_config()
+    return yaml_handler().load(shown.stdout) if shown.returncode == 0 else load_config()
 
 
-def config_diff_hunks(config, path: Path = CONFIG_PATH, context: int = 4) -> list[dict]:
-    """Diff the saved config.yaml against the draft, one hunk per change.
+def _flatten(node, path: tuple = ()):
+    """Yield (path, value) for every setting of a config."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            yield from _flatten(value, path + (str(key),))
+    else:
+        yield path, node
 
-    Each hunk carries the YAML path of its first changed line, so a change
-    deep inside a technology block still says which technology it belongs to.
-    """
-    before = Path(path).read_text(encoding="utf-8").splitlines()
-    after = dump_config(config).splitlines()
-    hunks, old, new = [], 0, 0
-    for line in difflib.unified_diff(before, after, n=context, lineterm=""):
-        if line.startswith(("---", "+++")):
-            continue
-        if line.startswith("@@"):
-            old, new = (int(part[1:].split(",")[0]) - 1 for part in line.split()[1:3])
-            hunks.append({"path": None, "lines": []})
-            continue
-        kind = {"-": "removed", "+": "added"}.get(line[:1], "context")
-        if kind != "context" and hunks[-1]["path"] is None:
-            source, index = (after, new) if kind == "added" else (before, old)
-            hunks[-1]["path"] = _yaml_path(source, index)
-        hunks[-1]["lines"].append((kind, line[1:]))
-        old += kind != "added"
-        new += kind != "removed"
-    return hunks
+
+def config_changes(default, config) -> pd.DataFrame:
+    """One row per setting whose value differs from the default config."""
+    before, after = dict(_flatten(default)), dict(_flatten(config))
+    depth = len(TECHNOLOGIES_PATH)
+    rows = [
+        {"setting": " > ".join(path[depth:] if path[:depth] == TECHNOLOGIES_PATH else path),
+         "default": str(before.get(path, "(not set)")), "now": str(after.get(path, "(not set)"))}
+        for path in {**before, **after} if before.get(path) != after.get(path)
+    ]
+    return pd.DataFrame(rows, columns=["setting", "default", "now"])
 
 
 def technologies(config) -> list[str]:
@@ -158,30 +154,6 @@ def technology_config(config, tech: str):
     for key in TECHNOLOGIES_PATH:
         node = node[key]
     return node[tech]
-
-
-def config_matrix(config) -> pd.DataFrame:
-    """One row per technology and sub-technology with every switch as a column."""
-    rows = []
-    unavailable = config["processing"]["smooth_cost_curves"].get("unavailable_before", {})
-    overrides = config["processing"].get("atb_case_overrides", {})
-    for tech in technologies(config):
-        node = technology_config(config, tech)
-        future = node["future_data"]
-        classes = list(future) if isinstance(future, dict) else [None]
-        for cls in classes:
-            row = {
-                "technology": tech,
-                "series": cls or "*",
-                "future_data": future[cls] if cls else future,
-            }
-            for metric, mode in node["historical_data"].items():
-                row[metric] = mode.get(cls, "") if isinstance(mode, dict) else mode
-            row["smooth_projection"] = bool(node["future_smoothing_treatments"].get("smooth_projection_curve", False))
-            row["atb_case"] = overrides.get(tech, config["processing"].get("atb_case", ""))
-            row["unavailable_before"] = unavailable.get(tech, "")
-            rows.append(row)
-    return pd.DataFrame(rows)
 
 
 # --------------------------------------------------------------------------- schema
@@ -245,6 +217,99 @@ def future_options(schema: dict, tech: str, cls: str | None) -> list | None:
     return _options(schema, _technology_properties(schema, tech)["future_data"], cls)
 
 
+# --------------------------------------------------------------------------- settings table
+def _cell(config, tech: str, column: str, cls: str | None):
+    """Return the mapping and key holding one setting, or (None, None) if the technology has no such setting.
+
+    A setting is stored per series (a mapping) or once for the whole technology.
+    """
+    node = technology_config(config, tech)
+    parent = node if column == "future_data" else node["historical_data"]
+    if column not in parent:
+        return None, None
+    return (parent[column], cls) if isinstance(parent[column], dict) else (parent, column)
+
+
+def _cell_options(schema: dict, tech: str, column: str, cls: str | None) -> list:
+    """Return the values the schema allows for one setting of one series."""
+    if column == "future_data":
+        return future_options(schema, tech, cls) or []
+    return history_options(schema, tech, column, cls) or []
+
+
+def series_settings(config, tech: str) -> pd.DataFrame:
+    """One row per series of a technology: its projection source and each metric's history mode."""
+    node = technology_config(config, tech)
+    future = node["future_data"]
+    rows = []
+    for cls in (list(future) if isinstance(future, dict) else [None]):
+        row = {"series": cls or "*"}
+        for column in ("future_data", *node["historical_data"]):
+            holder, key = _cell(config, tech, column, cls)
+            value = holder.get(key)
+            row[column] = None if value is None else str(value)
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def series_options(schema: dict, tech: str, table: pd.DataFrame) -> dict[str, list]:
+    """Return the values the schema allows in each settings column, across the technology's series."""
+    options = {}
+    for column in table.columns[1:]:
+        values = []
+        for series, current in zip(table["series"], table[column]):
+            for value in _cell_options(schema, tech, column, None if series == "*" else series) or [current]:
+                if value is not None and value not in values:
+                    values.append(value)
+        options[column] = values
+    return options
+
+
+def apply_series_settings(config, schema: dict, tech: str, table: pd.DataFrame) -> list[str]:
+    """Write an edited settings table into the config; return a message per value the schema rejects."""
+    rejected = []
+    for row in table.to_dict("records"):
+        cls = None if row["series"] == "*" else row["series"]
+        for column in table.columns[1:]:
+            new = None if pd.isna(row[column]) else row[column]
+            holder, key = _cell(config, tech, column, cls)
+            current = holder.get(key) if holder is not None else None
+            if new == current:
+                continue
+            options = _cell_options(schema, tech, column, cls) if current is not None else []
+            if new in options:
+                holder[key] = new
+            else:
+                rejected.append(f"{tech} {row['series']} {column}: {new} is not allowed here"
+                                + (f" (options: {', '.join(options)})." if options else "."))
+    return rejected
+
+
+def set_optional(parent, name: str, tech: str, value) -> None:
+    """Set one technology's entry of an optional mapping such as unavailable_before; None removes it."""
+    if value is None:
+        if tech in parent.get(name, {}):
+            del parent[name][tech]
+    elif parent.get(name, {}).get(tech) != value:
+        parent.setdefault(name, {})[tech] = value
+
+
+def preview_key(config, tech: str) -> str:
+    """Return text that changes when a setting that affects this technology's outputs changes."""
+    data = json.loads(json.dumps(config, default=str))
+    processing = data["processing"]
+    smoothing = processing["smooth_cost_curves"]
+    smoothing["technologies"] = smoothing["technologies"][tech]
+    for mapping in (smoothing.get("unavailable_before", {}), processing.get("atb_case_overrides", {})):
+        for other in [name for name in mapping if name != tech]:
+            del mapping[other]
+    for name in ("workflow", "plotting"):
+        data.pop(name, None)
+    for name in ("copy_to_reeds", "technologies", "reeds_atb_year"):
+        processing.pop(name, None)
+    return json.dumps(data, sort_keys=True)
+
+
 # --------------------------------------------------------------------------- preview
 def flat_file_path(config_path: Path = CONFIG_PATH) -> Path:
     """Return the configured ATB flat file path."""
@@ -304,25 +369,77 @@ def run_technology(config, tech: str, flat_file: pd.DataFrame, settings: dict | 
         load_history(settings, kind)
 
     args = types.SimpleNamespace(debug=False)
-    atb_data = load_atb_data(settings, args, [tech], atb_data_in=flat_file, report_changes=False)
     filenames: list[str] = []
-    process_tech_file(atb_data, tech, settings, filenames, dollaryear, deflator,
-                      settings["config"]["processing"].get("sensitivity_name"), str(PREVIEW_DIR), args)
+    log = io.StringIO()
+
+    def refuse(prompt=""):
+        """The pipeline asks on the terminal when the ATB case is missing; a page cannot answer."""
+        raise ValueError(" ".join(log.getvalue().splitlines()[-2:]))
+
+    with contextlib.redirect_stdout(log), mock.patch("builtins.input", refuse):
+        atb_data = load_atb_data(settings, args, [tech], atb_data_in=flat_file, report_changes=False)
+        process_tech_file(atb_data, tech, settings, filenames, dollaryear, deflator,
+                          settings["config"]["processing"].get("sensitivity_name"), str(PREVIEW_DIR), args)
     result = {"settings": settings, "files": [PREVIEW_DIR / name for name in filenames]}
     result["points"] = series_table(result)
-    result["sources"] = source_table(settings, tech)
     return result
 
 
-def configured_technologies(config) -> list[str]:
-    """Technologies a full run formats (``processing.technologies``)."""
-    selected = config["processing"].get("technologies", "all")
-    return technologies(config) if selected in ("all", ["all"]) else list(selected)
+# --------------------------------------------------------------------------- CCS retrofit
+def ccs_retrofit_key(config) -> str:
+    """Return text that changes when a setting that affects the CCS retrofit files changes."""
+    processing = config["processing"]
+    names = ("atb_case", "reeds_repo", "reeds_start_year", "reeds_end_year", "decimals")
+    return json.dumps([config["atb"], config["raw_data"], {name: processing.get(name) for name in names}],
+                      default=str, sort_keys=True)
+
+
+def read_retrofit_costs(config) -> pd.DataFrame:
+    """Read the ATB retrofit costs the CCS retrofit files are built from (slow; the app caches it)."""
+    with contextlib.redirect_stdout(io.StringIO()):
+        return ccs_retrofit_inputs.read_retrofit_costs(preview_settings(config))
+
+
+def ccs_retrofit_preview(config, costs: pd.DataFrame) -> dict:
+    """Build the CCS retrofit files with the draft config, without writing them.
+
+    Returns the file names, the ATB series behind each fuel, and a table of
+    every value with columns output, fuel, scenario, t, value.
+    """
+    settings = preview_settings(config)
+    rules = settings["ccs_retrofits"]
+    costs = ccs_retrofit_inputs.extend_years(
+        costs, settings["reeds_start_year"], settings["reeds_end_year"] or int(costs.columns.max()))
+    multipliers = ccs_retrofit_inputs.build_multipliers(costs, settings)
+    cost_tables = ccs_retrofit_inputs.build_costs(costs, settings)
+    deltas = pd.read_csv(Path(settings["reedspath"]) / "inputs" / "upgrades" / "upgrade_link.csv",
+                         index_col="*TO")["DELTA"]
+    frames = []
+    for scenario, table in multipliers.items():
+        for fuel, mapping in rules["fuels"].items():
+            # Every upgrade row of a fuel carries the same multipliers; take the first.
+            row = next(name for name, delta in deltas.items() if re.search(mapping["delta_pattern"], delta))
+            frames.append(pd.DataFrame({"output": "multiplier", "fuel": fuel, "scenario": scenario.lower(),
+                                        "t": table.columns, "value": table.loc[row].to_numpy()}))
+    for fuel, table in cost_tables.items():
+        for column in table.columns:
+            frames.append(pd.DataFrame({"output": "cost", "fuel": fuel, "scenario": column.split("_", 1)[1],
+                                        "t": table.index, "value": table[column].to_numpy()}))
+    yy = str(settings["atbyear"])[-2:]
+    return {
+        "points": pd.concat(frames, ignore_index=True),
+        "files": [f"upgrade_mult_atb{yy}_ccs_{suffix}.csv" for suffix in rules["scenario_suffix"].values()]
+        + [f"upgrade_costs_ccs_{fuel}.csv" for fuel in rules["fuels"]],
+        "series": {fuel: mapping["DisplayName"] for fuel, mapping in rules["fuels"].items()},
+        "normalization": f"{rules['normalization_scenario']} in {rules['normalization_year']}",
+    }
 
 
 # --------------------------------------------------------------------------- export
 def stage_command(stage: str, config_path: Path = CONFIG_PATH, unsmoothed_dir: Path | None = None) -> list[str]:
     """The command ``run_pipeline.py`` runs for one stage, built from its table."""
+    if stage == CCS_STAGE:
+        return [sys.executable, str(SCRIPT_DIR / "ccs_retrofit_inputs.py"), "--config", str(config_path)]
     _, script = STAGES[stage]
     command = [sys.executable, str(SCRIPT_DIR / script), "--config", str(config_path)]
     if unsmoothed_dir is not None and stage == "format":
@@ -345,34 +462,6 @@ def run_stage(stage: str, config_path: Path = CONFIG_PATH, unsmoothed_dir: Path 
 def stage_switches() -> dict[str, str]:
     """Stage name -> the ``workflow`` switch that enables it in config.yaml."""
     return {stage: switch for stage, (switch, _) in STAGES.items()}
-
-
-def output_listing(config_path: Path = CONFIG_PATH) -> tuple[Path, pd.DataFrame]:
-    """The configured output folder and its ATB files, newest first."""
-    settings = load_processing_settings(config_path)
-    folder = Path(settings["output_dir"])
-    year = settings["atbyear"]
-    rows = [
-        {"file": path.name, "modified": pd.Timestamp(path.stat().st_mtime, unit="s").strftime("%Y-%m-%d %H:%M:%S"),
-         "size_kB": round(path.stat().st_size / 1024, 1)}
-        for path in sorted(folder.glob(f"*_ATB_{year}_*.csv"), key=lambda p: p.stat().st_mtime, reverse=True)
-    ] if folder.is_dir() else []
-    return folder, pd.DataFrame(rows)
-
-
-def exported_result(tech: str, config_path: Path = CONFIG_PATH) -> dict | None:
-    """Plot data for one technology from the real output folder after an export."""
-    settings = load_processing_settings(config_path)
-    settings["unsmoothed_output_dir"] = str(UNSMOOTHED_DIR)
-    prefix = settings["techs"][tech].get("reeds_name", tech)
-    files = sorted(Path(settings["output_dir"]).glob(f"{prefix}_ATB_{settings['atbyear']}_*.csv"))
-    files = [f for f in files if f.stem.rpartition("_")[2] in SCENARIO_ORDER]
-    if not files:
-        return None
-    result = {"settings": settings, "files": files}
-    result["points"] = series_table(result)
-    result["sources"] = source_table(settings, tech)
-    return result
 
 
 # --------------------------------------------------------------------------- results
@@ -467,29 +556,6 @@ def metric_label(metric: str, dollar_year) -> str:
     return METRIC_LABELS.get(metric, metric).format(d=dollar_year)
 
 
-def source_table(settings: dict, tech: str) -> pd.DataFrame:
-    """Where each metric's history came from, from the prepared history tables."""
-    frames = []
-    for kind in ("real", "reeds_baseline"):
-        data = load_history(settings, kind)
-        data = data.loc[data.technology.eq(tech)]
-        if data.empty:
-            continue
-        if kind == "reeds_baseline":
-            data = data.assign(source_type=kind, method="ReEDS file at the pinned ref, deflated to the history dollar year")
-        anchors = data.loc[data.source_type.ne("filled")]
-        summary = (
-            anchors.groupby(["metric", "series", "source_type", "source_file", "method"], dropna=False)
-            .agg(first_year=("year", "min"), last_year=("year", "max"), points=("year", "nunique"))
-            .reset_index()
-        )
-        summary.insert(0, "table", f"{kind}.csv")
-        frames.append(summary)
-    if not frames:
-        return pd.DataFrame()
-    return pd.concat(frames, ignore_index=True)
-
-
 def copy_target(config_path: Path = CONFIG_PATH) -> Path:
     """Return the ReEDS plant_characteristics folder that exports are copied to."""
     settings = load_processing_settings(config_path)
@@ -497,10 +563,12 @@ def copy_target(config_path: Path = CONFIG_PATH) -> Path:
 
 
 __all__ = [
-    "ATB_DIR", "CONFIG_PATH", "PREVIEW_DIR", "SCENARIO_COLORS", "SCENARIO_ORDER", "WORK_DIR",
-    "baseline_year_range", "config_diff_hunks", "config_matrix", "configured_technologies", "copy_target",
-    "dump_config", "exported_result", "flat_file_path", "future_options", "history_options",
-    "load_config", "load_schema", "metric_label", "output_listing", "preview_settings", "read_flat_file",
-    "resolve_atb_path", "run_stage", "run_technology", "series_table", "source_table", "stage_command",
+    "ATB_DIR", "CCS_STAGE", "CONFIG_PATH", "PREVIEW_DIR", "SCENARIO_COLORS", "SCENARIO_ORDER", "WORK_DIR",
+    "apply_series_settings", "baseline_year_range", "ccs_retrofit_key", "ccs_retrofit_preview",
+    "config_changes", "copy_target", "dump_config",
+    "flat_file_path", "future_options", "history_options", "load_config", "load_default_config", "load_schema",
+    "metric_label", "preview_key", "preview_settings", "read_flat_file", "read_retrofit_costs",
+    "resolve_atb_path", "run_stage",
+    "run_technology", "series_options", "series_settings", "series_table", "set_optional", "stage_command",
     "stage_switches", "technologies", "technology_config", "write_config",
 ]

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import math
 from pathlib import Path
+import re
 import sys
 
 import matplotlib.pyplot as plt
@@ -156,12 +157,18 @@ SERIES_LINESTYLES = [
 ]
 
 
-def reeds_filename(generated_name: str, atb_year=None, reeds_year=None) -> str:
+def reeds_filename(generated_name: str, atb_year=None, reeds_year=None, baseline_files=None) -> str:
     """Map a generated filename to its ReEDS filename.
 
     ReEDS may still carry an earlier ATB vintage than the one generated, so the
     year token is swapped when ``reeds_year`` differs from ``atb_year``.
+    ``baseline_files`` maps the prefix of an output that has no ATB file in
+    ReEDS to the ReEDS file it is compared with (``baseline_file`` in
+    settings.yaml).
     """
+    for prefix, baseline in (baseline_files or {}).items():
+        if generated_name.startswith(f"{prefix}_ATB_"):
+            return f"{baseline}.csv"
     name = generated_name
     if reeds_year is not None and atb_year is not None and reeds_year != atb_year:
         name = name.replace(f"_ATB_{atb_year}_", f"_ATB_{reeds_year}_")
@@ -1257,6 +1264,71 @@ def plot_file(
     return True
 
 
+def plot_ccs_retrofit(settings: dict, generated_dir: Path, plot_dir: Path) -> bool:
+    """Plot the generated CCS retrofit multipliers and costs against ReEDS inputs/upgrades.
+
+    ReEDS multipliers are read at the newest vintage it carries. Returns False
+    when the generated files are missing (scripts/ccs_retrofit_inputs.py not run).
+    """
+    rules = settings.get("ccs_retrofits", {})
+    yy = str(settings["atbyear"])[-2:]
+    upgrades = Path(settings["reedspath"]) / "inputs" / "upgrades"
+    suffixes = {scenario.lower(): suffix for scenario, suffix in rules.get("scenario_suffix", {}).items()}
+    multiplier_files = {scenario: f"upgrade_mult_atb{yy}_ccs_{suffix}.csv" for scenario, suffix in suffixes.items()}
+    cost_files = {fuel: f"upgrade_costs_ccs_{fuel}.csv" for fuel in rules.get("fuels", {})}
+    if not rules or not all(
+        (generated_dir / name).is_file() for name in [*multiplier_files.values(), *cost_files.values()]
+    ):
+        return False
+    vintages = sorted(path.name.split("_")[2] for path in upgrades.glob("upgrade_mult_atb*_ccs_*.csv"))
+    vintage = vintages[-1] if vintages else None
+    deltas = pd.read_csv(upgrades / "upgrade_link.csv", index_col="*TO")["DELTA"]
+    normalization = f"{rules['normalization_scenario']} in {rules['normalization_year']}"
+    titles = {
+        (kind, fuel): label.format(fuel=fuel)
+        for kind, label in (("multiplier", f"{{fuel}}: cost multiplier (1 = {normalization})"),
+                            ("cost", "{fuel}: retrofit capital cost (2004$/kW)"))
+        for fuel in cost_files
+    }
+    figure, panels = panel_grid(
+        f"CCS retrofit: Generated ATB {settings['atbyear']} vs. ReEDS inputs/upgrades", list(titles.values())
+    )
+
+    def draw(kind, fuel, years, values, scenario, reference):
+        panels[titles[kind, fuel]].plot(
+            years, values, color=scenario_color(scenario, 0),
+            linewidth=5.0 if reference else 1.4, alpha=0.3 if reference else 0.95, zorder=1 if reference else 2,
+        )
+
+    for fuel, mapping in rules["fuels"].items():
+        # Every upgrade row of a fuel carries the same multipliers; take the first.
+        row = next(name for name, delta in deltas.items() if re.search(mapping["delta_pattern"], delta))
+        for scenario, suffix in suffixes.items():
+            paths = [(generated_dir / multiplier_files[scenario], False)]
+            if vintage:
+                paths.append((upgrades / f"upgrade_mult_{vintage}_ccs_{suffix}.csv", True))
+            for path, reference in paths:
+                table = pd.read_csv(path, index_col=0) if path.is_file() else pd.DataFrame()
+                if row in table.index:
+                    draw("multiplier", fuel, table.columns.astype(int), table.loc[row].to_numpy(), scenario, reference)
+        for path, reference in ((generated_dir / cost_files[fuel], False), (upgrades / cost_files[fuel], True)):
+            if path.is_file():
+                table = pd.read_csv(path, index_col="t")
+                for column in table.columns:
+                    draw("cost", fuel, table.index, table[column], column.rsplit("_", 1)[1], reference)
+
+    handles = [
+        plt.Line2D([0], [0], color="0.25", linewidth=1.4, label=f"Generated ATB {settings['atbyear']}"),
+        plt.Line2D([0], [0], color="0.25", linewidth=5, alpha=0.3,
+                   label=f"ReEDS ({vintage or 'no'} multipliers, current cost files)"),
+    ] + [plt.Line2D([0], [0], color=scenario_color(scenario, 0), linewidth=2, label=scenario) for scenario in suffixes]
+    figure.legend(handles=handles, loc="outside lower center", ncol=len(handles), fontsize=8, frameon=False,
+                  handlelength=5.0, columnspacing=2.0)
+    figure.savefig(plot_dir / f"ccs_retrofit_ATB_{settings['atbyear']}.png", dpi=160, bbox_inches="tight")
+    plt.close(figure)
+    return True
+
+
 def plot_overview(summary: pd.DataFrame, plot_dir: Path, atb_year: int) -> None:
     """Plot file-level validation status and difference counts."""
     plot_data = summary.sort_values(
@@ -1338,6 +1410,7 @@ def write_plots(
     include_overview: bool = True,
     provenance_settings: dict | None = None,
     dollar_year=None,
+    baseline_files: dict | None = None,
 ) -> int:
     """Generate the overview and one technology-level plot per file group.
 
@@ -1358,7 +1431,7 @@ def write_plots(
     for stem, scenarios in scenario_groups(generated_files).items():
         scenario_paths = {}
         for scenario, generated_path in scenarios.items():
-            reeds_path = reeds_dir / reeds_filename(generated_path.name, atb_year, reeds_year)
+            reeds_path = reeds_dir / reeds_filename(generated_path.name, atb_year, reeds_year, baseline_files)
             if reeds_path.exists():
                 scenario_paths[scenario] = (generated_path, reeds_path)
         if not scenario_paths:
@@ -1372,8 +1445,11 @@ def write_plots(
                 reference_years.pop() if len(reference_years) == 1 else None
             )
             reference = dashed_label
+            reeds_stems = {reeds_path.stem for _, reeds_path in scenario_paths.values()}
+            if reeds_stems <= set((baseline_files or {}).values()):
+                reference = "ReEDS " + ", ".join(sorted(reeds_stems))
             if reference_dollar_year is not None:
-                reference = f"{dashed_label} ({reference_dollar_year}$)"
+                reference = f"{reference} ({reference_dollar_year}$)"
             generated = solid_label
             if dollar_year is not None:
                 generated = f"{solid_label} ({dollar_year}$)"
@@ -1458,9 +1534,14 @@ def main() -> None:
     if not reeds_dir.is_dir():
         raise FileNotFoundError(f"ReEDS plant-characteristics directory not found: {reeds_dir}")
 
+    # Outputs with no ATB file in ReEDS (beccs) are compared with their baseline_file.
+    baseline_files = {
+        tech.get("reeds_name", name): tech["baseline_file"]
+        for name, tech in settings["techs"].items() if "baseline_file" in tech
+    }
     results = []
     for generated_path in generated_files:
-        reeds_path = reeds_dir / reeds_filename(generated_path.name, atb_year, reeds_year)
+        reeds_path = reeds_dir / reeds_filename(generated_path.name, atb_year, reeds_year, baseline_files)
         result = compare_file(
             generated_path,
             reeds_path,
@@ -1473,7 +1554,9 @@ def main() -> None:
         )
 
     summary = pd.DataFrame(results)
-    expected_reeds_names = {reeds_filename(path.name, atb_year, reeds_year) for path in generated_files}
+    expected_reeds_names = {
+        reeds_filename(path.name, atb_year, reeds_year, baseline_files) for path in generated_files
+    }
     reeds_only_files = sorted(
         path.name
         for path in reeds_dir.glob(f"*_ATB_{reeds_year}_*.csv")
@@ -1489,8 +1572,13 @@ def main() -> None:
         solid_label=f"Generated ATB {atb_year}",
         dashed_label=f"ReEDS ATB {reeds_year}",
         dollar_year=int(settings["dollaryear"]),
+        baseline_files=baseline_files,
     )
     print(f"\nWrote overview and {plotted} technology-level plots to {plot_dir}")
+    if plot_ccs_retrofit(settings, generated_dir, plot_dir):
+        print(f"Wrote the CCS retrofit plot to {plot_dir}")
+    else:
+        print("No CCS retrofit plot: scripts/ccs_retrofit_inputs.py has not written its files.")
     print(summary["status"].value_counts().to_string())
     print(
         f"ReEDS files without a generated counterpart: {len(reeds_only_files)}"
