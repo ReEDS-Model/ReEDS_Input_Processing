@@ -40,6 +40,13 @@ All located in `inputs/tech_mappings` folder:
 Located in `outputs` folder. This is the final file that will be used to run ReEDS:
 * `ReEDS_generator_database_final_EIA-NEMS.csv`
 
+The database includes units from all EIA860M sectors: electric utility, independent power producer (IPP), commercial, and industrial, each split into CHP and non-CHP where applicable.
+Commercial and industrial units are not in AEO-NEMS, so their data come from EIA860M only, with heat rates and FOM/VOM filled from similar units.
+ReEDS load already includes the onsite "direct use" load these units serve.
+Two columns describe this:
+* `sector`: EIA860M sector of the unit. Units found only in AEO-NEMS default to `Electric Utility`.
+* `chp`: 1 if the unit is a combined heat and power (cogeneration) unit (`IPP CHP`, `Commercial CHP`, or `Industrial CHP` sector), else 0.
+
 # Output comparison figures
 Located in `outputs/figures`. This folder includes figures of online/retire capacity by year for different NEMS versions and their differences. Figures are both national and at `z90` resolution. The figures are generated from `e_comparison_plotting.py`.
 
