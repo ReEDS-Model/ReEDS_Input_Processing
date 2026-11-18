@@ -348,8 +348,12 @@ def mergeAEOandEIA860M(aeo_data,eia860M_data,aeo_cols,eia_cols):
                       '(R) Retired']
     nems_eia860_merged = nems_eia860_merged[nems_eia860_merged['status'].isin(status_to_keep)]
 
-    # Only keep units in three sectors - 'Electric Utility', 'IPP CHP', and 'IPP Non-CHP'
-    sector_to_keep = ['Electric Utility', 'IPP CHP', 'IPP Non-CHP']
+    # Keep units in all EIA860M sectors, including commercial and industrial generators
+    # (CHP and non-CHP). These units are not in AEO-NEMS, so they come from EIA860M only.
+    # ReEDS load already includes the onsite "direct use" load these units serve.
+    sector_to_keep = ['Electric Utility', 'IPP CHP', 'IPP Non-CHP',
+                      'Commercial CHP', 'Commercial Non-CHP',
+                      'Industrial CHP', 'Industrial Non-CHP']
     nems_eia860_merged = nems_eia860_merged[nems_eia860_merged['sector'].isin(sector_to_keep)]
 
     # Units that are unmatched need to be remerged
@@ -413,6 +417,8 @@ def mergeAEOandEIA860M(aeo_data,eia860M_data,aeo_cols,eia_cols):
     nems_eia_remerge['T_LAT'] = nems_eia_remerge['T_LAT'].fillna(nems_eia_remerge['Latitude'])
     nems_eia_remerge['T_LONG'] = nems_eia_remerge['T_LONG'].fillna(nems_eia_remerge['Longitude'])
     nems_eia_remerge['status'] = nems_eia_remerge['status'].fillna(nems_eia_remerge['Status'])
+    # Use the EIA860M sector where available; AEO-NEMS units default to 'Electric Utility'
+    nems_eia_remerge['sector'] = nems_eia_remerge['Sector'].fillna(nems_eia_remerge['sector'])
 
     nems_eia_remerge = nems_eia_remerge[aeo_eia_cols].copy()
     nems_eia860_final = pd.concat([nems_eia860_merged, nems_eia_remerge],ignore_index=True)
@@ -508,7 +514,13 @@ def cleanMergedAEOEIA860(aeo_orig, nems_eia860, storage_duration):
 
     # Rename all "pv" to "upv" and "geothermal" to "geohydro_allkm":
     nems_eia860_final.loc[(nems_eia860_final['tech'] == 'pv'), 'tech'] = 'upv'
-    nems_eia860_final.loc[(nems_eia860_final['tech'] == 'geothermal'), 'tech'] = 'geohydro_allkm'    
+    nems_eia860_final.loc[(nems_eia860_final['tech'] == 'geothermal'), 'tech'] = 'geohydro_allkm'
+
+    # Flag combined heat and power (CHP) units based on their EIA860M sector
+    # ('IPP CHP', 'Commercial CHP', 'Industrial CHP')
+    sector = nems_eia860_final['sector'].fillna('')
+    nems_eia860_final['chp'] = (sector.str.contains('CHP') &
+                                ~sector.str.contains('Non-CHP')).astype(int)
 
     return nems_eia860_final
 
