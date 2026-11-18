@@ -61,6 +61,10 @@ dfold = pd.read_csv(os.path.join(reeds_path,'inputs','capacity_exogenous',gdbold
 columns_to_keep = dfold.columns.tolist()
 if 'T_CID' in columns_to_keep:
     columns_to_keep.remove('T_CID')
+# Add new columns that may not be in the previous version
+for col in ['sector', 'chp']:
+    if col not in columns_to_keep:
+        columns_to_keep.append(col)
 
 dfold['merge_id'] = dfold['T_PID'].astype(str).str.strip() + "_" + dfold['T_UID'].astype(str).str.strip()
 
