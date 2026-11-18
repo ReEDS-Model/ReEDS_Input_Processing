@@ -52,6 +52,20 @@ if (len(data_raw_no_lon_lat) > 0):
     print("Some units do not have lon/lat, so matching them to user-adjusted lon/lat data:")
     if (os.path.isfile(os.path.join('inputs','user_adjusted_units_missing_lon_lats.csv'))):
         adjusted_missing_unit = pd.read_csv(os.path.join('inputs','user_adjusted_units_missing_lon_lats.csv'))
+        # Rows in the user file may predate newer columns (sector, chp), so fill those
+        # from the cleaned data for the same units
+        keys = ['T_PID','T_UID']
+        fill_cols = [c for c in ['sector','chp'] if c in data_raw.columns]
+        ref = data_raw[keys + fill_cols].copy()
+        for df in [ref, adjusted_missing_unit]:
+            for k in keys:
+                df[k] = df[k].astype(str).str.strip()
+        ref = ref.drop_duplicates(subset=keys)
+        adjusted_missing_unit = adjusted_missing_unit.merge(ref, on=keys, how='left', suffixes=('','_ref'))
+        for c in fill_cols:
+            if c in adjusted_missing_unit.columns and c + '_ref' in adjusted_missing_unit.columns:
+                adjusted_missing_unit[c] = adjusted_missing_unit[c].fillna(adjusted_missing_unit.pop(c + '_ref'))
+        adjusted_missing_unit = adjusted_missing_unit.astype({k: data_raw[k].dtype for k in keys})
         data_raw_w_long_lat = data_raw[(data_raw['T_LONG'].notna()) & (data_raw['T_LAT'].notna()) & 
                                        (data_raw['T_LONG']!=0) & (data_raw['T_LAT']!=0)]
         data_raw = pd.concat([data_raw_w_long_lat, adjusted_missing_unit],ignore_index=True)
