@@ -200,6 +200,13 @@ else:
 ## did not need a FOM fill use the median of AEO-NEMS units of the same tech, then 0
 ## (in ReEDS, 0 CCS retrofit values mean the generic retrofit cost is used).
 retro_cols = ['T_CAPAD','T_CCSROV','T_CCSF','T_CCSV','T_CCSHR','T_CCSCAPA','T_CCSLOC']
+ccs_cols = [c for c in retro_cols if c.startswith('T_CCS')]
+## Filter out outlier CCS retrofit data
+outlier_ccs = (df6['T_CCSHR'] < 0) | (df6['T_CCSROV'] > 10000)
+if outlier_ccs.any():
+    print(f'Replacing unusable CCS retrofit data for {outlier_ccs.sum()} units: '
+          + ', '.join(df6.loc[outlier_ccs,'T_PNM'].astype(str).unique()))
+    df6.loc[outlier_ccs, ccs_cols] = np.nan
 noRetro = (df6['HeatRate'].notna() & (df6['HeatRate']>0)
            & df6[retro_cols].isna().any(axis=1))
 similar_unit = closest_index_df['from_index_FOM'].reindex(df6.index)

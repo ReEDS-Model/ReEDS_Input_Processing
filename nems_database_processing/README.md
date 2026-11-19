@@ -43,7 +43,7 @@ Located in `outputs` folder. This is the final file that will be used to run ReE
 The database includes units from all EIA860M sectors: electric utility, independent power producer (IPP), commercial, and industrial, each split into CHP and non-CHP where applicable.
 Commercial and industrial units are not in AEO-NEMS, so their data come from EIA860M only, with heat rates and FOM/VOM filled from similar units.
 CHP units without heat rates get the capacity-weighted median heat rate of CHP units in AEO-NEMS for that technology (coal technologies are pooled). Other units without heat rates get the capacity-weighted average of units of that technology that came online in the last 5 years.
-Thermal units not in AEO-NEMS also have no capital-addition (`T_CAPAD`) or CCS retrofit (`T_CCS*`) data. These are copied from the same similar unit used to fill FOM. ReEDS drops units with blanks in these columns when it builds hintage bins.
+Thermal units not in AEO-NEMS also have no capital-addition (`T_CAPAD`) or CCS retrofit (`T_CCS*`) data. These are copied from the same similar unit used to fill FOM. ReEDS drops units with blanks in these columns when it builds hintage bins. AEO-NEMS units with unusable CCS retrofit data (a negative CCS heat rate or a retrofit cost above $10,000/kW) are filled the same way.
 ReEDS load already includes the onsite "direct use" load these units serve.
 Two columns describe this:
 * `sector`: EIA860M sector of the unit. Units found only in AEO-NEMS default to `Electric Utility`.
