@@ -450,9 +450,55 @@ def addHeatrates(nems_eia860):
     hr_assignments['coal-new'] = hr_assignments['coaloldscr']
     hr_assignments['coal-igcc'] = hr_assignments['coaloldscr']
 
+    # CHP units without heat rates (mostly EIA860M-only commercial and industrial units) get
+    # CHP-specific heat rates. Using recent builds across all sectors would make these
+    # mostly older, smaller units look more efficient than the utility fleet.
+    chp_missing_hr = (nems_eia860['chp']==1) & (nems_eia860['THRATE'].isna())
+    chp_hr_assignments = chpHeatrates(nems_eia860)
+    nems_eia860.loc[chp_missing_hr,'THRATE'] = (nems_eia860.loc[chp_missing_hr,'tech']
+                                                .map(chpHeatrateGroup).map(chp_hr_assignments))
+
     # Assign heatrates to units without heatrate values
     nems_eia860['THRATE'] = nems_eia860['THRATE'].fillna(nems_eia860['tech'].map(hr_assignments))
 
+    return nems_eia860
+
+def chpHeatrateGroup(tech):
+    # Pool coal techs, since few coal CHP units have heat rates
+    return 'coal' if 'coal' in str(tech) else tech
+
+def weightedMedian(values, weights):
+    order = np.argsort(values)
+    values = np.asarray(values)[order]
+    cum_weights = np.cumsum(np.asarray(weights)[order])
+    return values[np.searchsorted(cum_weights, 0.5*cum_weights[-1])]
+
+def chpHeatrates(nems_eia860, min_units=5):
+    # Capacity-weighted median heat rate by tech for CHP units with heat rates (from AEO-NEMS),
+    # across all vintages. The median limits the effect of outliers. Techs with fewer than
+    # min_units CHP units with heat rates fall back to the default assignment.
+    hr_chp = nems_eia860[(nems_eia860['chp']==1) & (nems_eia860['THRATE']>0) &
+                         (nems_eia860['TC_SUM']>0)].copy()
+    hr_chp['hr_group'] = hr_chp['tech'].map(chpHeatrateGroup)
+    chp_hr_assignments = {}
+    for group, df in hr_chp.groupby('hr_group'):
+        if len(df) >= min_units:
+            chp_hr_assignments[group] = weightedMedian(df['THRATE'], df['TC_SUM'])
+            print(f"CHP heat rate for {group}: {chp_hr_assignments[group]:.0f} Btu/kWh "
+                  f"(from {len(df)} units)")
+    return chp_hr_assignments
+
+def flagCHP(nems_eia860):
+    # Flag combined heat and power (CHP) units: units in a CHP sector in EIA860M
+    # ('IPP CHP', 'Commercial CHP', 'Industrial CHP') that burn fuel. EIA860M assigns
+    # sectors by plant, so non-thermal units at CHP plants (e.g., solar, batteries,
+    # hydro, wind) keep their plant's sector but are not flagged as CHP.
+    non_thermal_techs = ['battery_li','pv','pvb','csp-ns','wind-ons','wind-ofs',
+                         'hydro','pumped-hydro','geothermal']
+    sector = nems_eia860['sector'].fillna('')
+    nems_eia860['chp'] = (sector.str.contains('CHP') &
+                          ~sector.str.contains('Non-CHP') &
+                          ~nems_eia860['tech'].isin(non_thermal_techs)).astype(int)
     return nems_eia860
 
 def cleanMergedAEOEIA860(aeo_orig, nems_eia860, storage_duration):
@@ -482,6 +528,8 @@ def cleanMergedAEOEIA860(aeo_orig, nems_eia860, storage_duration):
     nems_eia860[rounding_cols] = nems_eia860[rounding_cols].round(2)
 
     ## Further clean up
+    # Flag CHP units (needed for heat rate assignment)
+    nems_eia860 = flagCHP(nems_eia860)
     # Add heat rate for unmatched EIA860M units:
     nems_eia860_final = addHeatrates(nems_eia860)
     
@@ -515,12 +563,6 @@ def cleanMergedAEOEIA860(aeo_orig, nems_eia860, storage_duration):
     # Rename all "pv" to "upv" and "geothermal" to "geohydro_allkm":
     nems_eia860_final.loc[(nems_eia860_final['tech'] == 'pv'), 'tech'] = 'upv'
     nems_eia860_final.loc[(nems_eia860_final['tech'] == 'geothermal'), 'tech'] = 'geohydro_allkm'
-
-    # Flag combined heat and power (CHP) units based on their EIA860M sector
-    # ('IPP CHP', 'Commercial CHP', 'Industrial CHP')
-    sector = nems_eia860_final['sector'].fillna('')
-    nems_eia860_final['chp'] = (sector.str.contains('CHP') &
-                                ~sector.str.contains('Non-CHP')).astype(int)
 
     return nems_eia860_final
 
