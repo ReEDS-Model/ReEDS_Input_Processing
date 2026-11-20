@@ -61,6 +61,10 @@ dfold = pd.read_csv(os.path.join(reeds_path,'inputs','capacity_exogenous',gdbold
 columns_to_keep = dfold.columns.tolist()
 if 'T_CID' in columns_to_keep:
     columns_to_keep.remove('T_CID')
+# Add new columns that may not be in the previous version
+for col in ['sector', 'chp']:
+    if col not in columns_to_keep:
+        columns_to_keep.append(col)
 
 dfold['merge_id'] = dfold['T_PID'].astype(str).str.strip() + "_" + dfold['T_UID'].astype(str).str.strip()
 
@@ -162,8 +166,9 @@ for i,row in noFVOM.iterrows():
             print(f'            └→{OM}: Using [{closest_index}]: {closest_PNM} data == {closest_OM}')
             ### Third, apply FOM/VOM of closest unit to the target unit
             fixedFVOM.loc[i,T_OM] = df_use.loc[closest_index,T_OM]
-            ### Lastly, collect Unique ID of "closest unit" 
+            ### Lastly, collect Unique ID and index of "closest unit"
             closest_index_df.loc[i,f'{OM}_from_Unique_ID'] = closest_uniqueID
+            closest_index_df.loc[i,f'from_index_{OM}'] = closest_index
         else:
             # No fix necesary for FOM/VOM - just 
             closest_index_df.loc[i,f'{OM}_from_Unique_ID'] = np.nan
@@ -185,6 +190,39 @@ if len(checkFVOM):
 else:
     if os.path.exists(os.path.join('outputs','debug','debug_fix_FOM_VOM.csv')):
         os.remove(os.path.join('outputs','debug','debug_fix_FOM_VOM.csv'))
+
+#%% Assign missing capital-addition and CCS retrofit data based on similar units
+
+## Units not in AEO-NEMS have no capital additions (T_CAPAD) or CCS retrofit data.
+## ReEDS groups units on these columns when it builds hintage bins (WriteHintage.py),
+## and rows with missing values are dropped there, so fill them for all thermal units.
+## Values are copied from the same "similar unit" whose FOM was used above. Units that
+## did not need a FOM fill use the median of AEO-NEMS units of the same tech, then 0
+## (in ReEDS, 0 CCS retrofit values mean the generic retrofit cost is used).
+retro_cols = ['T_CAPAD','T_CCSROV','T_CCSF','T_CCSV','T_CCSHR','T_CCSCAPA','T_CCSLOC']
+ccs_cols = [c for c in retro_cols if c.startswith('T_CCS')]
+## Filter out outlier CCS retrofit data
+outlier_ccs = (df6['T_CCSHR'] < 0) | (df6['T_CCSROV'] > 10000)
+if outlier_ccs.any():
+    print(f'Replacing unusable CCS retrofit data for {outlier_ccs.sum()} units: '
+          + ', '.join(df6.loc[outlier_ccs,'T_PNM'].astype(str).unique()))
+    df6.loc[outlier_ccs, ccs_cols] = np.nan
+noRetro = (df6['HeatRate'].notna() & (df6['HeatRate']>0)
+           & df6[retro_cols].isna().any(axis=1))
+similar_unit = closest_index_df['from_index_FOM'].reindex(df6.index)
+retro_median = df6.loc[df6['nems']==1].groupby('tech')[retro_cols].median()
+for col in retro_cols:
+    missing = noRetro & df6[col].isna()
+    has_similar = missing & similar_unit.notna()
+    df6.loc[has_similar, col] = df6.loc[similar_unit[has_similar].astype(int), col].values
+    still_missing = missing & df6[col].isna()
+    df6.loc[still_missing, col] = df6.loc[still_missing, 'tech'].map(retro_median[col])
+    df6.loc[missing & df6[col].isna(), col] = 0
+n_similar = (noRetro & similar_unit.notna()).sum()
+print(f'Filled capital-addition/CCS retrofit data for {noRetro.sum()} units '
+      f'({df6.loc[noRetro,"summer_power_capacity_MW"].sum()/1e3:.1f} GW): '
+      f'{n_similar} from the similar unit used for FOM, '
+      f'{noRetro.sum()-n_similar} from tech medians or 0')
 
 # Output changes to FOM/VOM if desired:
 changes = fixedFVOM[['T_VOM','T_FOM']]
