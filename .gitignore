@@ -50,3 +50,4 @@ zones/*/*.gpkg
 /nems_database_processing/outputs/
 /psh/outputs/*
 /state_policies/outputs/
+coal/outputs/

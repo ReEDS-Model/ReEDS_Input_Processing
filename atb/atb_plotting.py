@@ -9,7 +9,7 @@ import json
 import argparse
 
 # Get reedsplots from ReEDS repo
-reeds_path = os.path.expanduser('~/Documents/Github/ReEDS/ReEDS')
+reeds_path = os.path.expanduser('~/Documents/Github/ReEDS/public_ReEDS/ReEDS')
 sys.path.append(reeds_path)
 from reeds import plots
 plots.plotparams()
@@ -31,30 +31,30 @@ def main():
                         help='format of output plots, options are .png and .pdf')
     parser.add_argument('--save', '-s', action="store_true",
                         help='save cleaned ATB data used for plotting to csv.')
-    args = parser.parse_args()
+    #args = parser.parse_args()
     
-    atb_version = args.version                      # ATB version
-    core_metric_parameter = args.metric             # Metric to plot: 'CAPEX', 'Fixed O&M','Variable O&M'
-    crpyears = args.crpyears                        # crpyears
-    atb_inputs = args.inputs                        # Read in ATBe.csv input file from 'url' or 'local' inputs folder 
+    #atb_version = args.version                      # ATB version
+    #core_metric_parameter = args.metric             # Metric to plot: 'CAPEX', 'Fixed O&M','Variable O&M'
+    #crpyears = args.crpyears                        # crpyears
+    #atb_inputs = args.inputs                        # Read in ATBe.csv input file from 'url' or 'local' inputs folder 
                                                     # (if a version of ATB is not yet available online, read from 'inputs')
                                                     # Link to past ATBe versions: https://data.openei.org/s3_viewer?bucket=oedi-data-lake&prefix=ATB%2Felectricity%2Fcsv%2F&limit=50
                                                     # 2024 atb_path = 'https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2024/v3.0.0/ATBe.csv'
                                                     # 2025 atb is not yet available online, so only option is reading it from inputs folder.
-    figure_format = args.format                     # 'png' or 'pdf'
-    save_data = args.save                          # Save the version of ATBe that has been cleaned and ready for plotting to csv
+    #figure_format = args.format                     # 'png' or 'pdf'
+    #save_data = args.save                          # Save the version of ATBe that has been cleaned and ready for plotting to csv
     
     ######################################### FOR TESTING/DEBUGGING #########################################
-    # atb_version = 2024                              # ATB version
-    # core_metric_parameter = 'CAPEX'                 # Metric to plot: 'CAPEX', 'Fixed O&M','Variable O&M'
-    # crpyears = 20
-    # atb_inputs = 'url'                              # Read in ATBe.csv input file from 'url' or 'local' inputs folder 
+    atb_version = 2025                              # ATB version
+    core_metric_parameter = 'CAPEX'                 # Metric to plot: 'CAPEX', 'Fixed O&M','Variable O&M'
+    crpyears = 20
+    atb_inputs = 'local'                              # Read in ATBe.csv input file from 'url' or 'local' inputs folder 
                                                       # (if a version of ATB is not yet available online, read from 'inputs')
                                                       # Link to past ATBe versions: https://data.openei.org/s3_viewer?bucket=oedi-data-lake&prefix=ATB%2Felectricity%2Fcsv%2F&limit=50
                                                       # 2024 atb_path = 'https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2024/v3.0.0/ATBe.csv'
                                                       # 2025 atb is not yet available online, so only option is reading it from inputs folder.
-    # figure_format = 'png'                           # 'png' or 'pdf'
-    # save_data = False                               # Print the version of ATBe that has been cleaned and ready for plotting to csv
+    figure_format = 'png'                           # 'png' or 'pdf'
+    save_data = False                               # Print the version of ATBe that has been cleaned and ready for plotting to csv
     #########################################################################################################
     
     # Specify dollar year:
@@ -118,18 +118,31 @@ def clean_atb_data(atb_inputs, atb_path, atb_version, core_metric_parameter, crp
     elif atb_version == 2025:
         core_metric_case = 'Exp + TC'
 
+    # Break down NaturalGas_FE to NaturalGas_CC and NaturalGas_CT
+    atb.loc[atb['techdetail'].isin(['NG 2-on-1 Combined Cycle (F-Frame)',
+                                    'NG 2-on-1 Combined Cycle (H-Frame)',
+                                    'NG 1-on-1 Combined Cycle (H-Frame)',
+                                    'NG 2-on-1 Combined Cycle (F-Frame) 95% CCS',
+                                    'NG 2-on-1 Combined Cycle (H-Frame) 95% CCS',
+                                    'NG 1-on-1 Combined Cycle (H-Frame) 95% CCS',
+                                    'NG 2-on-1 Combined Cycle (F-Frame) 97% CCS',
+                                    'NG 2-on-1 Combined Cycle (H-Frame) 97% CCS',
+                                    'NG 1-on-1 Combined Cycle (H-Frame) 97% CCS'
+                                    ]), 'technology'] = 'NaturalGas_CC'
+    atb.loc[atb['techdetail'].isin(['NG Combustion Turbine (F-Frame)',
+                                    'NG Fuel Cell']), 'technology'] = 'NaturalGas_CT'
     # Technology to plot
     technologies = [
         'Biopower',
         'Coal_FE',
-        'CSP',
         'Geothermal',
-        'LandbasedWind',
-        'NaturalGas_FE',
+        'NaturalGas_CC',
+        'NaturalGas_CT',
         'Nuclear',
-        'OffShoreWind',
         'Utility-Scale Battery Storage',
         'UtilityPV',
+        'LandbasedWind',
+        'OffShoreWind',
     #     'CommPV',
     #     'Hydropower',
     #     'Pumped Storage Hydropower',
@@ -150,7 +163,8 @@ def clean_atb_data(atb_inputs, atb_path, atb_version, core_metric_parameter, crp
                 'Coal_FE',
                 'CSP',
                 'Geothermal',
-                'NaturalGas_FE',
+                'NaturalGas_CC',
+                'NaturalGas_CT',
                 'Nuclear',
                 'OffShoreWind',
             ]:
@@ -211,7 +225,8 @@ def plot_attributes(inputs_path, atb_version):
         'CSP':None,
         'Utility-Scale Battery Storage': 'Duration\n[hours]',
         'OffShoreWind': 'Class',
-        'NaturalGas_FE': None,
+        'NaturalGas_CC': None,
+        'NaturalGas_CT': None,
         'Coal_FE': None,
         'Geothermal': None,
     }
@@ -219,12 +234,13 @@ def plot_attributes(inputs_path, atb_version):
     plottitle = {
         'UtilityPV':'Utility PV',
         'Nuclear':'Nuclear',
-        'LandbasedWind':'Land-based wind',
+        'LandbasedWind':'Wind: Land-based',
         'Biopower':'Biopower',
         'CSP':'CSP',
         'Utility-Scale Battery Storage': 'Utility battery',
-        'OffShoreWind': 'Offshore wind',
-        'NaturalGas_FE': 'Natural gas',
+        'OffShoreWind': 'Wind: Offshore',
+        'NaturalGas_CC': 'Natural gas CC',
+        'NaturalGas_CT': 'Natural gas CT',
         'Coal_FE': 'Coal',
         'Geothermal': 'Geothermal',
     }
@@ -242,18 +258,29 @@ def plot_atb(figures_path, atb_version, technologies, dfplot, traces, colors, le
     ))
 
     # Plot the figure
+    samey = True
     plt.close()
-    f,ax = plt.subplots(
-        nrows, ncols, figsize=(13,8), sharex=True, sharey=True,
-        # gridspec_kw={'wspace':1.0, 'hspace':0.2},
-        gridspec_kw={'hspace':0.25},
-    )
+
+    if samey:
+        f,ax = plt.subplots(
+            nrows, ncols, figsize=(13,8), sharex=True,sharey=True,
+            # sharey=True, gridspec_kw={'wspace':1.0, 'hspace':0.2},
+            gridspec_kw={'hspace':0.25},
+        )
+    else:
+        f,ax = plt.subplots(
+            nrows, ncols, figsize=(16,8), sharex=True,
+            gridspec_kw={'wspace':0.35, 'hspace':0.2},
+            # gridspec_kw={'hspace':0.25},
+                )
 
     for technology in technologies:
         df = {}
         #scenarios = ['Moderate'] if technology == 'Nuclear' else ['Moderate', 'Advanced', 'Conservative']
         scenarios = ['Moderate', 'Advanced', 'Conservative']
         for scenario in scenarios:
+            if (scenario == 'Conservative') and (technology == 'NaturalGas_CT'):
+                traces[technology] = ['NG Combustion Turbine (F-Frame)']            
             df[scenario] = (
                 dfplot
                 .loc[dfplot.scenario==scenario]
@@ -266,17 +293,44 @@ def plot_atb(figures_path, atb_version, technologies, dfplot, traces, colors, le
                 df['Moderate'].index, df['Moderate'][trace].values,
                 color=colors[technology][trace], label=tracelabels[technology][trace],
             )
+        if (scenario == 'Conservative') and (technology == 'NaturalGas_CT'):
+                        traces[technology] = ['NG Combustion Turbine (F-Frame)', 'NG Fuel Cell']
         if len(traces[technology]) != 1:
-            ax[coords[technology]].legend(
-                fontsize=8,   #'small',
-                loc = ('upper right'),
-                #loc=('center left' if coords[technology][1]==2 else 'lower left'),
-                #bbox_to_anchor=((1,0.5) if coords[technology][1]==2 else (0.,0.)),
-                ncol=(2 if technology == 'OffShoreWind' else 1),
-                handlelength=0.7, handletextpad=0.3, columnspacing=0.5,
-                title=legendtitle[technology],
-                frameon=False,
-            )
+            if samey:
+                ax[coords[technology]].legend(
+                    fontsize=8,   #'small',
+                    loc = ('upper right'),
+                    #loc=('center left' if coords[technology][1]==2 else 'lower left'),
+                    #bbox_to_anchor=((1,0.5) if coords[technology][1]==2 else (0.,0.)),
+                    ncol=(2 if (technology == 'OffShoreWind') else 1),
+                    handlelength=0.7, handletextpad=0.3, columnspacing=0.5,
+                    title=legendtitle[technology],
+                    frameon=False,
+                )
+            else:
+                if technology == 'NaturalGas_CT':
+                    loc = ('center left')
+                    fontsize=9
+                elif technology == 'Coal_FE':
+                    loc = ('center left')
+                    fontsize=8
+                elif technology == 'Nuclear':
+                    fontsize = 9
+                    loc = ('upper right')
+                else:
+                    loc = ('upper right')
+                    fontsize = 8
+                
+                ax[coords[technology]].legend(
+                    fontsize=fontsize,
+                    loc = loc,
+                    #loc=('center left' if coords[technology][1]==2 else 'lower left'),
+                    bbox_to_anchor=((1.3,1) if technology=='NaturalGas_CC' else None),
+                    ncol=(2 if ((technology == 'OffShoreWind') or (technology=='Utility-Scale Battery Storage')) else 1),
+                    handlelength=0.7, handletextpad=0.3, columnspacing=0.5,
+                    title=legendtitle[technology],
+                    frameon=False,
+                    )
         ### Formatting
         ax[coords[technology]].set_title(plottitle[technology], weight='bold')
         ax[coords[technology]].grid(which='major',axis='y',ls=':',lw=0.5,c='0.5')
@@ -284,6 +338,8 @@ def plot_atb(figures_path, atb_version, technologies, dfplot, traces, colors, le
         #if technology == 'Nuclear':
         #    continue
         for trace in df['Advanced']:
+            if trace == 'NG Fuel Cell':
+                continue
             ax[coords[technology]].fill_between(
                 df['Advanced'].index, df['Conservative'][trace].values, df['Advanced'][trace].values,
                 color=colors[technology][trace], alpha=alpha, label='_nolabel_', lw=0,
@@ -295,11 +351,11 @@ def plot_atb(figures_path, atb_version, technologies, dfplot, traces, colors, le
     ax[0,0].xaxis.set_major_locator(mpl.ticker.MultipleLocator(10))
     ax[0,0].xaxis.set_minor_locator(mpl.ticker.AutoMinorLocator(2))
     if core_metric_parameter == 'CAPEX':
-        ax[0,0].yaxis.set_major_locator(mpl.ticker.MultipleLocator(2000))
+        ax[0,0].yaxis.set_major_locator(mpl.ticker.MultipleLocator(5000))
     else:
         ax[0,0].yaxis.set_major_locator(mpl.ticker.MultipleLocator(40))
     ax[0,0].yaxis.set_minor_locator(mpl.ticker.AutoMinorLocator(2))
-    ax[0,0].set_ylim(0,math.ceil(dfplot.value.max()/100)*100)
+    #ax[0,0].set_ylim(0,math.ceil(dfplot.value.max()/100)*100)
     ax[1,0].set_ylabel(core_metric_parameter + ' cost [' + str(dollar_year) + '$/kW]')
     ax[0,0].set_ylabel(core_metric_parameter + ' cost [' + str(dollar_year) + '$/kW]')
     plots.despine(ax)
@@ -311,3 +367,5 @@ def plot_atb(figures_path, atb_version, technologies, dfplot, traces, colors, le
         plt.savefig(os.path.join(figures_path,'ATB'+str(atb_version)+'-{}.pdf'.format(core_metric_parameter)))
 
 main()
+
+# %%
