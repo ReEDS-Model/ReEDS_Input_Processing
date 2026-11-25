@@ -1,9 +1,9 @@
-
-import sys
 import os
-import pandas as pd
-import numpy as np
+import sys
+
 import geopandas as gpd
+import numpy as np
+import pandas as pd
 from geopandas import GeoDataFrame
 from shapely.geometry import Point
 
@@ -13,11 +13,11 @@ sys.path.append(reeds_path)
 import reeds
 
 # Main switches
-data_to_generate = 'emission_rate'                # Generate cost multiplier by cendiv ('cost_multiplier')
+data_to_generate = 'cost_multiplier'                # Generate cost multiplier by cendiv ('cost_multiplier')
                                                     # or coal emission rate by fip ('emission_rate')
 recent_years_used = 5                              # Only for 'cost_multiplier', the number of EIA923 years used
                                                     # to estimate post-2024 cost multiplier                                     
-AEO_ver = 2025                                      # Only for 'cost_multiplier', AEO version to estimate cost multiplier
+AEO_ver = 2026                                      # Only for 'cost_multiplier', AEO version to estimate cost multiplier
 
 dir = os.getcwd()
 savepath = os.path.join(dir,"outputs")
@@ -41,15 +41,19 @@ def main(data_to_generate, recent_years_used, AEO_ver):
         # read current coal price from AEO:
         if AEO_ver == 2025:
             aeo_filename = 'coal_AEO_2025_reference.csv'
+        elif AEO_ver == 2026:
+            aeo_filename = 'coal_AEO_2026_altelec.csv'
         elif AEO_ver == 2023:
             aeo_filename = 'coal_AEO_2023_reference.csv'
         else:
             raise ValueError(f"Version {AEO_ver} is not available")
 
         aeo_coal_price_all = pd.read_csv(os.path.join(reeds_path,'inputs','fuelprices',aeo_filename))
+        print(aeo_coal_price_all)
 
         # Read in fuel cost data:
-        df_fuel_cost = pd.read_csv(os.path.join(dir, "outputs", "coal_prices_by_fips_mmbtu_all.csv"))
+        df_fuel_cost = pd.read_csv(os.path.join(dir, "inputs", "coal_prices_by_fips_mmbtu_all.csv"))
+        print(df_fuel_cost)
         
         if recent_years_used == 5:
             yearset = [2020,2021,2022,2023,2024]
@@ -62,9 +66,12 @@ def main(data_to_generate, recent_years_used, AEO_ver):
         # assign counties without coal units to the units closest to them
         fips_cendiv_fuel_price_list = []
         for t in df_fuel_cost['Year'].unique().tolist():
+        #for t in [2010,2011]:
             print(t)
             dfunits = df_fuel_cost[df_fuel_cost['Year']==t]
-            gdfunits = df2gdf(dfunits.assign(T_LONG=-dfunits.T_LONG.abs()), lat='T_LAT', lon='T_LONG')
+            #gdfunits = reeds.plots.df2gdf(dfunits.assign(T_LONG=-dfunits.T_LONG.abs()), lat='T_LAT', lon='T_LONG')
+            gdfunits = reeds.plots.df2gdf(dfunits, lat='T_LAT', lon='T_LONG')
+            #gdfunits = gdfunits.to_crs('ESRI:102008')
 
             dfunits_joint = gpd.sjoin(county_data, gdfunits, predicate="contains")
             
@@ -80,11 +87,15 @@ def main(data_to_generate, recent_years_used, AEO_ver):
             fips_without_coal_plants = fips_without_coal_plants.rename(columns={'rb': 'FIPS'})
 
             # Merge county2zone and hierarchy:
-            county2zone = pd.read_csv(os.path.join(reeds_path,'inputs','county2zone.csv'))
-            hierarchy = pd.read_csv(os.path.join(reeds_path,'inputs','hierarchy.csv'))
+            zoneset = 'z90'
+            county2zone = pd.read_csv(os.path.join(reeds_path,'inputs','zones',zoneset,'county2zone.csv'))
+            hierarchy = pd.read_csv(os.path.join(reeds_path,'inputs','zones',zoneset,'hierarchy.csv'))
+            state_groups = pd.read_csv(os.path.join(reeds_path,'inputs','zones','state_groups.csv'))
 
-            fips_cendiv = county2zone.merge(hierarchy,on='ba',how='left')
-            fips_cendiv = fips_cendiv[['FIPS','ba','cendiv']]
+            fips_cendiv = county2zone.merge(hierarchy,on='r',how='left')
+            fips_cendiv = fips_cendiv[['FIPS','r','st']]
+            fips_cendiv = fips_cendiv.merge(state_groups,on='st',how='left')
+            fips_cendiv = fips_cendiv[['FIPS','r','cendiv']]
             fips_cendiv['FIPS'] = fips_cendiv['FIPS'].astype(str).str.zfill(5)
             fips_cendiv['FIPS'] = 'p' + fips_cendiv['FIPS']
 
@@ -96,24 +107,28 @@ def main(data_to_generate, recent_years_used, AEO_ver):
             # read current coal price from AEO:
             aeo_coal_price = aeo_coal_price_all[aeo_coal_price_all['year']==t]
 
-            fips_cendiv_fuel_price['AEO_Cost'] = 0
+            fips_cendiv_fuel_price['AEO_Cost'] = 0.0
             for c in fips_cendiv_fuel_price['cendiv'].unique().tolist():
                 fips_cendiv_fuel_price.loc[fips_cendiv_fuel_price['cendiv']==c,'AEO_Cost'] = aeo_coal_price[c].iloc[0]
 
             fips_cendiv_fuel_price['multiplier'] = fips_cendiv_fuel_price['Weighted_Fuel_Cost']/fips_cendiv_fuel_price['AEO_Cost']  
-            fips_cendiv_fuel_price['year'] = t  
+            fips_cendiv_fuel_price['year'] = t
+            print(fips_cendiv_fuel_price)
+            fips_cendiv_fuel_price.to_csv(os.path.join('outputs','fips_cendiv_fuel_price_'+str(t)+'.csv'))
+
             fips_cendiv_fuel_price_list = fips_cendiv_fuel_price_list + [fips_cendiv_fuel_price] 
         
-        fips_cendiv_historical = pd.concat(fips_cendiv_fuel_price_list, ignore_index=False, sort=False) 
+        fips_cendiv_historical = pd.concat(fips_cendiv_fuel_price_list, ignore_index=False, sort=False)
+        fips_cendiv_historical.to_csv(os.path.join('outputs','fips_cendiv_historical.csv'))
         
         # Post-2024:
         yearset_post2024 = list(np.arange(2025, 2051, 1))
         fips_cendiv_post2024 = fips_cendiv_historical[fips_cendiv_historical['year'].isin(yearset)]
         fips_cendiv_post2024 = fips_cendiv_post2024.groupby(['cendiv'], as_index=False).agg({'Total_Fuel_Cost': 'sum', 'Quantity': 'sum'})
         
-        aeo_coal_price_2025 = aeo_coal_price_all[aeo_coal_price_all['year']==AEO_ver]
+        aeo_coal_price_2025 = aeo_coal_price_all[aeo_coal_price_all['year']==AEO_ver-1]
 
-        fips_cendiv_post2024['AEO_Cost'] = 0
+        fips_cendiv_post2024['AEO_Cost'] = 0.0
         for c in fips_cendiv_post2024['cendiv'].unique().tolist():
             fips_cendiv_post2024.loc[fips_cendiv_post2024['cendiv']==c,'AEO_Cost'] = aeo_coal_price_2025[c].iloc[0]
 
@@ -167,7 +182,7 @@ def main(data_to_generate, recent_years_used, AEO_ver):
         emission_rate = emission_rate[emission_rate['CH4']>0]
         emission_rate = emission_rate[emission_rate['N2O']>0]
 
-        gdf_emission_rate = df2gdf(emission_rate.assign(T_LONG=-emission_rate.LON.abs()), lat='LAT', lon='LON')
+        gdf_emission_rate = reeds.plots.df2gdf(emission_rate.assign(T_LONG=-emission_rate.LON.abs()), lat='LAT', lon='LON')
         gdf_emission_rate = gdf_emission_rate.to_crs("EPSG:5070")
 
         fips_emission_rate = gpd.sjoin_nearest(gdf_emission_rate, county_data2, how='right')
@@ -267,23 +282,6 @@ def get_latlonlabels(df, lat=None, lon=None, columns=None):
                 break
 
     return latlabel, lonlabel
-
-def df2gdf(dfin, crs='EPSG:5070', lat=None, lon=None):
-    """Convert a pandas dataframe with lat/lon columns to a geopandas dataframe of points"""
-    ### Imports
-    import os
-    import geopandas as gpd
-    import shapely
-    os.environ['PROJ_NETWORK'] = 'OFF'
-
-    ### Convert
-    df = dfin.copy()
-    latlabel, lonlabel = get_latlonlabels(df, lat=lat, lon=lon)
-    df['geometry'] = df.apply(
-        lambda row: shapely.geometry.Point(row[lonlabel], row[latlabel]), axis=1)
-    df = gpd.GeoDataFrame(df, crs='EPSG:5070').to_crs(crs)
-
-    return df
 
 main(data_to_generate, recent_years_used, AEO_ver)
 
