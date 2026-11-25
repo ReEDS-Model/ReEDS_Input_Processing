@@ -74,9 +74,10 @@ processing:
     # future_data: where each sub-technology's projection comes from.
     #   atb_flatfile   - the ATB flat file (raw_data.flat_file)
     #   atb_workbook   - the ATB workbook sheet settings.yaml names as workbook_sheet
-    #   reeds_baseline - ATB does not publish the series; it follows a reference ATB
-    #                    series with the ratio from reeds_baseline.csv, or keeps its
-    #                    ReEDS values when it has no reference (beccs_max)
+    #   reeds_ratio    - ATB does not publish the series; it follows a reference ATB
+    #                    series with the ratio from reeds_baseline.csv
+    #   reeds_baseline - ATB does not publish the series; it keeps its ReEDS values
+    #                    (beccs_max)
     # All ATB series of one technology must name the same file.
     technologies:
       upv:
@@ -171,43 +172,44 @@ processing:
       coal:
         # Only Coal-new and Coal-IGCC are in ATB. The other four designs follow
         # Coal-new, keeping the ratio they have to it in the ReEDS ATB 2024
-        # baseline (reeds_baseline.csv).
+        # baseline (reeds_ratio); as a history mode, reeds_ratio rescales their
+        # ReEDS history to meet the first ATB year.
         historical_data:
           capcost:
             Coal-new: backfill  # options: reeds_baseline / backfill / unavailable
             Coal-IGCC: backfill  # options: reeds_baseline / backfill / unavailable
-            CoalOldScr: reeds_baseline  # options: reeds_baseline / backfill / unavailable
-            CoalOldUns: reeds_baseline  # options: reeds_baseline / backfill / unavailable
-            CofireNew: reeds_baseline  # options: reeds_baseline / backfill / unavailable
-            CofireOld: reeds_baseline  # options: reeds_baseline / backfill / unavailable
+            CoalOldScr: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CoalOldUns: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CofireNew: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CofireOld: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
           fom:
             Coal-new: backfill  # options: reeds_baseline / backfill / unavailable
             Coal-IGCC: backfill  # options: reeds_baseline / backfill / unavailable
-            CoalOldScr: reeds_baseline  # options: reeds_baseline / backfill / unavailable
-            CoalOldUns: reeds_baseline  # options: reeds_baseline / backfill / unavailable
-            CofireNew: reeds_baseline  # options: reeds_baseline / backfill / unavailable
-            CofireOld: reeds_baseline  # options: reeds_baseline / backfill / unavailable
+            CoalOldScr: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CoalOldUns: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CofireNew: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CofireOld: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
           vom:
             Coal-new: backfill  # options: reeds_baseline / backfill / unavailable
             Coal-IGCC: backfill  # options: reeds_baseline / backfill / unavailable
-            CoalOldScr: reeds_baseline  # options: reeds_baseline / backfill / unavailable
-            CoalOldUns: reeds_baseline  # options: reeds_baseline / backfill / unavailable
-            CofireNew: reeds_baseline  # options: reeds_baseline / backfill / unavailable
-            CofireOld: reeds_baseline  # options: reeds_baseline / backfill / unavailable
+            CoalOldScr: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CoalOldUns: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CofireNew: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CofireOld: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
           heatrate:
             Coal-new: backfill  # options: reeds_baseline / backfill / unavailable
             Coal-IGCC: backfill  # options: reeds_baseline / backfill / unavailable
-            CoalOldScr: reeds_baseline  # options: reeds_baseline / backfill / unavailable
-            CoalOldUns: reeds_baseline  # options: reeds_baseline / backfill / unavailable
-            CofireNew: reeds_baseline  # options: reeds_baseline / backfill / unavailable
-            CofireOld: reeds_baseline  # options: reeds_baseline / backfill / unavailable
+            CoalOldScr: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CoalOldUns: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CofireNew: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CofireOld: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
         future_data:
           Coal-new: atb_flatfile  # options: atb_flatfile / atb_workbook
           Coal-IGCC: atb_flatfile  # options: atb_flatfile / atb_workbook
-          CoalOldScr: reeds_baseline  # options: reeds_baseline
-          CoalOldUns: reeds_baseline  # options: reeds_baseline
-          CofireNew: reeds_baseline  # options: reeds_baseline
-          CofireOld: reeds_baseline  # options: reeds_baseline
+          CoalOldScr: reeds_ratio  # options: reeds_ratio
+          CoalOldUns: reeds_ratio  # options: reeds_ratio
+          CofireNew: reeds_ratio  # options: reeds_ratio
+          CofireOld: reeds_ratio  # options: reeds_ratio
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       coal-ccs:
@@ -233,31 +235,31 @@ processing:
             Gas-CT: real  # options: real / reeds_baseline / backfill / unavailable
             Gas-CC_H_1x1: backfill  # options: reeds_baseline / backfill / unavailable
             Gas-CC_H_2x1: backfill  # options: reeds_baseline / backfill / unavailable
-            Gas-CT_aero: reeds_baseline  # options: reeds_baseline / backfill / unavailable
+            Gas-CT_aero: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
           fom:
             Gas-CC: backfill  # options: real / reeds_baseline / backfill / unavailable
             Gas-CT: backfill  # options: real / reeds_baseline / backfill / unavailable
             Gas-CC_H_1x1: backfill  # options: reeds_baseline / backfill / unavailable
             Gas-CC_H_2x1: backfill  # options: reeds_baseline / backfill / unavailable
-            Gas-CT_aero: reeds_baseline  # options: reeds_baseline / backfill / unavailable
+            Gas-CT_aero: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
           vom:
             Gas-CC: backfill  # options: reeds_baseline / backfill / unavailable
             Gas-CT: backfill  # options: reeds_baseline / backfill / unavailable
             Gas-CC_H_1x1: backfill  # options: reeds_baseline / backfill / unavailable
             Gas-CC_H_2x1: backfill  # options: reeds_baseline / backfill / unavailable
-            Gas-CT_aero: reeds_baseline  # options: reeds_baseline / backfill / unavailable
+            Gas-CT_aero: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
           heatrate:
             Gas-CC: backfill  # options: reeds_baseline / backfill / unavailable
             Gas-CT: backfill  # options: reeds_baseline / backfill / unavailable
             Gas-CC_H_1x1: backfill  # options: reeds_baseline / backfill / unavailable
             Gas-CC_H_2x1: backfill  # options: reeds_baseline / backfill / unavailable
-            Gas-CT_aero: reeds_baseline  # options: reeds_baseline / backfill / unavailable
+            Gas-CT_aero: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
         future_data:
           Gas-CC: atb_flatfile  # options: atb_flatfile / atb_workbook
           Gas-CT: atb_flatfile  # options: atb_flatfile / atb_workbook
           Gas-CC_H_1x1: atb_flatfile  # options: atb_flatfile / atb_workbook
           Gas-CC_H_2x1: atb_flatfile  # options: atb_flatfile / atb_workbook
-          Gas-CT_aero: reeds_baseline  # options: reeds_baseline
+          Gas-CT_aero: reeds_ratio  # options: reeds_ratio
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       gas-ccs:

@@ -748,7 +748,7 @@ def provenance_categories(
     # A series the current ATB no longer publishes is scaled from its reference
     # ATB series for every year at or after the boundary, or keeps the ReEDS
     # baseline there when it has no reference; its earlier years follow the
-    # configured history mode, where reeds_baseline is the rescaled baseline.
+    # configured history mode, where reeds_ratio is the rescaled baseline.
     reeds_only = not series_has_atb_data(final_group, provenance)
     class_column = provenance["history_class_column"]
     references = provenance["settings"]["techs"][provenance["technology"]].get("baseline_reference", {})
@@ -796,7 +796,9 @@ def provenance_categories(
                         and year in real_years)
         if year < boundary or real_overlap:
             if historical_mode == "reeds_baseline":
-                final_categories.append(SCALED_CATEGORY if follows_reference else BASELINE_CATEGORY)
+                final_categories.append(BASELINE_CATEGORY)
+            elif historical_mode == "reeds_ratio":
+                final_categories.append(SCALED_CATEGORY)
             elif historical_mode == "backfill":
                 final_categories.append("Backfill history")
             elif historical_mode == "unavailable":

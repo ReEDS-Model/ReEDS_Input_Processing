@@ -52,12 +52,11 @@ Each series' `future_data` in `config.yaml` names its source:
 
 - `atb_flatfile`: the ATB flat file.
 - `atb_workbook`: the workbook sheet `settings.yaml` names as `workbook_sheet`.
-- `reeds_baseline`: a series ATB does not publish. Over the ATB years it
-  follows a reference ATB series, keeping the ratio the two have in the ReEDS
-  ATB 2024 files (`baseline_reference` in `settings.yaml`, e.g. Gas-CT_aero
-  follows Gas-CT). Its earlier years keep their ReEDS shape, rescaled to meet
-  the first ATB year. A series with no reference (beccs_max) keeps its ReEDS
-  values, converted to the output dollar year.
+- `reeds_ratio`: a series ATB does not publish that follows a reference ATB
+  series, keeping the ratio the two have in the ReEDS ATB 2024 files
+  (`baseline_reference` in `settings.yaml`, e.g. Gas-CT_aero follows Gas-CT).
+- `reeds_baseline`: a series ATB does not publish and that has no reference
+  (beccs_max). It keeps its ReEDS values, converted to the output dollar year.
 
 All ATB series of one technology read the same file, and a missing display
 name or metric stops the run. Battery reads the flat file and always takes its
@@ -81,6 +80,7 @@ the sources and methods. Each metric's mode is set per technology in
 | `indexed` | ATB's value at `index_reference_year`, scaled by the change of an observed series. Used for wind-ons and upv FOM, where the LBNL O&M surveys cover only part of the cost. |
 | `backfill` | The first ATB projection value held flat. |
 | `reeds_baseline` | The curve ReEDS ships today (its ATB 2024 files), from `reeds_baseline.csv`. |
+| `reeds_ratio` | For `reeds_ratio` series only: the same ReEDS curve, rescaled to meet the series' first ATB year. |
 | `unavailable` | `unavailable_value` (99999) before the technology's first buildable year in `unavailable_before`. |
 
 With `fill_atbstartyear2atbyear_with_real: true`, `real` metrics also replace

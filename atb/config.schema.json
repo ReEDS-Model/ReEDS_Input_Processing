@@ -161,6 +161,10 @@
     "historyModeWithoutReal": {
       "enum": ["reeds_baseline", "backfill", "unavailable"]
     },
+    "historyModeFollowingReference": {
+      "description": "For a series ATB does not publish that follows a reference ATB series; reeds_ratio rescales its ReEDS baseline to meet the first ATB year.",
+      "enum": ["reeds_ratio", "reeds_baseline", "backfill", "unavailable"]
+    },
     "futureTreatments": {
       "type": "object",
       "additionalProperties": false,
@@ -416,10 +420,10 @@
       "properties": {
         "Coal-new": {"$ref": "#/definitions/historyModeWithoutReal"},
         "Coal-IGCC": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "CoalOldScr": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "CoalOldUns": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "CofireNew": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "CofireOld": {"$ref": "#/definitions/historyModeWithoutReal"}
+        "CoalOldScr": {"$ref": "#/definitions/historyModeFollowingReference"},
+        "CoalOldUns": {"$ref": "#/definitions/historyModeFollowingReference"},
+        "CofireNew": {"$ref": "#/definitions/historyModeFollowingReference"},
+        "CofireOld": {"$ref": "#/definitions/historyModeFollowingReference"}
       }
     },
     "historyCoal": {
@@ -440,10 +444,10 @@
       "properties": {
         "Coal-new": {"$ref": "#/definitions/atbFutureData"},
         "Coal-IGCC": {"$ref": "#/definitions/atbFutureData"},
-        "CoalOldScr": {"const": "reeds_baseline"},
-        "CoalOldUns": {"const": "reeds_baseline"},
-        "CofireNew": {"const": "reeds_baseline"},
-        "CofireOld": {"const": "reeds_baseline"}
+        "CoalOldScr": {"const": "reeds_ratio"},
+        "CoalOldUns": {"const": "reeds_ratio"},
+        "CofireNew": {"const": "reeds_ratio"},
+        "CofireOld": {"const": "reeds_ratio"}
       }
     },
     "technologyCoal": {
@@ -506,7 +510,7 @@
         "Gas-CT": {"$ref": "#/definitions/historyMode"},
         "Gas-CC_H_1x1": {"$ref": "#/definitions/historyModeWithoutReal"},
         "Gas-CC_H_2x1": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "Gas-CT_aero": {"$ref": "#/definitions/historyModeWithoutReal"}
+        "Gas-CT_aero": {"$ref": "#/definitions/historyModeFollowingReference"}
       }
     },
     "historyModeByGasNoReal": {
@@ -519,7 +523,7 @@
         "Gas-CT": {"$ref": "#/definitions/historyModeWithoutReal"},
         "Gas-CC_H_1x1": {"$ref": "#/definitions/historyModeWithoutReal"},
         "Gas-CC_H_2x1": {"$ref": "#/definitions/historyModeWithoutReal"},
-        "Gas-CT_aero": {"$ref": "#/definitions/historyModeWithoutReal"}
+        "Gas-CT_aero": {"$ref": "#/definitions/historyModeFollowingReference"}
       }
     },
     "historyGas": {
@@ -542,7 +546,7 @@
         "Gas-CT": {"$ref": "#/definitions/atbFutureData"},
         "Gas-CC_H_1x1": {"$ref": "#/definitions/atbFutureData"},
         "Gas-CC_H_2x1": {"$ref": "#/definitions/atbFutureData"},
-        "Gas-CT_aero": {"const": "reeds_baseline"}
+        "Gas-CT_aero": {"const": "reeds_ratio"}
       }
     },
     "technologyGas": {

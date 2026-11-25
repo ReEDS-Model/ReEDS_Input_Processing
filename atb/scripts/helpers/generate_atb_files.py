@@ -386,14 +386,17 @@ def _select_pre_projection_history(history, current, idcols):
     return selected.drop(columns='_projection_start')
 
 
-def _follow_reference_series(baseline, current, tech_settings):
+def _follow_reference_series(baseline, history, current, tech_settings, ratio_history):
     """Project the series ATB does not publish from their reference ATB series.
 
     ``baseline_reference`` in settings.yaml names the ATB series each of them
-    follows. Over the reference's ATB years, the series keeps the ratio it has
-    to the reference in the ReEDS baseline; years after the baseline ends use
-    its last ratio. Earlier years keep the shape of the series' own baseline,
-    rescaled to meet its value in the first ATB year, so the two parts join.
+    follows (``future_data: reeds_ratio``). Over the reference's ATB years, the
+    series keeps the ratio it has to the reference in the ReEDS baseline; years
+    after the baseline ends use its last ratio. These rows are returned.
+
+    For the metrics in ``ratio_history[series]`` (history mode ``reeds_ratio``),
+    the earlier rows of ``history`` are rescaled in place: they keep the shape
+    of the series' own baseline and meet its value in the first ATB year.
     """
     references = tech_settings.get('baseline_reference', {})
     if not references:
@@ -413,12 +416,13 @@ def _follow_reference_series(baseline, current, tech_settings):
             raise ValueError(f"The ReEDS baseline gives no ratio of {series!r} to {reference!r} for every ATB year.")
         projection[metrics] = projection[metrics].to_numpy() * factor
         projection[identity] = series
+        scaled.append(projection)
         first = projection['t'].min()
         start = projection.loc[projection['t'] == first, metrics].iloc[0]
-        earlier = (values.loc[series].loc[:first - 1] / values.loc[series].loc[first] * start).reset_index()
-        for column in projection.columns.difference(earlier.columns):
-            earlier[column] = projection[column].iloc[0]
-        scaled.extend([earlier[projection.columns], projection])
+        earlier = (history[identity] == series) & (history['t'] < first)
+        for metric in ratio_history.get(series, []):
+            shape = values.loc[series][metric]
+            history.loc[earlier, metric] = history.loc[earlier, 't'].map(shape / shape.loc[first] * start[metric])
     return scaled
 
 
@@ -507,6 +511,14 @@ def merge_historical_atb_data(
     current_dollar_year = settings['dollaryear']
     history_dollar_year = settings['history_dollar_year']
 
+    # Metrics of each series that follows a reference whose history mode is reeds_ratio.
+    smoothing = _technology_smoothing_config(tech, settings)
+    ratio_history = {
+        series: [metric for metric in smoothing['historical_data']
+                 if _historical_mode_for_metric(smoothing['historical_data'], metric, series) == 'reeds_ratio']
+        for series in tech_settings.get('baseline_reference', {})
+    } if smoothing else {}
+
     for scenario in tech_data['Scenario'].unique():
         current = tech_data.loc[tech_data['Scenario'] == scenario].copy()
         from historical_data import reeds_baseline_history
@@ -523,8 +535,8 @@ def merge_historical_atb_data(
         history_for_output[costcols] = history_for_output[costcols] * adjustment
         history_for_output['Scenario'] = scenario
         # Later frames win where rows repeat, so the scaled series replace their baseline rows.
-        combined.extend([history_for_output, current,
-                         *_follow_reference_series(history_stored, current, tech_settings)])
+        combined.extend([history_for_output, current, *_follow_reference_series(
+            history_stored, history_for_output, current, tech_settings, ratio_history)])
 
         for _, row in _projection_boundary_rows(current, idcols).iterrows():
             series_starts[(scenario, *(row[column] for column in idcols))] = int(row['t'])
@@ -726,7 +738,7 @@ def _selective_smooth_cost_values(
 FUTURE_SMOOTHING_TREATMENTS = (
     'smooth_projection_curve',
 )
-HISTORICAL_DATA_MODES = ('real', 'reeds_baseline', 'backfill', 'indexed', 'unavailable')
+HISTORICAL_DATA_MODES = ('real', 'reeds_baseline', 'reeds_ratio', 'backfill', 'indexed', 'unavailable')
 NON_HISTORY_COLUMNS = {'Scenario', 'i', 't', 'turbine', 'type'}
 
 
@@ -763,7 +775,7 @@ def _historical_mode_for_metric(historical_data, metric, class_value=None):
         ) from error
 
 
-FUTURE_DATA_SOURCES = (*ATB_FUTURE_SOURCES, 'reeds_baseline')
+FUTURE_DATA_SOURCES = (*ATB_FUTURE_SOURCES, 'reeds_baseline', 'reeds_ratio')
 
 
 def atb_backed_classes(tech, settings):
@@ -792,7 +804,8 @@ def _validate_future_data_config(tech, future_data, settings):
     The section must agree with what the pipeline does: an ATB file
     (``atb_flatfile`` or ``atb_workbook``, the same one for every ATB series
     of the technology) only for labels mapped from ATB (or scaled from a
-    mapped CSP type) and ``reeds_baseline`` only for series ATB does not publish.
+    mapped CSP type). A series ATB does not publish is ``reeds_ratio`` when
+    settings.yaml gives it a ``baseline_reference`` and ``reeds_baseline`` otherwise.
     """
     label = f"processing.smooth_cost_curves.technologies.{tech}.future_data"
     class_column = settings['techs'][tech].get('history_class_column')
@@ -819,17 +832,23 @@ def _validate_future_data_config(tech, future_data, settings):
     # One ATB file per technology; the loader already read it from this entry.
     technology_atb_source(tech, future_data)
     backed = atb_backed_classes(tech, settings)
+    references = settings['techs'][tech].get('baseline_reference', {})
     for cls, source in entries.items():
         from_atb = cls is None or cls in backed
         if (source in ATB_FUTURE_SOURCES) != from_atb:
             why, expected = (
                 ("is mapped from an ATB display name in settings.yaml", sorted(ATB_FUTURE_SOURCES))
                 if from_atb
-                else ("is not in the ATB mapping, so it is retained from the ReEDS baseline", 'reeds_baseline')
+                else ("is not in the ATB mapping", ['reeds_baseline', 'reeds_ratio'])
             )
             raise ValueError(
                 f"{label}{'.' + cls if cls else ''} says {source!r} but {cls or tech} {why}; "
                 f"expected {expected!r}."
+            )
+        if not from_atb and (source == 'reeds_ratio') != (cls in references):
+            raise ValueError(
+                f"{label}.{cls} says {source!r}, but reeds_ratio is for the series that settings.yaml "
+                f"gives a baseline_reference ({sorted(references)}) and reeds_baseline for the others."
             )
     return future_data
 
@@ -879,6 +898,18 @@ def _validate_historical_data_config(tech, historical_data, settings):
         raise KeyError(
             f"Unavailable historical metric modes in {label}; choose from "
             f"{list(HISTORICAL_DATA_MODES)}: {invalid}"
+        )
+    references = settings['techs'][tech].get('baseline_reference', {})
+    misplaced = sorted(
+        f"{metric}.{class_value}" if class_value else metric
+        for metric in historical_data
+        for class_value, mode in _metric_modes(historical_data, metric).items()
+        if mode == 'reeds_ratio' and class_value not in references
+    )
+    if misplaced:
+        raise KeyError(
+            f"{label} selects reeds_ratio for {misplaced}, but only the series that settings.yaml "
+            f"gives a baseline_reference can use it: {sorted(references)}."
         )
     uses_unavailable = any(
         mode == 'unavailable'

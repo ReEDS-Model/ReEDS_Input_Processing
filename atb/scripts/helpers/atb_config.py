@@ -35,17 +35,17 @@ def technology_atb_source(tech, future_data):
 
     ``future_data`` is the technology's config entry: one value, or one value
     per sub-technology. Every ATB-backed series must name the same file, so a
-    technology is never assembled from both. ``reeds_baseline`` series do not count.
+    technology is never assembled from both. ``reeds_baseline`` and ``reeds_ratio`` series do not count.
     """
     label = f"processing.smooth_cost_curves.technologies.{tech}.future_data"
     if future_data is None:
         return "flat_file"
     values = future_data.values() if isinstance(future_data, dict) else [future_data]
-    unknown = sorted({str(v) for v in values if v not in ATB_FUTURE_SOURCES and v != "reeds_baseline"})
+    unknown = sorted({str(v) for v in values if v not in ATB_FUTURE_SOURCES and v not in ("reeds_baseline", "reeds_ratio")})
     if unknown:
         raise ValueError(
             f"{label} has unknown values {unknown}; choose from "
-            f"{sorted(ATB_FUTURE_SOURCES)} or 'reeds_baseline'."
+            f"{sorted(ATB_FUTURE_SOURCES)}, 'reeds_baseline' or 'reeds_ratio'."
         )
     files = sorted({ATB_FUTURE_SOURCES[v] for v in values if v in ATB_FUTURE_SOURCES})
     if len(files) > 1:
