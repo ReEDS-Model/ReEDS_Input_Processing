@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@5.8.0"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}, "axis": {"grid": false, "labelFontSize": 15, "titleFontSize": 15}, "legend": {"labelFontSize": 15, "titleFontSize": 15}}, "data": {"name": "data-b96f3d366e0cf9739cd7447824892376"}, "mark": {"type": "bar", "size": 30}, "encoding": {"color": {"field": "tg", "scale": {"range": ["gold", "goldenrod", "skyblue", "aqua", "lightpink", "darkseagreen", "aquamarine", "saddlebrown", "grey", "black", "lightblue", "violet", "turquoise"]}, "sort": ["pv", "csp", "wind-ons", "wind-ofs", "nuclear", "battery", "pumped-hydro", "biomass", "gas", "coal", "hydro", "geothermal", "h2"], "type": "nominal"}, "order": {"field": "idx", "type": "quantitative"}, "x": {"field": "year", "sort": [2027, 2028, 2029, 2030, 2031], "title": null, "type": "nominal"}, "y": {"aggregate": "sum", "axis": {"grid": false, "title": "Capacity (MW)"}, "field": "cap", "scale": {"domain": [0, 2200000]}, "sort": ["pv", "csp", "wind-ons", "wind-ofs", "nuclear", "battery", "pumped-hydro", "biomass", "gas", "coal", "hydro", "geothermal", "h2"], "type": "quantitative"}}, "height": 300, "title": "Interconnection Queue Version 2025", "width": 500, "$schema": "https://vega.github.io/schema/vega-lite/v5.8.0.json", "datasets": {"data-b96f3d366e0cf9739cd7447824892376": [{"tg": "battery", "year": "2027", "cap": 58437.600240854, "idx": 7}, {"tg": "battery", "year": "2028", "cap": 116875.200481708, "idx": 7}, {"tg": "battery", "year": "2029", "cap": 258872.64623853358, "idx": 7}, {"tg": "battery", "year": "2030", "cap": 400870.09199535794, "idx": 7}, {"tg": "battery", "year": "2031", "cap": 542867.5377521821, "idx": 7}, {"tg": "biomass", "year": "2027", "cap": 71.0, "idx": 5}, {"tg": "biomass", "year": "2028", "cap": 142.0, "idx": 5}, {"tg": "biomass", "year": "2029", "cap": 2201.4196666666785, "idx": 5}, {"tg": "biomass", "year": "2030", "cap": 4260.839333333339, "idx": 5}, {"tg": "biomass", "year": "2031", "cap": 6320.259, "idx": 5}, {"tg": "coal", "year": "2027", "cap": 1332.5, "idx": 3}, {"tg": "coal", "year": "2028", "cap": 2665.0, "idx": 3}, {"tg": "coal", "year": "2029", "cap": 2997.6333333333423, "idx": 3}, {"tg": "coal", "year": "2030", "cap": 3330.266666666672, "idx": 3}, {"tg": "coal", "year": "2031", "cap": 3662.9, "idx": 3}, {"tg": "csp", "year": "2027", "cap": 0.0, "idx": 11}, {"tg": "csp", "year": "2028", "cap": 0.0, "idx": 11}, {"tg": "csp", "year": "2029", "cap": 0.0, "idx": 11}, {"tg": "csp", "year": "2030", "cap": 0.0, "idx": 11}, {"tg": "csp", "year": "2031", "cap": 0.0, "idx": 11}, {"tg": "gas", "year": "2027", "cap": 19852.428499515056, "idx": 4}, {"tg": "gas", "year": "2028", "cap": 39704.85699903011, "idx": 4}, {"tg": "gas", "year": "2029", "cap": 110351.57133236347, "idx": 4}, {"tg": "gas", "year": "2030", "cap": 180998.2856656972, "idx": 4}, {"tg": "gas", "year": "2031", "cap": 251644.99999903011, "idx": 4}, {"tg": "geothermal", "year": "2027", "cap": 434.26750000000004, "idx": 1}, {"tg": "geothermal", "year": "2028", "cap": 868.5350000000001, "idx": 1}, {"tg": "geothermal", "year": "2029", "cap": 2178.615000000106, "idx": 1}, {"tg": "geothermal", "year": "2030", "cap": 3488.695000000024, "idx": 1}, {"tg": "geothermal", "year": "2031", "cap": 4798.775, "idx": 1}, {"tg": "h2", "year": "2027", "cap": 0.0, "idx": 0}, {"tg": "h2", "year": "2028", "cap": 0.0, "idx": 0}, {"tg": "h2", "year": "2029", "cap": 262.0, "idx": 0}, {"tg": "h2", "year": "2030", "cap": 524.0, "idx": 0}, {"tg": "h2", "year": "2031", "cap": 786.0, "idx": 0}, {"tg": "hydro", "year": "2027", "cap": 188.29249990463256, "idx": 2}, {"tg": "hydro", "year": "2028", "cap": 376.5849998092651, "idx": 2}, {"tg": "hydro", "year": "2029", "cap": 1000.191666475974, "idx": 2}, {"tg": "hydro", "year": "2030", "cap": 1623.79833314262, "idx": 2}, {"tg": "hydro", "year": "2031", "cap": 2247.404999809265, "idx": 2}, {"tg": "nuclear", "year": "2027", "cap": 507.5, "idx": 8}, {"tg": "nuclear", "year": "2028", "cap": 1015.0, "idx": 8}, {"tg": "nuclear", "year": "2029", "cap": 4140.999999999563, "idx": 8}, {"tg": "nuclear", "year": "2030", "cap": 7266.999999999782, "idx": 8}, {"tg": "nuclear", "year": "2031", "cap": 10393.0, "idx": 8}, {"tg": "pumped-hydro", "year": "2027", "cap": 868.0, "idx": 6}, {"tg": "pumped-hydro", "year": "2028", "cap": 1736.0, "idx": 6}, {"tg": "pumped-hydro", "year": "2029", "cap": 3437.5656540000928, "idx": 6}, {"tg": "pumped-hydro", "year": "2030", "cap": 5139.131308000069, "idx": 6}, {"tg": "pumped-hydro", "year": "2031", "cap": 6840.696962, "idx": 6}, {"tg": "pv", "year": "2027", "cap": 98609.6441459693, "idx": 12}, {"tg": "pv", "year": "2028", "cap": 197219.2882919386, "idx": 12}, {"tg": "pv", "year": "2029", "cap": 386889.9305362088, "idx": 12}, {"tg": "pv", "year": "2030", "cap": 576560.5727804737, "idx": 12}, {"tg": "pv", "year": "2031", "cap": 766231.2150247386, "idx": 12}, {"tg": "wind-ofs", "year": "2027", "cap": 514.47, "idx": 9}, {"tg": "wind-ofs", "year": "2028", "cap": 1028.94, "idx": 9}, {"tg": "wind-ofs", "year": "2029", "cap": 6485.889999999721, "idx": 9}, {"tg": "wind-ofs", "year": "2030", "cap": 11942.839999999791, "idx": 9}, {"tg": "wind-ofs", "year": "2031", "cap": 17399.79, "idx": 9}, {"tg": "wind-ons", "year": "2027", "cap": 26472.307999570847, "idx": 10}, {"tg": "wind-ons", "year": "2028", "cap": 52944.61599914169, "idx": 10}, {"tg": "wind-ons", "year": "2029", "cap": 99214.12813247391, "idx": 10}, {"tg": "wind-ons", "year": "2030", "cap": 145483.6402658079, "idx": 10}, {"tg": "wind-ons", "year": "2031", "cap": 191753.1523991417, "idx": 10}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>

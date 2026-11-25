@@ -162,6 +162,8 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
                            (nems_cleaned['T_PNM'].str.contains('Belle River')) &
                            (nems_cleaned['EFDcd']=='CSU')].copy()
     df_temp['tech'] = 'o-g-s'
+    # Assign gas-cc heat rate to the upgraded unit using NG CT heat rate from ATB 2025
+    df_temp['THRATE'] = 9717
     df_temp['EFDcd'] = 'CTN'
     df_temp['T_SYR'] = 2026
     df_temp['T_RYR'] = 2081
@@ -181,15 +183,36 @@ def set_retire_years(nems,reeds_path,coal_plant_retirement,current_year):
                            (nems_cleaned['T_UID'].str.contains('5')) &
                            (nems_cleaned['EFDcd']=='CSC')].copy()
     df_temp['tech'] = 'gas-cc'
+    # Assign gas-cc heat rate to the upgraded unit using NG 2x1 H-Frame CC heat rate from ATB 2025
+    df_temp['THRATE'] = 6113
     df_temp['EFDcd'] = 'CTN'
     df_temp['T_SYR'] = 2028
-    df_temp['T_RYR'] = 2108
+    df_temp['T_RYR'] = 2083
     # Keep the old coal unit and update its retirement year to 2025
     nems_cleaned.loc[(nems_cleaned['T_RYR'] > 2021) &
                      (nems_cleaned['T_UID'].str.contains('5')) &
                      (nems_cleaned['T_PNM'].str.contains('Edgewater')) &
                      (nems_cleaned['EFDcd']=='CSC'),
-                     'T_RYR'] = 2025   
+                     'T_RYR'] = 2025
+    nems_cleaned = pd.concat([nems_cleaned, df_temp], axis=0)
+    nems_cleaned = nems_cleaned.reset_index(drop=True)
+
+    ### Transalta Centralia unit 2: Retire coal unit in 2026 (unit was expected to retire in 2025
+    # but ordered to stay online until 2026), and convert it to gas-cc in 2028:
+    # Add new row for new unit (gas-cc)
+    df_temp = nems_cleaned[(nems_cleaned['T_PID']==3845) &
+                            (nems_cleaned['T_UID']=='2') &
+                            (nems_cleaned['EFDcd']=='CSC')].copy()
+    df_temp['tech'] = 'gas-cc'
+    df_temp['THRATE'] = 6113
+    df_temp['EFDcd'] = 'CTN'
+    df_temp['T_SYR'] = 2028
+    df_temp['T_RYR'] = 2083
+    # Keep the old coal unit and change retire year to 2026
+    nems_cleaned.loc[(nems_cleaned['T_PID']==3845) &
+                     (nems_cleaned['T_UID']=='2') &
+                     (nems_cleaned['EFDcd']=='CSC'),
+                     ['T_SYR','T_RYR']] = [1973,2026]  
     nems_cleaned = pd.concat([nems_cleaned, df_temp], axis=0)
     nems_cleaned = nems_cleaned.reset_index(drop=True)
 
