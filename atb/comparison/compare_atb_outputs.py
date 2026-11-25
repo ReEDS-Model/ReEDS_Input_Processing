@@ -91,9 +91,12 @@ def reeds_dollar_years(reeds_dir: Path) -> dict[str, int]:
     return dict(zip(frame["Scenario"], frame["Dollar.Year"].astype(int)))
 
 # Values copied from inputs/historical/reeds_baseline.csv, the deflated ReEDS ATB baseline
-# scraped from the pinned ReEDS repository. Pre-ATB years in "reeds_baseline" mode use
-# it, and so do whole series the current ATB no longer publishes.
+# scraped from the pinned ReEDS repository. Pre-ATB years in "reeds_baseline" mode use it.
 BASELINE_CATEGORY = "ReEDS baseline history"
+# A series ATB does not publish that follows a reference ATB series
+# (baseline_reference in settings.yaml): the reference times the ratio the two
+# have in the ReEDS baseline, and before that its own baseline rescaled to join.
+SCALED_CATEGORY = "Scaled from ATB (ReEDS baseline ratio)"
 
 PROVENANCE_COLORS = {
     BASELINE_CATEGORY: "#0072B2",
@@ -108,6 +111,7 @@ PROVENANCE_COLORS = {
     "Indexed anchor (observed O&M)": "#00553F",
     "ATB projection (raw)": "#6E6E6E",
     "ATB projection (smoothed)": "#E69F00",
+    SCALED_CATEGORY: "#882255",
 }
 
 PROJECTION_CATEGORIES = {
@@ -741,10 +745,14 @@ def provenance_categories(
 ) -> list[str]:
     """Label each final point by its exclusive data source or treatment."""
     years = pd.to_numeric(final_group["t"], errors="raise").astype(int)
-    # A series the current ATB no longer publishes keeps the ReEDS baseline
-    # from inputs/historical/reeds_baseline.csv for every year at or after the boundary; its
-    # earlier years still follow the configured history mode like any other.
+    # A series the current ATB no longer publishes is scaled from its reference
+    # ATB series for every year at or after the boundary, or keeps the ReEDS
+    # baseline there when it has no reference; its earlier years follow the
+    # configured history mode, where reeds_baseline is the rescaled baseline.
     reeds_only = not series_has_atb_data(final_group, provenance)
+    class_column = provenance["history_class_column"]
+    references = provenance["settings"]["techs"][provenance["technology"]].get("baseline_reference", {})
+    follows_reference = class_column in final_group and final_group[class_column].iloc[0] in references
     final_values = pd.to_numeric(final_group[metric], errors="coerce")
     if baseline_group is None:
         baseline_values = pd.Series(np.nan, index=final_group.index)
@@ -788,7 +796,7 @@ def provenance_categories(
                         and year in real_years)
         if year < boundary or real_overlap:
             if historical_mode == "reeds_baseline":
-                final_categories.append(BASELINE_CATEGORY)
+                final_categories.append(SCALED_CATEGORY if follows_reference else BASELINE_CATEGORY)
             elif historical_mode == "backfill":
                 final_categories.append("Backfill history")
             elif historical_mode == "unavailable":
@@ -837,7 +845,7 @@ def provenance_categories(
                     f"{provenance['technology']}.{metric}: {historical_mode!r}"
                 )
         elif reeds_only:
-            final_categories.append(BASELINE_CATEGORY)
+            final_categories.append(SCALED_CATEGORY if follows_reference else BASELINE_CATEGORY)
         else:
             final_categories.append(
                 "ATB projection (smoothed)"
@@ -867,6 +875,8 @@ def input_point_categories(
             categories.append(category)
         elif category in PROJECTION_CATEGORIES:
             categories.append("ATB projection (raw)")
+        elif category == SCALED_CATEGORY:
+            categories.append(None)
         elif category == BASELINE_CATEGORY or historical_mode == "reeds_baseline":
             categories.append(BASELINE_CATEGORY)
         elif historical_mode == "real" and is_observed_history_point(

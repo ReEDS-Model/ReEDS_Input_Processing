@@ -49,6 +49,7 @@ CATEGORY_COLORS = {
     "Backfill history": "#17becf",
     "Unavailable placeholder": "#c7c7c7",
     "ReEDS baseline history": "#ff7f0e",
+    "Scaled from ATB (ReEDS baseline ratio)": "#882255",
 }
 DASHES = ["solid", "dash", "dot", "dashdot", "longdash", "longdashdot"]
 # Line color of a series that is identical in every scenario.

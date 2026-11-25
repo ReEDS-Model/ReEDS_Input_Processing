@@ -74,7 +74,9 @@ processing:
     # future_data: where each sub-technology's projection comes from.
     #   atb_flatfile   - the ATB flat file (raw_data.flat_file)
     #   atb_workbook   - the ATB workbook sheet settings.yaml names as workbook_sheet
-    #   reeds_baseline - kept from reeds_baseline.csv; ATB does not publish the series
+    #   reeds_baseline - ATB does not publish the series; it follows a reference ATB
+    #                    series with the ratio from reeds_baseline.csv, or keeps its
+    #                    ReEDS values when it has no reference (beccs_max)
     # All ATB series of one technology must name the same file.
     technologies:
       upv:
@@ -167,8 +169,9 @@ processing:
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       coal:
-        # Only Coal-new and Coal-IGCC are in ATB. The other four designs are
-        # kept from the ReEDS ATB 2024 baseline (reeds_baseline.csv).
+        # Only Coal-new and Coal-IGCC are in ATB. The other four designs follow
+        # Coal-new, keeping the ratio they have to it in the ReEDS ATB 2024
+        # baseline (reeds_baseline.csv).
         historical_data:
           capcost:
             Coal-new: backfill  # options: reeds_baseline / backfill / unavailable
@@ -222,8 +225,8 @@ processing:
         future_smoothing_treatments:
           smooth_projection_curve: false  # options: true / false
       gas:
-        # Gas-CT_aero is not in ATB; it is kept from the ReEDS ATB 2024
-        # baseline (reeds_baseline.csv).
+        # Gas-CT_aero is not in ATB (ReEDS takes it from EIA). It follows
+        # Gas-CT, keeping the ratio it has to it in the ReEDS ATB 2024 baseline.
         historical_data:
           capcost:
             Gas-CC: real  # options: real / reeds_baseline / backfill / unavailable

@@ -34,6 +34,7 @@ the terminal.
 | green | observed (`real`, `indexed`) |
 | orange | filled between observations |
 | blue | ReEDS baseline (`inputs/historical/reeds_baseline.csv`) |
+| dark red | scaled from a reference ATB series or rescaled ReEDS baseline, for series ATB does not publish |
 | pink | backfill |
 | gray | unavailable placeholder |
 | purple / dark gray / teal | raw ATB conservative / moderate / advanced |

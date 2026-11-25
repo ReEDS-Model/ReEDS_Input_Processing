@@ -248,6 +248,14 @@ techs:
     DisplayName:
       Coal-new: Coal-new
       Coal-IGCC: Coal-IGCC
+    # Series ATB does not publish, and the ATB series each one follows: over the
+    # ATB years it keeps the ratio it has to that series in the ReEDS baseline,
+    # and its earlier baseline years are rescaled to join.
+    baseline_reference:
+      CoalOldScr: Coal-new
+      CoalOldUns: Coal-new
+      CofireNew: Coal-new
+      CofireOld: Coal-new
     subset_rows:
       Case: Market
       CRPYears: 30
@@ -305,6 +313,9 @@ techs:
       NG Combustion Turbine (F-Frame): Gas-CT
       NG 1-on-1 Combined Cycle (H-Frame): Gas-CC_H_1x1
       NG 2-on-1 Combined Cycle (H-Frame): Gas-CC_H_2x1
+    # see coal
+    baseline_reference:
+      Gas-CT_aero: Gas-CT
     subset_rows:
       Case: Market
       CRPYears: 30

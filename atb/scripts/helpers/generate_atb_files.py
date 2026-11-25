@@ -386,6 +386,42 @@ def _select_pre_projection_history(history, current, idcols):
     return selected.drop(columns='_projection_start')
 
 
+def _follow_reference_series(baseline, current, tech_settings):
+    """Project the series ATB does not publish from their reference ATB series.
+
+    ``baseline_reference`` in settings.yaml names the ATB series each of them
+    follows. Over the reference's ATB years, the series keeps the ratio it has
+    to the reference in the ReEDS baseline; years after the baseline ends use
+    its last ratio. Earlier years keep the shape of the series' own baseline,
+    rescaled to meet its value in the first ATB year, so the two parts join.
+    """
+    references = tech_settings.get('baseline_reference', {})
+    if not references:
+        return []
+    from historical_data import identity_column
+    identity = identity_column(tech_settings)
+    metrics = [col for col in baseline.columns if col not in (identity, 't')]
+    values = baseline.set_index([identity, 't'])[metrics]
+    scaled = []
+    for series, reference in references.items():
+        projection = current.loc[current[identity] == reference].copy()
+        if projection.empty:
+            raise ValueError(f"Reference series {reference!r} of {series!r} has no ATB projection.")
+        ratio = values.loc[series] / values.loc[reference]
+        factor = ratio.reindex(projection['t'].clip(upper=ratio.index.max())).to_numpy()
+        if not np.isfinite(factor).all():
+            raise ValueError(f"The ReEDS baseline gives no ratio of {series!r} to {reference!r} for every ATB year.")
+        projection[metrics] = projection[metrics].to_numpy() * factor
+        projection[identity] = series
+        first = projection['t'].min()
+        start = projection.loc[projection['t'] == first, metrics].iloc[0]
+        earlier = (values.loc[series].loc[:first - 1] / values.loc[series].loc[first] * start).reset_index()
+        for column in projection.columns.difference(earlier.columns):
+            earlier[column] = projection[column].iloc[0]
+        scaled.extend([earlier[projection.columns], projection])
+    return scaled
+
+
 def _projection_boundary_rows(current, idcols):
     """Select the first current-ATB year for every active technology series."""
     if not idcols:
@@ -457,8 +493,9 @@ def merge_historical_atb_data(
 
     The local history is stored in a fixed dollar year. For each active series,
     only rows before the first current scraped year are used. Series no longer
-    published by ATB are retained from history. Archived base-year estimates
-    are applied separately; formatting never appends to the ReEDS baseline.
+    published by ATB are retained from history, and follow their reference
+    series over the ATB years (see _follow_reference_series). Archived base-year
+    estimates are applied separately; formatting never appends to the ReEDS baseline.
     """
     tech_settings = settings['techs'][tech]
     idcols = [
@@ -485,7 +522,9 @@ def merge_historical_atb_data(
         )
         history_for_output[costcols] = history_for_output[costcols] * adjustment
         history_for_output['Scenario'] = scenario
-        combined.extend([history_for_output, current])
+        # Later frames win where rows repeat, so the scaled series replace their baseline rows.
+        combined.extend([history_for_output, current,
+                         *_follow_reference_series(history_stored, current, tech_settings)])
 
         for _, row in _projection_boundary_rows(current, idcols).iterrows():
             series_starts[(scenario, *(row[column] for column in idcols))] = int(row['t'])
