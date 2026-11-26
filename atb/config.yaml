@@ -1,0 +1,388 @@
+# yaml-language-server: $schema=./config.schema.json
+
+# Settings for a pipeline run. What to review for a new ATB release:
+#   atb                 year, release_version, dollar_year
+#   raw_data            flat file and workbook filename and url
+#   processing          atb_case / atb_case_overrides (cases the release
+#                       publishes) and reeds_atb_year
+#   processing.smooth_cost_curves
+#                       index_reference_year and unavailable_before (ATB base
+#                       year), then each technology's historical_data and
+#                       future_data choices
+#   plotting            case / fallback_case
+# Per machine: processing.reeds_repo.
+# Outside this file: inputs/manual/*_<year>.csv, inputs/plot_style/traces_<year>.json,
+# and config_history.yaml (source editions and pins used to rebuild history).
+
+workflow:
+  format_reeds_inputs: true
+  make_plots: true
+  make_comparison_plots: true
+
+atb:
+  year: 2025
+  release_version: 1
+  dollar_year: 2023
+
+raw_data:
+  directory: inputs/scraped
+  allow_insecure_ssl_fallback: true
+  flat_file:
+    filename: atb_2025_flat_file.csv
+    url: https://oedi-data-lake.s3.amazonaws.com/ATB/electricity/csv/2025/v1.0.0/ATBe.csv
+  workbook:
+    filename: atb_2025_workbook.xlsx
+    url: https://data.openei.org/files/8759/2025_v1_Workbook_08-27-2026.xlsx
+
+processing:
+  atb_case: R&D  # ATB 2025 has no Market case; Exp is closest for the techs below.
+  atb_case_overrides: {upv: Exp, wind-ons: Exp, battery: Exp}
+  reeds_repo: C:/ReEDS/ReEDS
+  reeds_atb_year: 2024  # ReEDS plant_characteristics vintage compared against; ReEDS has no ATB 2025 files yet.
+  reeds_end_year: 2060  # last year written to outputs
+  output_directory: output
+  copy_to_reeds: false
+  technologies: all
+  update_costs: true
+  update_financials: false
+  sensitivity_name: null
+  reeds_start_year: 2010
+  decimals: 6
+  smooth_cost_curves:
+    # Applies each technology's historical_data modes below; when false, all
+    # history comes from the ReEDS baseline. Smoothing of projection years is
+    # the per-technology smooth_projection_curve switch.
+    enabled: true
+    method: selective
+    columns: all
+    fill_atbstartyear2atbyear_with_real: true
+    index_reference_year: 2023  # ATB year supplying the level for indexed metrics (ATB 2025 base year).
+    unavailable_value: 99999  # ReEDS placeholder for years before a technology existed.
+    # First buildable year for every metric using the unavailable mode; earlier
+    # years get unavailable_value in the outputs. reeds_baseline.csv never carries it.
+    unavailable_before:
+      fuelcell: 2035
+      nuclear-smr: 2030
+      wind-ofs: 2030
+      coal-ccs: 2023
+      gas-ccs: 2023
+      beccs: 2023
+    slope_change_threshold: 0.4
+    max_kink_years: 4
+    major_step_relative_threshold: 0.1
+    minimum_adjustment_relative_threshold: 0.001
+    # future_data: where each sub-technology's projection comes from.
+    #   atb_flatfile   - the ATB flat file (raw_data.flat_file)
+    #   atb_workbook   - the ATB workbook sheet settings.yaml names as workbook_sheet
+    #   reeds_ratio    - ATB does not publish the series; it follows a reference ATB
+    #                    series with the ratio from reeds_baseline.csv
+    #   reeds_baseline - ATB does not publish the series; it keeps its ReEDS values
+    #                    (beccs_max)
+    # All ATB series of one technology must name the same file.
+    technologies:
+      upv:
+        historical_data:
+          capcost: real  # options: real / reeds_baseline / backfill / unavailable
+          fom: indexed  # options: real / reeds_baseline / backfill / indexed / unavailable
+          vom: backfill  # options: reeds_baseline / backfill / unavailable
+          cf_improvement: real  # options: real / reeds_baseline / backfill / unavailable
+        future_data: atb_flatfile  # options: atb_flatfile / atb_workbook
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      wind-ons:
+        historical_data:
+          capcost:
+            115hh_170rd: real  # options: real / reeds_baseline / backfill / unavailable
+          fom:
+            115hh_170rd: indexed  # options: real / reeds_baseline / backfill / indexed / unavailable
+          vom:
+            115hh_170rd: backfill  # options: reeds_baseline / backfill / unavailable
+          cf_improvement:
+            115hh_170rd: real  # options: real / reeds_baseline / backfill / unavailable
+        future_data:
+          115hh_170rd: atb_flatfile  # options: atb_flatfile / atb_workbook
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      wind-ofs:
+        historical_data:
+          capcost:
+            fixed: real  # options: real / reeds_baseline / backfill / unavailable
+            floating: unavailable  # options: reeds_baseline / backfill / unavailable
+          fom:
+            fixed: backfill  # options: real / reeds_baseline / backfill / unavailable
+            floating: backfill  # options: reeds_baseline / backfill / unavailable
+          vom:
+            fixed: backfill  # options: reeds_baseline / backfill / unavailable
+            floating: backfill  # options: reeds_baseline / backfill / unavailable
+          cf_improvement:
+            fixed: backfill  # options: real / reeds_baseline / backfill / unavailable
+            floating: backfill  # options: reeds_baseline / backfill / unavailable
+          rsc_mult:
+            fixed: backfill  # options: reeds_baseline / backfill
+            floating: backfill  # options: reeds_baseline / backfill
+        future_data:
+          fixed: atb_flatfile  # options: atb_flatfile / atb_workbook
+          floating: atb_flatfile  # options: atb_flatfile / atb_workbook
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      battery:
+        historical_data:
+          capcost:
+            battery_li: real  # options: real / reeds_baseline / backfill / unavailable
+          capcost_energy:
+            battery_li: real  # options: real / reeds_baseline / backfill / unavailable
+          fom:
+            battery_li: backfill  # options: real / reeds_baseline / backfill / unavailable
+          fom_energy:
+            battery_li: backfill  # options: reeds_baseline / backfill / unavailable
+          vom:
+            battery_li: backfill  # options: reeds_baseline / backfill / unavailable
+          rte:
+            battery_li: backfill  # options: reeds_baseline / backfill / unavailable
+        future_data:
+          battery_li: atb_flatfile  # options: atb_flatfile (power/energy costs are always overlaid from the workbook)
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      csp:
+        historical_data:
+          capcost:
+            csp1: real  # options: real / reeds_baseline / backfill / unavailable
+            csp2: real  # options: real / reeds_baseline / backfill / unavailable
+            csp3: real  # options: real / reeds_baseline / backfill / unavailable
+            csp4: real  # options: real / reeds_baseline / backfill / unavailable
+          fom:
+            csp1: backfill  # options: real / reeds_baseline / backfill / unavailable
+            csp2: backfill  # options: real / reeds_baseline / backfill / unavailable
+            csp3: backfill  # options: real / reeds_baseline / backfill / unavailable
+            csp4: backfill  # options: real / reeds_baseline / backfill / unavailable
+          vom:
+            csp1: backfill  # options: reeds_baseline / backfill / unavailable
+            csp2: backfill  # options: reeds_baseline / backfill / unavailable
+            csp3: backfill  # options: reeds_baseline / backfill / unavailable
+            csp4: backfill  # options: reeds_baseline / backfill / unavailable
+        # csp1, csp3 and csp4 are scaled from the ATB csp2 series with
+        # inputs/manual/csp_cost_ratios_<year>.csv, so their source is still atb.
+        future_data:
+          csp1: atb_flatfile  # options: atb_flatfile / atb_workbook
+          csp2: atb_flatfile  # options: atb_flatfile / atb_workbook
+          csp3: atb_flatfile  # options: atb_flatfile / atb_workbook
+          csp4: atb_flatfile  # options: atb_flatfile / atb_workbook
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      coal:
+        # Only Coal-new and Coal-IGCC are in ATB. The other four designs follow
+        # Coal-new, keeping the ratio they have to it in the ReEDS ATB 2024
+        # baseline (reeds_ratio); as a history mode, reeds_ratio rescales their
+        # ReEDS history to meet the first ATB year.
+        historical_data:
+          capcost:
+            Coal-new: backfill  # options: reeds_baseline / backfill / unavailable
+            Coal-IGCC: backfill  # options: reeds_baseline / backfill / unavailable
+            CoalOldScr: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CoalOldUns: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CofireNew: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CofireOld: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+          fom:
+            Coal-new: backfill  # options: reeds_baseline / backfill / unavailable
+            Coal-IGCC: backfill  # options: reeds_baseline / backfill / unavailable
+            CoalOldScr: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CoalOldUns: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CofireNew: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CofireOld: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+          vom:
+            Coal-new: backfill  # options: reeds_baseline / backfill / unavailable
+            Coal-IGCC: backfill  # options: reeds_baseline / backfill / unavailable
+            CoalOldScr: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CoalOldUns: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CofireNew: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CofireOld: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+          heatrate:
+            Coal-new: backfill  # options: reeds_baseline / backfill / unavailable
+            Coal-IGCC: backfill  # options: reeds_baseline / backfill / unavailable
+            CoalOldScr: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CoalOldUns: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CofireNew: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+            CofireOld: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+        future_data:
+          Coal-new: atb_flatfile  # options: atb_flatfile / atb_workbook
+          Coal-IGCC: atb_flatfile  # options: atb_flatfile / atb_workbook
+          CoalOldScr: reeds_ratio  # options: reeds_ratio
+          CoalOldUns: reeds_ratio  # options: reeds_ratio
+          CofireNew: reeds_ratio  # options: reeds_ratio
+          CofireOld: reeds_ratio  # options: reeds_ratio
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      coal-ccs:
+        historical_data:
+          capcost:
+            coal-CCS_mod: unavailable  # options: reeds_baseline / backfill / unavailable
+          fom:
+            coal-CCS_mod: backfill  # options: reeds_baseline / backfill / unavailable
+          vom:
+            coal-CCS_mod: backfill  # options: reeds_baseline / backfill / unavailable
+          heatrate:
+            coal-CCS_mod: backfill  # options: reeds_baseline / backfill / unavailable
+        future_data:
+          coal-CCS_mod: atb_flatfile  # options: atb_flatfile / atb_workbook
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      gas:
+        # Gas-CT_aero is not in ATB (ReEDS takes it from EIA). It follows
+        # Gas-CT, keeping the ratio it has to it in the ReEDS ATB 2024 baseline.
+        historical_data:
+          capcost:
+            Gas-CC: real  # options: real / reeds_baseline / backfill / unavailable
+            Gas-CT: real  # options: real / reeds_baseline / backfill / unavailable
+            Gas-CC_H_1x1: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CC_H_2x1: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CT_aero: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+          fom:
+            Gas-CC: backfill  # options: real / reeds_baseline / backfill / unavailable
+            Gas-CT: backfill  # options: real / reeds_baseline / backfill / unavailable
+            Gas-CC_H_1x1: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CC_H_2x1: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CT_aero: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+          vom:
+            Gas-CC: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CT: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CC_H_1x1: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CC_H_2x1: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CT_aero: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+          heatrate:
+            Gas-CC: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CT: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CC_H_1x1: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CC_H_2x1: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CT_aero: reeds_ratio  # options: reeds_ratio / reeds_baseline / backfill / unavailable
+        future_data:
+          Gas-CC: atb_flatfile  # options: atb_flatfile / atb_workbook
+          Gas-CT: atb_flatfile  # options: atb_flatfile / atb_workbook
+          Gas-CC_H_1x1: atb_flatfile  # options: atb_flatfile / atb_workbook
+          Gas-CC_H_2x1: atb_flatfile  # options: atb_flatfile / atb_workbook
+          Gas-CT_aero: reeds_ratio  # options: reeds_ratio
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      gas-ccs:
+        historical_data:
+          capcost:
+            Gas-CC-CCS_mod: unavailable  # options: reeds_baseline / backfill / unavailable
+            Gas-CC_H_1x1-CCS_mod: unavailable  # options: reeds_baseline / backfill / unavailable
+            Gas-CC_H_2x1-CCS_mod: unavailable  # options: reeds_baseline / backfill / unavailable
+          fom:
+            Gas-CC-CCS_mod: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CC_H_1x1-CCS_mod: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CC_H_2x1-CCS_mod: backfill  # options: reeds_baseline / backfill / unavailable
+          vom:
+            Gas-CC-CCS_mod: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CC_H_1x1-CCS_mod: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CC_H_2x1-CCS_mod: backfill  # options: reeds_baseline / backfill / unavailable
+          heatrate:
+            Gas-CC-CCS_mod: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CC_H_1x1-CCS_mod: backfill  # options: reeds_baseline / backfill / unavailable
+            Gas-CC_H_2x1-CCS_mod: backfill  # options: reeds_baseline / backfill / unavailable
+        future_data:
+          Gas-CC-CCS_mod: atb_flatfile  # options: atb_flatfile / atb_workbook
+          Gas-CC_H_1x1-CCS_mod: atb_flatfile  # options: atb_flatfile / atb_workbook
+          Gas-CC_H_2x1-CCS_mod: atb_flatfile  # options: atb_flatfile / atb_workbook
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      fuelcell:
+        historical_data:
+          capcost:
+            ng-fuel-cell: unavailable  # options: reeds_baseline / backfill / unavailable
+          fom:
+            ng-fuel-cell: backfill  # options: reeds_baseline / backfill / unavailable
+          vom:
+            ng-fuel-cell: backfill  # options: reeds_baseline / backfill / unavailable
+          heatrate:
+            ng-fuel-cell: backfill  # options: reeds_baseline / backfill / unavailable
+        future_data:
+          ng-fuel-cell: atb_flatfile  # options: atb_flatfile / atb_workbook
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      nuclear:
+        historical_data:
+          capcost:
+            Nuclear: real  # options: real / reeds_baseline / backfill / unavailable
+          fom:
+            Nuclear: backfill  # options: real / reeds_baseline / backfill / unavailable
+          vom:
+            Nuclear: backfill  # options: reeds_baseline / backfill / unavailable
+          heatrate:
+            Nuclear: backfill  # options: reeds_baseline / backfill / unavailable
+        future_data:
+          Nuclear: atb_flatfile  # options: atb_flatfile / atb_workbook
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      nuclear-smr:
+        historical_data:
+          capcost:
+            Nuclear-SMR: unavailable  # options: reeds_baseline / backfill / unavailable
+          fom:
+            Nuclear-SMR: backfill  # options: reeds_baseline / backfill / unavailable
+          vom:
+            Nuclear-SMR: backfill  # options: reeds_baseline / backfill / unavailable
+          heatrate:
+            Nuclear-SMR: backfill  # options: reeds_baseline / backfill / unavailable
+        future_data:
+          Nuclear-SMR: atb_flatfile  # options: atb_flatfile / atb_workbook
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      biopower:
+        historical_data:
+          capcost:
+            biopower: real  # options: real / reeds_baseline / backfill / unavailable
+          fom:
+            biopower: backfill  # options: real / reeds_baseline / backfill / unavailable
+          vom:
+            biopower: backfill  # options: reeds_baseline / backfill / unavailable
+          heatrate:
+            biopower: backfill  # options: reeds_baseline / backfill / unavailable
+        future_data:
+          biopower: atb_flatfile  # options: atb_flatfile / atb_workbook
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+      # beccs_mod is ATB 2025 Biopower - 95% CCS (workbook). beccs_max is not
+      # in ATB, so it is retained from ReEDS beccs_reference.csv via reeds_baseline.csv.
+      beccs:
+        historical_data:
+          capcost:
+            beccs_mod: unavailable  # options: reeds_baseline / backfill / unavailable
+            beccs_max: reeds_baseline  # options: reeds_baseline
+          fom:
+            beccs_mod: backfill  # options: reeds_baseline / backfill / unavailable
+            beccs_max: reeds_baseline  # options: reeds_baseline
+          vom:
+            beccs_mod: backfill  # options: reeds_baseline / backfill / unavailable
+            beccs_max: reeds_baseline  # options: reeds_baseline
+          heatrate:
+            beccs_mod: backfill  # options: reeds_baseline / backfill / unavailable
+            beccs_max: reeds_baseline  # options: reeds_baseline
+        future_data:
+          beccs_mod: atb_workbook  # options: atb_flatfile / atb_workbook
+          beccs_max: reeds_baseline  # options: reeds_baseline
+        future_smoothing_treatments:
+          smooth_projection_curve: false  # options: true / false
+
+plotting:
+  metrics:
+    - CAPEX
+    - Fixed O&M
+    - Variable O&M
+  crp_years: 20
+  figure_format: png
+  output_directory: figures
+  smoothing_comparison_directory: comparison/plot_component
+  case: Exp + TC  # ATB financial case plotted (Market for ATB 2024)
+  fallback_case: R&D  # for technologies the release does not publish under `case`
+  technologies:  # ATB technology names, one figure panel each (up to 10)
+    - Biopower
+    - Coal_FE
+    - CSP
+    - Geothermal
+    - LandbasedWind
+    - NaturalGas_FE
+    - Nuclear
+    - OffShoreWind
+    - Utility-Scale Battery Storage
+    - UtilityPV

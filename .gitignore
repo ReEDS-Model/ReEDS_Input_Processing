@@ -1,7 +1,16 @@
 log.txt
 *.gdx
 *.lst
-atb/inputs/
+gens_fixme.csv
+
+# atb files
+atb/output/
+atb/inputs/ATBe_*.csv
+atb/inputs/scraped/*
+!atb/inputs/scraped/README.md
+atb/comparison/*
+!atb/comparison/README.md
+!atb/comparison/compare_atb_outputs.py
 
 # pyc files
 *.pyc

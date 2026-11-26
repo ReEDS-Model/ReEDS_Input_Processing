@@ -1,0 +1,284 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/NREL/ReEDS-2.0/atb/config_history.schema.json",
+  "title": "ReEDS ATB history configuration",
+  "description": "Editor validation for atb/config_history.yaml.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reeds_source",
+    "historical_data",
+    "historical_cost_sources"
+  ],
+  "properties": {
+    "reeds_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repo", "ref", "cache_directory"],
+      "properties": {
+        "repo": {"type": "string", "pattern": "^[^/]+/[^/]+$"},
+        "ref": {"type": "string", "minLength": 7},
+        "cache_directory": {"type": "string", "minLength": 1}
+      }
+    },
+    "historical_data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "directory",
+        "real_filename",
+        "reeds_baseline_filename",
+        "dollar_year",
+        "reference_atb_year",
+        "reference_release"
+      ],
+      "properties": {
+        "directory": {
+          "type": "string",
+          "minLength": 1
+        },
+        "real_filename": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reeds_baseline_filename": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dollar_year": {
+          "type": "integer",
+          "minimum": 1900
+        },
+        "reference_atb_year": {
+          "type": "integer",
+          "minimum": 2015
+        },
+        "reference_release": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["flat_file", "workbook"],
+          "properties": {
+            "flat_file": {"$ref": "#/definitions/downloadArtifact"},
+            "workbook": {"$ref": "#/definitions/downloadArtifact"}
+          }
+        }
+      }
+    },
+    "historical_cost_sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "directory",
+        "normalized_filename",
+        "manifest_filename",
+        "reeds_mappings",
+        "sources"
+      ],
+      "properties": {
+        "directory": {"type": "string", "minLength": 1},
+        "normalized_filename": {"type": "string", "minLength": 1},
+        "manifest_filename": {"type": "string", "minLength": 1},
+        "allow_insecure_ssl_fallback": {"type": "boolean"},
+        "reeds_mappings": {"$ref": "#/definitions/reedsMappings"},
+        "project_files": {
+          "type": "object",
+          "description": "Plant-level project cost files keyed by source id; each names its ReEDS technology and CSV path.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["technology", "path"],
+            "properties": {
+              "technology": {"type": "string", "minLength": 1},
+              "path": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "om_index": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ages": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 1}},
+            "minimum_ages": {"type": "integer", "minimum": 1}
+          }
+        },
+        "cost_scope_adjustment": {
+          "type": "object",
+          "description": "Rescales observed capital costs from their reported boundary onto the ATB overnight capital cost used by ReEDS, using components from the release pinned by historical_data.reference_atb_year.",
+          "additionalProperties": false,
+          "required": ["scopes"],
+          "properties": {
+            "reference_year": {"type": "integer", "minimum": 1900},
+            "reference_scenario": {"enum": ["Moderate", "Advanced", "Conservative"]},
+            "reference_case": {"type": "string"},
+            "reference_crpyears": {"type": "integer", "minimum": 1},
+            "scopes": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "overnight": {"$ref": "#/definitions/cost_components"},
+                "overnight_plus_grid": {"$ref": "#/definitions/cost_components"},
+                "installed_with_financing": {"$ref": "#/definitions/cost_components"}
+              }
+            },
+            "overrides": {
+              "type": "object",
+              "description": "Force a technology onto a declared scope instead of the one its source reports.",
+              "additionalProperties": {"enum": ["overnight", "overnight_plus_grid", "installed_with_financing"]}
+            }
+          }
+        },
+        "battery_cost_split": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reference_year", "reference_scenario", "duration_filters"],
+          "properties": {
+            "reference_year": {"type": "integer", "minimum": 1900},
+            "reference_scenario": {"enum": ["Moderate", "Advanced", "Conservative"]},
+            "duration_filters": {"$ref": "#/definitions/filters"},
+            "preferred_cost_filters": {"$ref": "#/definitions/filters"},
+            "preferred_duration_filters": {"$ref": "#/definitions/filters"}
+          },
+          "dependencies": {
+            "preferred_cost_filters": ["preferred_duration_filters"],
+            "preferred_duration_filters": ["preferred_cost_filters"]
+          }
+        },
+        "sources": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/definitions/historicalSource"}
+        }
+      }
+    }
+  },
+  "definitions": {
+    "downloadArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filename", "url"],
+      "properties": {
+        "filename": {"type": "string", "minLength": 1},
+        "url": {"type": "string", "minLength": 1}
+      }
+    },
+    "cost_components": {
+      "type": "array",
+      "description": "ATB components removed from a reported cost to reach the overnight capital cost.",
+      "items": {"enum": ["GCC", "CFC"]},
+      "uniqueItems": true
+    },
+    "historicalSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "page_url", "filename"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "report_year": {"type": "integer", "minimum": 1900},
+        "first_year": {"type": "integer", "minimum": 1900},
+        "first_cohort_year": {"type": "integer", "minimum": 1900},
+        "last_year": {"type": "integer", "minimum": 1900},
+        "last_historical_year": {"type": "integer", "minimum": 1900},
+        "page_url": {"type": "string", "minLength": 1},
+        "data_url": {"type": "string", "minLength": 1},
+        "current_data_url": {"type": "string", "minLength": 1},
+        "archive_data_url": {"type": "string", "minLength": 1},
+        "filename": {"type": "string", "minLength": 1}
+      },
+      "anyOf": [
+        {"required": ["data_url"]},
+        {"required": ["current_data_url", "archive_data_url"]}
+      ]
+    },
+    "filterValue": {
+      "type": ["string", "number", "integer", "boolean"]
+    },
+    "filters": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/definitions/filterValue"}
+    },
+    "mappingSeries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filters"],
+      "properties": {
+        "filters": {"$ref": "#/definitions/filters"},
+        "technologies": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string"}
+        },
+        "turbine_classes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "observedMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "filters": {"$ref": "#/definitions/filters"},
+        "turbine_classes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string"}
+        },
+        "series": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/definitions/mappingSeries"}
+        }
+      },
+      "oneOf": [
+        {"required": ["filters"]},
+        {"required": ["series"]}
+      ]
+    },
+    "metricMappings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost"],
+      "properties": {
+        "capcost": {"$ref": "#/definitions/observedMapping"}
+      }
+    },
+    "metricMappingsWithCf": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost"],
+      "properties": {
+        "capcost": {"$ref": "#/definitions/observedMapping"},
+        "fom": {"$ref": "#/definitions/observedMapping"},
+        "fom_index": {"$ref": "#/definitions/observedMapping"},
+        "cf_improvement": {"$ref": "#/definitions/observedMapping"}
+      }
+    },
+    "batteryMetricMappings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capcost", "capcost_energy"],
+      "properties": {
+        "capcost": {"$ref": "#/definitions/observedMapping"},
+        "capcost_energy": {"$ref": "#/definitions/observedMapping"}
+      }
+    },
+    "reedsMappings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "battery": {"$ref": "#/definitions/batteryMetricMappings"},
+        "csp": {"$ref": "#/definitions/metricMappings"},
+        "nuclear": {"$ref": "#/definitions/metricMappings"},
+        "upv": {"$ref": "#/definitions/metricMappingsWithCf"},
+        "wind-ons": {"$ref": "#/definitions/metricMappingsWithCf"},
+        "wind-ofs": {"$ref": "#/definitions/metricMappings"},
+        "gas": {"$ref": "#/definitions/metricMappings"},
+        "biopower": {"$ref": "#/definitions/metricMappings"}
+      }
+    }
+  }
+}
